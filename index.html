@@ -1140,7 +1140,7 @@ Write with depth, real numbers from the data above, and specificity:
 - catalysts: 1-2 sentences. Upcoming events that could move the stock.
 - sectorContext: 1-2 sentences. How it compares to sector peers.`;
 
-    const txt = await callAnthropic(prompt, true);
+    const txt = await callAnthropic(prompt, false); // no web search — scores are already computed
     const analysis = parseJSON(txt);
     s.analysis = analysis;
     save();
@@ -1499,7 +1499,7 @@ async function summarizeAll(){
     btn.textContent = `🧠 Generating ${i+1}/${done.length}…`;
     await fetchSummary(done[i].id);
     // 5 second gap between calls to stay under 30k tokens/min rate limit
-    if(i < done.length-1) await new Promise(r=>setTimeout(r,5000));
+    if(i < done.length-1) await new Promise(r=>setTimeout(r,12000));
   }
   btn.disabled = false;
   btn.textContent = '🧠 AI Summary all';
