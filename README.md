@@ -86,22 +86,53 @@ That's it. The app will now route MarketData.app calls through your Worker and C
 
 Cloudflare Workers free plan: **100,000 requests/day**. Each screened ticker uses at most 1 Worker request, so you'd have to screen ~100k tickers a day to exceed this.
 
-## Running locally
+## Running it yourself
 
-Clone this repo and open `index.html` directly — the simplest way:
+You have three options, in order of reliability:
+
+### Option A — Deploy your own copy to GitHub Pages (recommended)
+
+Opening `index.html` off your local disk (`file://`) hits CORS issues with several of the providers, and not every static host plays nice either. GitHub Pages is free, reliable, and just works for this app.
+
+**One-time setup (~2 minutes):**
+
+1. Sign in to https://github.com (create a free account if you don't have one).
+2. On this repo's page (https://github.com/hrishikeshpujari/screener-on-demand-ai-summary), click **Fork** in the top right → **Create fork**. You'll now have a copy at `https://github.com/<your-username>/screener-on-demand-ai-summary`.
+3. In your fork, click **Settings** (top tab) → **Pages** (left sidebar).
+4. Under **Build and deployment**:
+   - **Source**: `Deploy from a branch`
+   - **Branch**: `main`, folder `/ (root)` → click **Save**.
+5. Wait ~30–60 seconds. Refresh the Pages settings screen — you'll see: *"Your site is live at `https://<your-username>.github.io/screener-on-demand-ai-summary/`"*.
+6. Open that URL. Paste your API keys into the **⚙️ API Key Overrides** panel. Done.
+
+**If you don't want to fork first**, you can also:
+```bash
+git clone https://github.com/hrishikeshpujari/screener-on-demand-ai-summary.git
+cd screener-on-demand-ai-summary
+# create an empty repo on your GitHub account, then:
+git remote set-url origin https://github.com/<your-username>/screener-on-demand-ai-summary.git
+git push -u origin main
+```
+Then follow steps 3–6 above.
+
+> Your fork must be **public** for GitHub Pages to work on the free plan. The repo contains no secrets — keys live in your browser only — so this is safe.
+
+### Option B — Serve locally over `http://localhost`
+
+Works for everything except MarketData.app options on some setups (CORS varies by browser/extension). Good enough for 90% of usage.
 
 ```bash
 git clone https://github.com/hrishikeshpujari/screener-on-demand-ai-summary.git
 cd screener-on-demand-ai-summary
-# Open index.html in your browser
-```
-
-Or serve it over `localhost` if you prefer:
-
-```bash
 python3 -m http.server 8080
-# then visit http://localhost:8080
+# visit http://localhost:8080
 ```
+
+Node alternative: `npx serve . -p 8080`.
+
+### Option C — Open `index.html` directly (`file://`)
+
+Fastest, but **several APIs will fail** due to browser CORS restrictions on `file://` origins. Use A or B if things don't work.
 
 ## Security notes
 
