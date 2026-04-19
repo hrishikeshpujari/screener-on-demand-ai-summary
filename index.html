@@ -427,8 +427,8 @@ function loadStocks(){
     document.getElementById('empty').innerHTML =
       '<div style="text-align:center;padding:32px">' +
       '<div style="font-size:28px;margin-bottom:12px">⚡</div>' +
-      '<div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:8px">Loading your 14 stocks</div>' +
-      '<div style="font-size:12px;color:#555;margin-bottom:16px">Pure-math scoring — takes ~30 seconds.<br>AI summaries are generated on-demand via the 🧠 button per stock.</div>' +
+      '<div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:8px">Loading your ' + DEFAULT_TICKERS.length + ' stocks</div>' +
+      '<div style="font-size:12px;color:#555;margin-bottom:16px">Paced at 1 stock per 4 seconds to stay within Twelve Data free tier limits.<br>~1 minute total. AI summaries generated on-demand via 🧠 button.</div>' +
       '</div>';
     autoLoadDefaults(DEFAULT_TICKERS);
   }
@@ -441,11 +441,11 @@ async function autoLoadDefaults(tickers){
     const id = Date.now() + Math.floor(Math.random()*1000);
     stocks.push({id, ticker, status:'loading', step:`Analyzing ${ticker} (${i+1}/${tickers.length})…`});
     renderTable();
-    // Update empty message with progress
-    const doneCount = stocks.filter(s=>s.status==='done').length;
     document.getElementById('empty').style.display='none';
     await run(id, ticker);
-    await new Promise(r=>setTimeout(r,600));
+    // 8s gap — Twelve Data free tier allows 8 calls/minute
+    // This ensures we never hit the rate limit during bulk load
+    if(i < tickers.length-1) await new Promise(r=>setTimeout(r,4000)); // 4s gap = ~15 stocks/min, within 8 calls/min Twelve Data limit
   }
 }
 function save(){
@@ -495,7 +495,7 @@ async function refreshAll(){
     stocks.unshift({id:nid,ticker,status:'loading',step:'Refreshing…'});
     renderTable();
     await run(nid,ticker);
-    if(i<done.length-1)await new Promise(r=>setTimeout(r,1200));
+    if(i<done.length-1)await new Promise(r=>setTimeout(r,4000));
   }
   document.getElementById('rbar').classList.remove('on');
   document.getElementById('refBtn').disabled=false;const _ab2=document.getElementById('aiAllBtn');if(_ab2)_ab2.disabled=false;
@@ -732,30 +732,38 @@ function parseFinnhubResponse(t, quote, profile, metricResp){
 // Uses Twelve Data (free, 800/day, all tickers) → FMP fallback → Finnhub candle last resort
 async function fetchPriceHistory(t){
 
-  // Primary: Twelve Data — free tier, 800 calls/day, all US tickers, no CORS issues
+  // Primary: Twelve Data — free tier, 800 calls/day, 8 calls/min
   if(keys[2]){
-  try {
-    const url = `https://api.twelvedata.com/time_series?symbol=${t}&interval=1day&outputsize=250&apikey=${keys[2]}`;
-    const r = await fetch(url);
-    if(r.ok){
-      const d = await r.json();
-      if(d.values && d.values.length >= 50){
-        // Twelve Data returns newest first — reverse to oldest first
-        const history = d.values.reverse().map(h => ({
-          date: h.datetime,
-          close: parseFloat(h.close),
-          high: parseFloat(h.high),
-          low: parseFloat(h.low),
-          open: parseFloat(h.open),
-          volume: parseFloat(h.volume)
-        }));
-        console.log(`Twelve Data OK for ${t}: ${history.length} days`);
-        return history;
+    for(let attempt=0; attempt<3; attempt++){
+      try {
+        const url = `https://api.twelvedata.com/time_series?symbol=${t}&interval=1day&outputsize=250&apikey=${keys[2]}`;
+        const r = await fetch(url);
+        if(r.ok){
+          const d = await r.json();
+          // Check for API-level errors (rate limit returns HTTP 200 with error body)
+          if(d.code === 429 || (d.status === 'error' && d.code >= 400)){
+            console.warn(`Twelve Data rate limit for ${t} (attempt ${attempt+1}): ${d.message}`);
+            if(attempt < 2) await new Promise(r=>setTimeout(r, 8000 * (attempt+1))); // wait 8s, 16s
+            continue;
+          }
+          if(d.values && d.values.length >= 50){
+            const history = d.values.reverse().map(h => ({
+              date: h.datetime,
+              close: parseFloat(h.close),
+              high: parseFloat(h.high),
+              low: parseFloat(h.low),
+              open: parseFloat(h.open),
+              volume: parseFloat(h.volume)
+            }));
+            console.log(`Twelve Data OK for ${t}: ${history.length} days`);
+            return history;
+          }
+        }
+      } catch(e) {
+        console.warn(`Twelve Data failed for ${t}:`, e.message);
       }
+      break; // non-rate-limit failure, don't retry
     }
-  } catch(e) {
-    console.warn(`Twelve Data failed for ${t}:`, e.message);
-  }
   }
 
   // Fallback: Finnhub candle (may 403 on free tier but worth trying)
