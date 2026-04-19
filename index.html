@@ -334,14 +334,6 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
 </div><!-- end .screener-page -->
 
 <script>
-// ── KEYS — provide via the in-app key UI; values persisted to localStorage ──
-const BAKED = {
-  ant:        '',
-  finnhub:    '',
-  twelvedata: '',
-  md:         '',
-  worker:     ''
-};
 
 const KEYS=['ant','finnhub','twelvedata','md','worker'];
 const KS=KEYS.map(k=>'viss_key_'+k);
@@ -366,14 +358,13 @@ function setupRefreshUI(){
     if(card){ card.classList.toggle('done', has); }
     if(status){ status.textContent = has ? '✓ Set' : (i<3?'Required':'Optional'); status.className = 'setup-card-status '+(has?'ok':'missing'); }
   }
-  // Update launch button
   const allRequired = keys[0] && keys[1] && keys[2];
   const btn = document.getElementById('setupStartBtn');
   const note = document.getElementById('setupNote');
-  if(btn) btn.disabled = false; // always allow launch — baked keys as fallback
+  if(btn) btn.disabled = !allRequired;
   if(note){
     if(allRequired) note.textContent = 'All required keys set — ready to launch!';
-    else { const missing=[]; if(!keys[0])missing.push('Anthropic'); if(!keys[1])missing.push('Finnhub'); if(!keys[2])missing.push('Twelve Data'); note.textContent = 'Missing: '+missing.join(', ')+'. Using baked-in keys as fallback.'; }
+    else { const missing=[]; if(!keys[0])missing.push('Anthropic'); if(!keys[1])missing.push('Finnhub'); if(!keys[2])missing.push('Twelve Data'); note.textContent = 'Missing required: '+missing.join(', ')+'.'; }
   }
 }
 function setupSave(i){
@@ -385,35 +376,36 @@ function setupSave(i){
   if(inp) inp.value = '';
   setupRefreshUI();
 }
-function setupStart(skip){
+function setupStart(){
+  if(!keys[0]||!keys[1]||!keys[2]){ alert('Please save your Anthropic, Finnhub, and Twelve Data keys first.'); return; }
   document.getElementById('setupPage').classList.remove('active');
   document.getElementById('screenerPage').classList.add('active');
-  // Mark setup as done so we don't show it again
   localStorage.setItem('viss_setup_done','1');
+  loadStocks(); // now trigger stock loading with keys in place
 }
 
 function loadKeys(){
   KEYS.forEach((k,i)=>{
     const stored = localStorage.getItem(KS[i]);
-    keys[i] = (stored && stored.trim()) ? stored.trim() : (BAKED[k] || '');
+    keys[i] = (stored && stored.trim()) ? stored.trim() : '';
   });
   console.log('Keys loaded — ant:', keys[0]?'✓':'✗', 'finnhub:', keys[1]?'✓':'✗', 'twelvedata:', keys[2]?'✓':'✗', 'md:', keys[3]?'✓':'✗', 'worker:', keys[4]?'✓':'✗');
 
-  // Show setup page if never completed setup before
   const setupDone = localStorage.getItem('viss_setup_done');
-  const hasUserKeys = localStorage.getItem(KS[0]) || localStorage.getItem(KS[1]);
-  if(!setupDone && !hasUserKeys){
+  const hasRequiredKeys = keys[0] && keys[1] && keys[2];
+  if(!setupDone || !hasRequiredKeys){
     showSetup();
   } else {
     document.getElementById('screenerPage').classList.add('active');
     setupRefreshUI();
+    loadStocks(); // keys exist, safe to load
   }
 }
 function saveKey(i){
   const v=document.getElementById('k'+i)?.value?.trim();
   if(!v)return;
   keys[i]=v; localStorage.setItem(KS[i],v);
-  document.getElementById('k'+i).value='';
+  if(document.getElementById('k'+i)) document.getElementById('k'+i).value='';
 }
 
 // ── STORAGE ──
@@ -1550,8 +1542,7 @@ if(location.protocol==='file:'){
   if(fw)fw.style.display='block';
 }
 
-loadKeys();
-loadStocks();
+loadKeys(); // handles routing to setup or screener, and calls loadStocks when ready
 
 // Show last saved timestamp in subtitle
 setTimeout(()=>{
