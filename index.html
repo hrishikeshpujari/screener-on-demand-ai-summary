@@ -128,6 +128,46 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
 .ai-btn:disabled{opacity:.5;cursor:not-allowed}
 .ai-btn-sm{background:#1e2133;color:#8892a4;border:1px solid #2d3044;padding:4px 10px;border-radius:5px;font-size:10px;cursor:pointer}
 .ai-btn-sm:hover{color:#fff;border-color:#4f6ef7}
+/* ── SETUP PAGE ── */
+.setup-page{display:none;min-height:100vh;padding:0;position:fixed;inset:0;background:#0c0e14;overflow-y:auto;z-index:100}
+.setup-page.active{display:block}
+.setup-wrap{max-width:680px;margin:0 auto;padding:48px 28px 80px}
+.setup-logo{font-size:32px;font-weight:800;color:#fff;letter-spacing:-1px;margin-bottom:6px}
+.setup-logo span{color:#4ade80}
+.setup-tagline{font-size:13px;color:#4a5568;margin-bottom:40px;line-height:1.7}
+.setup-section{margin-bottom:32px}
+.setup-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#4a5568;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.setup-section-title::after{content:'';flex:1;height:1px;background:#1e2133}
+.setup-required{color:#4ade80}
+.setup-optional{color:#64748b}
+.setup-card{background:#141620;border:1px solid #1e2133;border-radius:12px;padding:18px 20px;margin-bottom:10px;transition:border-color .2s}
+.setup-card:focus-within{border-color:#4f6ef7}
+.setup-card.done{border-color:#166534;background:#0d1f14}
+.setup-card-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
+.setup-card-icon{font-size:22px;flex-shrink:0;margin-top:2px}
+.setup-card-info{flex:1}
+.setup-card-name{font-size:14px;font-weight:700;color:#fff;margin-bottom:3px}
+.setup-card-desc{font-size:12px;color:#64748b;line-height:1.6}
+.setup-card-link{font-size:11px;color:#4f6ef7;text-decoration:none;display:inline-flex;align-items:center;gap:4px;margin-top:5px}
+.setup-card-link:hover{color:#7c9ff7;text-decoration:underline}
+.setup-card-status{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;flex-shrink:0}
+.setup-card-status.ok{background:#0d2b1a;color:#4ade80;border:1px solid #166534}
+.setup-card-status.missing{background:#1e2133;color:#64748b;border:1px solid #2d3044}
+.setup-input-row{display:flex;gap:8px}
+.setup-input{flex:1;padding:10px 13px;background:#0c0e14;border:1px solid #2d3044;border-radius:8px;color:#fff;font-size:13px;font-family:monospace}
+.setup-input:focus{outline:none;border-color:#4f6ef7}
+.setup-input::placeholder{color:#374151;font-family:inherit}
+.setup-save{padding:10px 18px;background:#4f6ef7;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit}
+.setup-save:hover{background:#3d5ce0}
+.setup-cta{margin-top:32px;text-align:center}
+.setup-start{width:100%;padding:16px;background:linear-gradient(135deg,#4f6ef7,#7c3aed);border:none;border-radius:12px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s,transform .15s}
+.setup-start:hover{opacity:.9;transform:translateY(-1px)}
+.setup-start:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.setup-start-note{font-size:11px;color:#374151;margin-top:10px}
+.setup-skip{background:none;border:none;color:#374151;font-size:12px;cursor:pointer;margin-top:12px;text-decoration:underline;font-family:inherit}
+.setup-skip:hover{color:#64748b}
+.screener-page{display:none}
+.screener-page.active{display:block}
 </style>
 </head>
 <body>
@@ -144,40 +184,124 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
   </div>
 </div>
 
-<h1>📚 Value Investor Stock Screener</h1>
-<p class="sub">Graham · Buffett · Lynch · Al Brooks &nbsp;·&nbsp; <span style="color:#4ade80">Pure-math scoring (deterministic)</span> · <span style="color:#a78bfa">🧠 AI summary on-demand</span> · <span style="color:#4ade80;font-size:10px">●LIVE</span> price + fundamentals + options &nbsp;·&nbsp; <span style="color:#374151;font-size:10px">💡 Tip: use a fixed Netlify site name so localStorage persists</span></p>
+<!-- ══ SETUP PAGE ══ -->
+<div class="setup-page" id="setupPage">
+  <div class="setup-wrap">
+    <div class="setup-logo">📚 Value Investor <span>Screener</span></div>
+    <p class="setup-tagline">
+      Graham · Buffett · Lynch · Al Brooks — pure-math scoring across 32 criteria.<br>
+      Set up your API keys once and they're saved in your browser forever.
+    </p>
 
-<!-- Key override section (collapsed by default since keys are baked in) -->
-<details style="margin-bottom:10px">
-<summary style="cursor:pointer;font-size:11px;color:#555;padding:6px 10px;background:#141620;border:1px solid #2d3044;border-radius:8px;list-style:none">⚙️ API Key Overrides (click to expand — keys are pre-configured, only change if needed)</summary>
-<div style="margin-top:6px">
+    <!-- Required -->
+    <div class="setup-section">
+      <div class="setup-section-title"><span class="setup-required">● Required</span></div>
 
-<!-- API Keys -->
-<div class="keybox">
-  <div class="keyhead"><div class="dot" id="d0"></div><span id="l0">Anthropic API Key — required for AI analysis &amp; live price (console.anthropic.com)</span></div>
-  <div class="keyrow"><input type="password" id="k0" placeholder="sk-ant-…" autocomplete="off"/><button class="ksave" onclick="saveKey(0)">Save</button></div>
-  <p class="keyhint">Your key is stored only in this browser's localStorage. Never sent anywhere except Anthropic.</p>
+      <div class="setup-card" id="sc0">
+        <div class="setup-card-top">
+          <div class="setup-card-icon">🤖</div>
+          <div class="setup-card-info">
+            <div class="setup-card-name">Anthropic API Key</div>
+            <div class="setup-card-desc">Powers the 🧠 AI Summary — generates investment thesis, bull/bear case, entry strategy per stock. Without it scoring still works, just no AI narratives.</div>
+            <a class="setup-card-link" href="https://console.anthropic.com" target="_blank">Get free key at console.anthropic.com ↗</a>
+          </div>
+          <div class="setup-card-status missing" id="ss0">Not set</div>
+        </div>
+        <div class="setup-input-row">
+          <input class="setup-input" type="password" id="sk0" placeholder="sk-ant-api03-…" autocomplete="off"/>
+          <button class="setup-save" onclick="setupSave(0)">Save</button>
+        </div>
+      </div>
+
+      <div class="setup-card" id="sc1">
+        <div class="setup-card-top">
+          <div class="setup-card-icon">📊</div>
+          <div class="setup-card-info">
+            <div class="setup-card-name">Finnhub API Key</div>
+            <div class="setup-card-desc">Live stock price + all fundamentals — P/E, ROE, margins, growth rates, debt ratios. Powers all 24 fundamental scoring criteria (Graham + Buffett + Lynch).</div>
+            <a class="setup-card-link" href="https://finnhub.io/register" target="_blank">Free at finnhub.io/register — no credit card ↗</a>
+          </div>
+          <div class="setup-card-status missing" id="ss1">Not set</div>
+        </div>
+        <div class="setup-input-row">
+          <input class="setup-input" type="password" id="sk1" placeholder="d7hh0g1r…" autocomplete="off"/>
+          <button class="setup-save" onclick="setupSave(1)">Save</button>
+        </div>
+      </div>
+
+      <div class="setup-card" id="sc2">
+        <div class="setup-card-top">
+          <div class="setup-card-icon">📈</div>
+          <div class="setup-card-info">
+            <div class="setup-card-name">Twelve Data API Key</div>
+            <div class="setup-card-desc">250 days of daily price history → real EMA20, EMA50, EMA200 calculations. Powers all 8 Al Brooks technical scoring criteria. Without it Tech score shows 0/8.</div>
+            <a class="setup-card-link" href="https://twelvedata.com/register" target="_blank">Free at twelvedata.com — 800 calls/day ↗</a>
+          </div>
+          <div class="setup-card-status missing" id="ss2">Not set</div>
+        </div>
+        <div class="setup-input-row">
+          <input class="setup-input" type="password" id="sk2" placeholder="4c531995…" autocomplete="off"/>
+          <button class="setup-save" onclick="setupSave(2)">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Optional -->
+    <div class="setup-section">
+      <div class="setup-section-title"><span class="setup-optional">○ Optional</span></div>
+
+      <div class="setup-card" id="sc3">
+        <div class="setup-card-top">
+          <div class="setup-card-icon">🎯</div>
+          <div class="setup-card-info">
+            <div class="setup-card-name">MarketData.app Token</div>
+            <div class="setup-card-desc">Live options chain — real bid/ask, IV, delta, theta, breakeven for 6-month call options. Without it, options tab shows AI-estimated strikes only.</div>
+            <a class="setup-card-link" href="https://marketdata.app" target="_blank">Free at marketdata.app — 100 calls/day ↗</a>
+          </div>
+          <div class="setup-card-status missing" id="ss3">Not set</div>
+        </div>
+        <div class="setup-input-row">
+          <input class="setup-input" type="password" id="sk3" placeholder="WFRJZzFL…" autocomplete="off"/>
+          <button class="setup-save" onclick="setupSave(3)">Save</button>
+        </div>
+      </div>
+
+      <div class="setup-card" id="sc4">
+        <div class="setup-card-top">
+          <div class="setup-card-icon">☁️</div>
+          <div class="setup-card-info">
+            <div class="setup-card-name">Cloudflare Worker URL</div>
+            <div class="setup-card-desc">CORS proxy that lets live options work when hosted on GitHub Pages or Netlify. Without it, options only work on localhost. Deploy takes ~5 minutes.</div>
+            <a class="setup-card-link" href="https://dash.cloudflare.com" target="_blank">Free at dash.cloudflare.com — 100k req/day ↗</a>
+          </div>
+          <div class="setup-card-status missing" id="ss4">Not set</div>
+        </div>
+        <div class="setup-input-row">
+          <input class="setup-input" type="text" id="sk4" placeholder="https://my-proxy.myname.workers.dev" autocomplete="off"/>
+          <button class="setup-save" onclick="setupSave(4)">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="setup-cta">
+      <button class="setup-start" id="setupStartBtn" onclick="setupStart()">
+        🚀 Launch Screener
+      </button>
+      <div class="setup-start-note" id="setupNote">Save your Anthropic, Finnhub, and Twelve Data keys to launch.</div>
+      <br>
+      <button class="setup-skip" onclick="setupStart(true)">Skip setup — use baked-in keys</button>
+    </div>
+  </div>
 </div>
-<div class="keybox">
-  <div class="keyhead"><div class="dot" id="d1"></div><span id="l1">Finnhub API Key — for live fundamentals, free at finnhub.io/register</span></div>
-  <div class="keyrow"><input type="password" id="k1" placeholder="Paste Finnhub key…" autocomplete="off"/><button class="ksave" onclick="saveKey(1)">Save</button></div>
+
+<!-- ══ SCREENER PAGE ══ -->
+<div class="screener-page" id="screenerPage">
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:8px">
+  <h1>📚 Value Investor Stock Screener</h1>
+  <button onclick="showSetup()" style="padding:6px 12px;background:#141620;border:1px solid #2d3044;border-radius:6px;color:#64748b;font-size:11px;cursor:pointer;font-family:inherit">⚙ API Keys</button>
 </div>
-<div class="keybox">
-  <div class="keyhead"><div class="dot" id="d2"></div><span id="l2">Twelve Data API Key — for historical prices (EMAs), free at twelvedata.com/register</span></div>
-  <div class="keyrow"><input type="password" id="k2" placeholder="Paste Twelve Data key…" autocomplete="off"/><button class="ksave" onclick="saveKey(2)">Save</button></div>
-  <p class="keyhint">Free plan: 800 calls/day. Sign up at <a href="https://twelvedata.com/register" target="_blank">twelvedata.com/register</a> — no credit card needed.</p>
-</div>
-<div class="keybox">
-  <div class="keyhead"><div class="dot" id="d3"></div><span id="l3">MarketData.app Key — for live options, free 100 calls/day at marketdata.app</span></div>
-  <div class="keyrow"><input type="password" id="k3" placeholder="Paste MarketData.app token…" autocomplete="off"/><button class="ksave" onclick="saveKey(3)">Save</button></div>
-</div>
-<div class="keybox">
-  <div class="keyhead"><div class="dot" id="d4"></div><span id="l4">Cloudflare Worker URL — enables live options inside Claude.ai (optional)</span></div>
-  <div class="keyrow"><input type="text" id="k4" placeholder="https://my-proxy.myname.workers.dev" autocomplete="off"/><button class="ksave" onclick="saveKey(4)">Save</button></div>
-  <p class="keyhint">Without the Worker: live options work on localhost only. With it: live options work everywhere. Deploy the included <code>worker.js</code> to <a href="https://dash.cloudflare.com" target="_blank">Cloudflare Workers</a> (free, 100k req/day).</p>
-</div>
-</div>
-</details>
+<p class="sub">Graham · Buffett · Lynch · Al Brooks &nbsp;·&nbsp; <span style="color:#4ade80">Pure-math scoring</span> · <span style="color:#a78bfa">🧠 AI on-demand</span> · <span style="color:#4ade80;font-size:10px">●LIVE</span> via Finnhub + Twelve Data</p>
 
 <div class="input-row">
   <input type="text" id="ti" placeholder="Stock ticker (e.g. AAPL, MSFT, KO) — stocks only, not crypto" maxlength="10"/>
@@ -207,6 +331,8 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
 </div>
 <p class="note"><span class="ltag">●LIVE price</span> via Finnhub &nbsp;·&nbsp; <span class="ltag">●LIVE fundamentals</span> direct from Finnhub API &nbsp;·&nbsp; <span class="ltag">●LIVE options</span> direct from MarketData.app &nbsp;·&nbsp; Not financial advice.</p>
 
+</div><!-- end .screener-page -->
+
 <script>
 // ── KEYS — provide via the in-app key UI; values persisted to localStorage ──
 const BAKED = {
@@ -226,35 +352,68 @@ const DEFAULT_TICKERS = ['AMD','GOOG','META','AMZN','ELF','SOFI','CELH','FUBO','
 
 let keys=['','','','',''], stocks=[], activeDP=null, refreshing=false;
 
+// ── SETUP PAGE ──
+function showSetup(){
+  document.getElementById('setupPage').classList.add('active');
+  document.getElementById('screenerPage').classList.remove('active');
+  setupRefreshUI();
+}
+function setupRefreshUI(){
+  for(let i=0;i<5;i++){
+    const has = !!keys[i];
+    const card = document.getElementById('sc'+i);
+    const status = document.getElementById('ss'+i);
+    if(card){ card.classList.toggle('done', has); }
+    if(status){ status.textContent = has ? '✓ Set' : (i<3?'Required':'Optional'); status.className = 'setup-card-status '+(has?'ok':'missing'); }
+  }
+  // Update launch button
+  const allRequired = keys[0] && keys[1] && keys[2];
+  const btn = document.getElementById('setupStartBtn');
+  const note = document.getElementById('setupNote');
+  if(btn) btn.disabled = false; // always allow launch — baked keys as fallback
+  if(note){
+    if(allRequired) note.textContent = 'All required keys set — ready to launch!';
+    else { const missing=[]; if(!keys[0])missing.push('Anthropic'); if(!keys[1])missing.push('Finnhub'); if(!keys[2])missing.push('Twelve Data'); note.textContent = 'Missing: '+missing.join(', ')+'. Using baked-in keys as fallback.'; }
+  }
+}
+function setupSave(i){
+  const inp = document.getElementById('sk'+i);
+  const v = inp ? inp.value.trim() : '';
+  if(!v) return;
+  keys[i] = v;
+  localStorage.setItem(KS[i], v);
+  if(inp) inp.value = '';
+  setupRefreshUI();
+}
+function setupStart(skip){
+  document.getElementById('setupPage').classList.remove('active');
+  document.getElementById('screenerPage').classList.add('active');
+  // Mark setup as done so we don't show it again
+  localStorage.setItem('viss_setup_done','1');
+}
+
 function loadKeys(){
   KEYS.forEach((k,i)=>{
     const stored = localStorage.getItem(KS[i]);
-    // Only use stored value if it's non-empty — never let an empty string override baked key
     keys[i] = (stored && stored.trim()) ? stored.trim() : (BAKED[k] || '');
-    updKeyUI(i);
   });
-  // Debug: log which keys are active (masked)
   console.log('Keys loaded — ant:', keys[0]?'✓':'✗', 'finnhub:', keys[1]?'✓':'✗', 'twelvedata:', keys[2]?'✓':'✗', 'md:', keys[3]?'✓':'✗', 'worker:', keys[4]?'✓':'✗');
+
+  // Show setup page if never completed setup before
+  const setupDone = localStorage.getItem('viss_setup_done');
+  const hasUserKeys = localStorage.getItem(KS[0]) || localStorage.getItem(KS[1]);
+  if(!setupDone && !hasUserKeys){
+    showSetup();
+  } else {
+    document.getElementById('screenerPage').classList.add('active');
+    setupRefreshUI();
+  }
 }
 function saveKey(i){
-  const v=document.getElementById('k'+i).value.trim();
+  const v=document.getElementById('k'+i)?.value?.trim();
   if(!v)return;
   keys[i]=v; localStorage.setItem(KS[i],v);
   document.getElementById('k'+i).value='';
-  updKeyUI(i);
-}
-function updKeyUI(i){
-  const labels=[
-    ['Anthropic API Key — connected ✓','Anthropic API Key — REQUIRED (console.anthropic.com)'],
-    ['Finnhub API Key — connected ✓ (live fundamentals)','Finnhub API Key — REQUIRED (finnhub.io/register, free)'],
-    ['Twelve Data Key — connected ✓ (price history → real EMAs)','Twelve Data Key — REQUIRED for EMAs (twelvedata.com/register, free)'],
-    ['MarketData.app — connected ✓ (live options)','MarketData.app Key — optional (options will be estimated without it)'],
-    ['Cloudflare Worker — connected ✓ (live options work everywhere)','Cloudflare Worker URL — optional (options only work on localhost without it)'],
-  ];
-  const placeholders=['sk-ant-…','Paste Finnhub key…','Paste Twelve Data key…','Paste MarketData.app token…','https://my-proxy.myname.workers.dev'];
-  document.getElementById('d'+i).className='dot'+(keys[i]?' on':'');
-  document.getElementById('l'+i).textContent=keys[i]?labels[i][0]:labels[i][1];
-  document.getElementById('k'+i).placeholder=keys[i]?'Saved — paste new to replace':placeholders[i];
 }
 
 // ── STORAGE ──
@@ -423,7 +582,7 @@ function finalize(id, t, result, restricted){
     // Preserve existing AI summary if this is a refresh (don't wipe it)
     const existing = stocks[idx];
     const analysis = existing?.analysis || null;
-    stocks[idx]={id,status:'done',updatedAt:new Date().toLocaleString(),analysis,...result};
+    stocks[idx]={id,status:'done',updatedAt:new Date().toLocaleString(),...result,analysis};
   }
   save(); renderTable();
   document.getElementById('refBtn').disabled = stocks.filter(s=>s.status==='done').length===0;
