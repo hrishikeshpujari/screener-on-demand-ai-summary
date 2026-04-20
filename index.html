@@ -331,6 +331,260 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
 </div>
 <p class="note"><span class="ltag">●LIVE price</span> via Finnhub &nbsp;·&nbsp; <span class="ltag">●LIVE fundamentals</span> direct from Finnhub API &nbsp;·&nbsp; <span class="ltag">●LIVE options</span> direct from MarketData.app &nbsp;·&nbsp; Not financial advice.</p>
 
+<!-- ── GUIDE ── -->
+<div style="margin-top:24px">
+  <button onclick="toggleGuide()" id="guideBtn" style="width:100%;padding:14px 20px;background:#141620;border:1px solid #2d3044;border-radius:10px;color:#94a3b8;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:space-between;text-align:left">
+    <span>📖 How to use this screener — signals, scoring, long-term investing & options guide</span>
+    <span id="guideArrow" style="font-size:11px;color:#4a5568">▼ Show</span>
+  </button>
+  <div id="guideContent" style="display:none;background:#0f1219;border:1px solid #1e2133;border-top:none;border-radius:0 0 10px 10px;padding:28px 32px;line-height:1.8;color:#94a3b8;font-size:13px">
+
+    <!-- Section nav -->
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid #1e2133">
+      <a href="#g-scores" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">📊 Understanding Scores</a>
+      <a href="#g-signals" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">🚦 BUY / HOLD / SELL</a>
+      <a href="#g-graham" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">🏦 Graham</a>
+      <a href="#g-buffett" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">🎩 Buffett</a>
+      <a href="#g-lynch" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">🔍 Lynch</a>
+      <a href="#g-technical" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">📈 Technical</a>
+      <a href="#g-longterm" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">💼 Long-Term Strategy</a>
+      <a href="#g-options" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">🎯 Options Strategy</a>
+    </div>
+
+    <!-- SCORES -->
+    <div id="g-scores" style="margin-bottom:32px">
+      <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">📊 Understanding the Scoring System</div>
+      <p style="margin-bottom:12px">Every stock is scored out of <strong style="color:#fff">32 points</strong> across four frameworks — 8 points each. Each point is binary: the stock either passes the criterion or it doesn't. No partial credit. This makes scores directly comparable across stocks.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:16px 0">
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#fbbf24;margin-bottom:6px">🏦 Graham /8</div>
+          <div style="font-size:12px;color:#64748b">Safety &amp; value — low P/E, low P/B, strong balance sheet, dividend, growth history</div>
+        </div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#a78bfa;margin-bottom:6px">🎩 Buffett /8</div>
+          <div style="font-size:12px;color:#64748b">Quality &amp; moat — high ROE, FCF, gross margin, ROIC, management quality</div>
+        </div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#34d399;margin-bottom:6px">🔍 Lynch /8</div>
+          <div style="font-size:12px;color:#64748b">Growth &amp; story — low PEG, EPS growth, insider ownership, sales growth</div>
+        </div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:6px">📈 Technical /8</div>
+          <div style="font-size:12px;color:#64748b">Price action — trend, EMA positions, breakouts, pullbacks (Al Brooks method)</div>
+        </div>
+      </div>
+      <div style="background:#141620;border-left:3px solid #4f6ef7;padding:12px 16px;border-radius:0 8px 8px 0;margin-top:12px">
+        <strong style="color:#fff">Key insight:</strong> A stock can score high fundamentally but have poor technicals — that means the business is great but the <em>timing</em> is bad. Wait for the technical score to improve before entering. Conversely, strong technicals with weak fundamentals = momentum trade, not a value investment.
+      </div>
+    </div>
+
+    <!-- SIGNALS -->
+    <div id="g-signals" style="margin-bottom:32px">
+      <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">🚦 Reading BUY / HOLD / SELL Signals</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:16px">
+        <div style="background:#0d3320;border:1px solid #166534;border-radius:8px;padding:16px">
+          <div style="font-size:14px;font-weight:700;color:#4ade80;margin-bottom:8px">✅ BUY — 22+ / 32</div>
+          <div style="font-size:12px;color:#86efac;line-height:1.7">Strong across multiple frameworks. Consider initiating or adding to a position. Best when both fundamental score (Fund /24) AND technical score (Tech /8) are strong. A BUY with poor technicals = wait for a better entry.</div>
+        </div>
+        <div style="background:#322a0d;border:1px solid #854d0e;border-radius:8px;padding:16px">
+          <div style="font-size:14px;font-weight:700;color:#fbbf24;margin-bottom:8px">⏳ HOLD — 13–21 / 32</div>
+          <div style="font-size:12px;color:#fde68a;line-height:1.7">Mixed signals. If you already own it, hold. Don't add. If you don't own it, wait for either the fundamentals to improve (next earnings) or the technical setup to improve (breakout, pullback to EMA).</div>
+        </div>
+        <div style="background:#310d0d;border:1px solid #991b1b;border-radius:8px;padding:16px">
+          <div style="font-size:14px;font-weight:700;color:#f87171;margin-bottom:8px">🚫 SELL — 0–12 / 32</div>
+          <div style="font-size:12px;color:#fca5a5;line-height:1.7">Fails most criteria. If you own it, review your thesis. Consider reducing or exiting. Don't initiate new positions. Re-analyze in 1–2 quarters to see if fundamentals improve.</div>
+        </div>
+      </div>
+      <div style="background:#141620;border-left:3px solid #fbbf24;padding:12px 16px;border-radius:0 8px 8px 0">
+        <strong style="color:#fff">Confidence levels:</strong> <span style="color:#4ade80">★★★ High (26+)</span> means strong conviction across all frameworks. <span style="color:#fbbf24">★★ Medium (20–25)</span> means good but some mixed signals. <span style="color:#f87171">★ Low / Avoid (&lt;20)</span> means weak evidence — treat the signal with skepticism.
+      </div>
+    </div>
+
+    <!-- GRAHAM -->
+    <div id="g-graham" style="margin-bottom:32px">
+      <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">🏦 Benjamin Graham — Safety &amp; Value</div>
+      <p style="margin-bottom:12px">Graham's approach: buy stocks trading significantly below their intrinsic value with a <em>margin of safety</em>. He was Warren Buffett's mentor and wrote <em>The Intelligent Investor</em>. His criteria filter for cheap, safe, financially sound companies.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin:12px 0">
+        ${[
+          ['P/E &lt; 15','Price-to-earnings below 15x. Above 25x is expensive. The market is paying less than 15 years of earnings — classic value territory.'],
+          ['P/B &lt; 1.5','Price-to-book below 1.5x. Means you\'re buying assets at close to their balance sheet value. &lt;1x means trading below book — deep value.'],
+          ['Current Ratio ≥ 2','Current assets are 2x current liabilities. Strong short-term financial health — won\'t need emergency financing.'],
+          ['Debt/Equity ≤ 0.5','Conservative debt. Company can weather downturns without being crushed by interest payments.'],
+          ['EPS Growth 10yr &gt; 3%','Sustained earnings growth over a decade proves a durable business model, not a one-hit wonder.'],
+          ['Dividend Yield &gt; 0','Any dividend signals financial maturity and management\'s confidence in cash flow.'],
+          ['Revenue Growth 5yr &gt; 0','Top-line growth over 5 years — the company is expanding, not shrinking.'],
+          ['Net Margin &gt; 5%','Keeps more than 5 cents of every dollar of revenue as profit. Thin margins mean fragility.'],
+        ].map(([k,v])=>`<div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:#fbbf24;margin-bottom:4px">${k}</div><div style="font-size:11px;color:#64748b;line-height:1.6">${v}</div></div>`).join('')}
+      </div>
+      <div style="background:#141620;border-left:3px solid #fbbf24;padding:12px 16px;border-radius:0 8px 8px 0;margin-top:8px">
+        <strong style="color:#fff">Best used for:</strong> Long-term buy-and-hold of undervalued blue chips. Look for Graham scores of 5+/8 combined with Buffett 4+/8. Pure Graham stocks are often boring businesses — utilities, financials, consumer staples — that the market ignores.
+      </div>
+    </div>
+
+    <!-- BUFFETT -->
+    <div id="g-buffett" style="margin-bottom:32px">
+      <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">🎩 Warren Buffett — Quality &amp; Moat</div>
+      <p style="margin-bottom:12px">Buffett evolved Graham's approach: instead of just cheap stocks, buy <em>wonderful companies at fair prices</em>. He looks for durable competitive advantages (moats), exceptional management, and businesses that generate consistent free cash flow for decades.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin:12px 0">
+        ${[
+          ['ROE ≥ 15%','Return on equity above 15% means the business earns excellent returns on shareholders\' capital. Buffett\'s minimum threshold. Sustained ROE &gt;20% signals a genuine moat.'],
+          ['ROE Consistency ≥ 7yr','High ROE for 7+ consecutive years proves it\'s structural, not a one-year fluke. This is the moat test — can they maintain it?'],
+          ['FCF &gt; 0','Positive free cash flow — the company generates real cash after all capital expenditures. Buffett calls earnings without FCF "accounting fiction."'],
+          ['Gross Margin ≥ 40%','High gross margins mean pricing power. Companies with 40%+ gross margins can raise prices without losing customers — the hallmark of a moat.'],
+          ['ROIC ≥ 12%','Return on invested capital above 12%. Measures how efficiently the business turns all capital (debt + equity) into profit.'],
+          ['Debt Payoff ≤ 3yr','Could the company pay off all its debt in under 3 years using free cash flow? Yes = conservative balance sheet.'],
+          ['Mgmt Score ≥ 7/10','Computed from ROE + ROIC + FCF margin. High scores suggest disciplined capital allocation.'],
+          ['Moat Rating ≥ 3/5','Computed from gross margin + ROIC + revenue growth consistency. 3+ = meaningful competitive advantage.'],
+        ].map(([k,v])=>`<div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:#a78bfa;margin-bottom:4px">${k}</div><div style="font-size:11px;color:#64748b;line-height:1.6">${v}</div></div>`).join('')}
+      </div>
+      <div style="background:#141620;border-left:3px solid #a78bfa;padding:12px 16px;border-radius:0 8px 8px 0;margin-top:8px">
+        <strong style="color:#fff">Best used for:</strong> Core long-term holdings you'd be comfortable owning for 10+ years. Buffett 6+/8 stocks are rare — treasure them. Examples: companies with strong brands, network effects, switching costs, or cost advantages. When you find a Buffett 7/8 or 8/8, pay attention.
+      </div>
+    </div>
+
+    <!-- LYNCH -->
+    <div id="g-lynch" style="margin-bottom:32px">
+      <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">🔍 Peter Lynch — Growth at a Reasonable Price</div>
+      <p style="margin-bottom:12px">Lynch managed the Magellan Fund to 29% annual returns. His approach: find companies growing faster than their P/E ratio implies (low PEG), with insider buying, manageable debt, and a compelling "story" a regular person can understand.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin:12px 0">
+        ${[
+          ['PEG &lt; 1','Price/Earnings-to-Growth ratio below 1. The holy grail: paying less for growth than the market expects. PEG of 0.5 means you\'re getting the growth at half price.'],
+          ['EPS Growth YoY &gt; 10%','Earnings growing 10%+ year-over-year. Lynch wanted fast growers — companies doubling earnings every 5-7 years.'],
+          ['Inventory Growth &lt; Sales Growth','If inventory grows faster than sales, the company is struggling to sell products — a warning sign Lynch watched closely.'],
+          ['Cash/Share &gt; 0','Company holds cash per share — financial cushion that reduces risk and funds growth without dilution.'],
+          ['LT Debt/Equity &lt; 30%','Long-term debt under 30% of equity. Lynch preferred companies that didn\'t need heavy debt to fuel growth.'],
+          ['Insider Ownership ≥ 5%','Management owns 5%+ of the company. Skin in the game — executives lose real money if the stock drops.'],
+          ['Sales Growth &gt; 10%','Top-line revenue growing 10%+ YoY. Earnings can be manipulated; revenue growth is harder to fake.'],
+          ['Lynch Category 2-4','Stalwart (steady grower), Fast Grower, or Cyclical at the right point in the cycle — Lynch\'s favorite types.'],
+        ].map(([k,v])=>`<div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:#34d399;margin-bottom:4px">${k}</div><div style="font-size:11px;color:#64748b;line-height:1.6">${v}</div></div>`).join('')}
+      </div>
+      <div style="background:#141620;border-left:3px solid #34d399;padding:12px 16px;border-radius:0 8px 8px 0;margin-top:8px">
+        <strong style="color:#fff">Best used for:</strong> Finding growth stocks before Wall Street notices them. Lynch 5+/8 with a PEG under 1 is a strong signal. These are often mid-cap companies in niche industries with strong earnings momentum. The AI summary's "sectorContext" field tells you how they compare to peers.
+      </div>
+    </div>
+
+    <!-- TECHNICAL -->
+    <div id="g-technical" style="margin-bottom:32px">
+      <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">📈 Al Brooks Technical Analysis</div>
+      <p style="margin-bottom:12px">Al Brooks is a professional trader who spent 30+ years developing a price action methodology. Unlike indicators that lag, his approach reads the raw bar-by-bar story the market tells. We compute 8 criteria from 250 days of real price data via Twelve Data.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin:12px 0">
+        ${[
+          ['Uptrend','Price making higher highs and higher lows. The most basic condition for a bullish position. Trade with the trend — never against it.'],
+          ['Price above EMA20','Above the 20-day exponential moving average. Short-term momentum is bullish. This is the first line of support in a strong trend.'],
+          ['Price above EMA50','Above the 50-day EMA. Medium-term trend is bullish. Institutional money tends to buy dips to the 50 EMA in uptrending stocks.'],
+          ['Higher Highs &amp; Lows','Each swing high is higher than the previous; each swing low is higher. Classic uptrend structure. Breaks this pattern = trend weakening.'],
+          ['Recent Breakout','Price broke above a significant resistance level recently. Breakouts from consolidation patterns often lead to strong directional moves.'],
+          ['Pullback to EMA','Price recently pulled back to EMA20 or EMA50 and held — a low-risk entry point within an uptrend. Buy the dip, not the rip.'],
+          ['Strong Trend Bars','Recent price bars have above-average range and close near their highs (for uptrend). Shows institutional conviction behind the move.'],
+          ['Not Trading Range','Market is not in a sideways chop. Trading ranges chew up options premium and produce false signals — avoid until breakout.'],
+        ].map(([k,v])=>`<div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:#60a5fa;margin-bottom:4px">${k}</div><div style="font-size:11px;color:#64748b;line-height:1.6">${v}</div></div>`).join('')}
+      </div>
+      <div style="background:#141620;border-left:3px solid #60a5fa;padding:12px 16px;border-radius:0 8px 8px 0;margin-top:8px">
+        <strong style="color:#fff">How to use:</strong> Technical score of 6+/8 = strong setup. 4–5 = proceed carefully. &lt;4 = wait. Even if a stock has perfect fundamentals (24/24), a technical score of 1/8 means <em>now is not the right time</em>. Technicals tell you <em>when</em> to act on a fundamental view.
+      </div>
+    </div>
+
+    <!-- LONG TERM -->
+    <div id="g-longterm" style="margin-bottom:32px">
+      <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">💼 Long-Term Investing Strategy</div>
+      <p style="margin-bottom:12px">The screener is designed for investors with a 1–5 year horizon. Here's a decision framework for building a long-term portfolio using the signals:</p>
+
+      <div style="margin-bottom:20px">
+        <div style="font-size:13px;font-weight:700;color:#4ade80;margin-bottom:10px">Step 1 — Screen for quality (Fund /24 ≥ 16)</div>
+        <p>Filter your watchlist for stocks with a fundamental score of 16+ out of 24. This means the company passes at least two of the three frameworks strongly. These are your "universe" of investable stocks.</p>
+      </div>
+      <div style="margin-bottom:20px">
+        <div style="font-size:13px;font-weight:700;color:#4ade80;margin-bottom:10px">Step 2 — Wait for technical confirmation (Tech /8 ≥ 5)</div>
+        <p>A fundamentally strong company at the wrong technical point will underperform. Wait for the technical score to reach 5+/8 before entering. This means the stock is trending, above its key EMAs, and showing institutional buying. The "Pullback to EMA" criterion is your ideal entry trigger — buy quality dips.</p>
+      </div>
+      <div style="margin-bottom:20px">
+        <div style="font-size:13px;font-weight:700;color:#4ade80;margin-bottom:10px">Step 3 — Read the AI summary</div>
+        <p>Click 🧠 Generate AI Summary on your shortlisted stocks. The AI uses the actual numerical scores to write a thesis, bull/bear case, and entry strategy. Pay particular attention to <em>Entry Strategy</em> (specific price levels) and <em>Catalysts</em> (upcoming events that could move the stock).</p>
+      </div>
+      <div style="margin-bottom:20px">
+        <div style="font-size:13px;font-weight:700;color:#4ade80;margin-bottom:10px">Step 4 — Size your position by conviction</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-top:10px">
+          <div style="background:#0d3320;border:1px solid #166534;border-radius:8px;padding:12px;text-align:center">
+            <div style="font-size:18px;font-weight:800;color:#4ade80">5–8%</div>
+            <div style="font-size:11px;color:#86efac;margin-top:4px">High conviction<br>BUY + Tech 6+/8<br>★★★ Confidence</div>
+          </div>
+          <div style="background:#322a0d;border:1px solid #854d0e;border-radius:8px;padding:12px;text-align:center">
+            <div style="font-size:18px;font-weight:800;color:#fbbf24">2–4%</div>
+            <div style="font-size:11px;color:#fde68a;margin-top:4px">Medium conviction<br>BUY + Tech 4–5/8<br>★★ Confidence</div>
+          </div>
+          <div style="background:#1e2133;border:1px solid #2d3044;border-radius:8px;padding:12px;text-align:center">
+            <div style="font-size:18px;font-weight:800;color:#94a3b8">1–2%</div>
+            <div style="font-size:11px;color:#64748b;margin-top:4px">Speculative<br>HOLD or mixed<br>★ Low confidence</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-bottom:20px">
+        <div style="font-size:13px;font-weight:700;color:#4ade80;margin-bottom:10px">Step 5 — Monitor and rebalance quarterly</div>
+        <p>Hit <strong style="color:#fff">↻ Refresh all</strong> every 1–3 months to get updated fundamentals. If a stock's score drops below 13 (SELL territory), review your thesis. If the score improves to BUY while you've been holding, consider adding.</p>
+      </div>
+      <div style="background:#141620;border-left:3px solid #4ade80;padding:14px 18px;border-radius:0 8px 8px 0;margin-top:8px">
+        <strong style="color:#fff">Golden combination to look for:</strong> Graham 5+/8 (value/safety) + Buffett 5+/8 (quality/moat) + Technical 5+/8 (good timing) = rare but highly actionable setup. Use SPY's technical score as a market regime filter — if SPY scores &lt;4 technically, the market is in a downtrend and you should be more conservative with position sizes.
+      </div>
+    </div>
+
+    <!-- OPTIONS -->
+    <div id="g-options" style="margin-bottom:16px">
+      <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">🎯 Options Strategy — 6-Month Calls</div>
+      <p style="margin-bottom:12px">The screener's options guidance focuses on <strong style="color:#fff">buying call options</strong> with ~6 month expiry (LEAPs-lite). This is not for day trading — it's a directional bet that a fundamentally strong, technically bullish stock will be higher in 6 months.</p>
+
+      <div style="margin-bottom:20px">
+        <div style="font-size:13px;font-weight:700;color:#f87171;margin-bottom:10px">⚠ Read this first — options risk</div>
+        <div style="background:#1f0a0a;border:1px solid #7f1d1d;border-radius:8px;padding:14px;font-size:12px;color:#fca5a5;line-height:1.8">
+          Options can expire worthless — you can lose 100% of the premium paid. Never risk more than 1–5% of your portfolio on a single options position. Only use options on stocks you'd be happy owning as shares. The options tab shows three strike prices — conservative (ATM), moderate (5% OTM), aggressive (10% OTM). Start with conservative until you're comfortable.
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <div style="font-size:13px;font-weight:700;color:#60a5fa;margin-bottom:10px">When to use the GO verdict</div>
+        <p style="margin-bottom:10px">The options tab shows <strong style="color:#4ade80">GO</strong>, <strong style="color:#fbbf24">CAUTION</strong>, or <strong style="color:#f87171">SKIP</strong>. GO means BUY signal + uptrend technicals — the stock has both fundamental tailwinds and technical momentum. This is when buying calls makes sense.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">
+          <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:12px">
+            <div style="font-size:11px;font-weight:700;color:#4ade80;margin-bottom:6px">Conservative — ATM Strike</div>
+            <div style="font-size:11px;color:#64748b;line-height:1.6">At-the-money call. Highest delta (~0.5), most expensive premium, highest probability of profit. Best for high-conviction setups where you expect a meaningful move.</div>
+          </div>
+          <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:12px">
+            <div style="font-size:11px;font-weight:700;color:#fbbf24;margin-bottom:6px">Moderate — ~5% OTM Strike</div>
+            <div style="font-size:11px;color:#64748b;line-height:1.6">Slightly out-of-the-money. Cheaper premium, higher leverage. Needs a bigger move to profit. Good balance of risk/reward for medium conviction.</div>
+          </div>
+          <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:12px">
+            <div style="font-size:11px;font-weight:700;color:#f87171;margin-bottom:6px">Aggressive — ~10% OTM Strike</div>
+            <div style="font-size:11px;color:#64748b;line-height:1.6">Deep out-of-the-money. Cheapest premium, highest leverage, lowest probability. Only for strong BUY setups with clear catalysts (earnings beat, product launch).</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <div style="font-size:13px;font-weight:700;color:#60a5fa;margin-bottom:10px">Trade management rules</div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:16px">
+          <div style="display:grid;gap:10px">
+            ${[
+              ['📅 Expiry','Buy options with ~6 months to expiry. This gives the trade time to work and reduces the daily theta (time decay) impact relative to shorter-dated options.'],
+              ['✅ Take profit','Exit at 50–100% gain. Don\'t get greedy — options can give up gains fast. If you\'re up 50% in 2 months, consider taking half off.'],
+              ['🛑 Stop loss','Exit if down 50%. A 50% loss on an option means the thesis is wrong — cut it rather than hoping. Max loss = premium paid.'],
+              ['📆 Time stop','Exit 30 days before expiry regardless of P&L. Theta decay accelerates massively in the last 30 days — the option loses value daily even if the stock doesn\'t move.'],
+              ['⚡ Earnings warning','The screener flags if earnings are within 6 weeks. IV (implied volatility) spikes before earnings then collapses after — this "IV crush" can destroy option value even if the stock moves your way. Either exit before earnings or be aware of the risk.'],
+              ['📊 IV context','Check the IV% shown in the options tab. If IV is elevated (stock recently had big moves), options are expensive. Consider waiting for IV to drop or using a spread instead of a naked call.'],
+            ].map(([k,v])=>`<div style="display:flex;gap:12px;align-items:flex-start"><div style="font-size:12px;font-weight:700;color:#fff;min-width:120px;flex-shrink:0">${k}</div><div style="font-size:12px;color:#64748b;line-height:1.6">${v}</div></div>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#141620;border-left:3px solid #f87171;padding:14px 18px;border-radius:0 8px 8px 0">
+        <strong style="color:#fff">Practical workflow:</strong> Find a stock with Total /32 ≥ 22 + Tech ≥ 6 + Options verdict = GO → open the Options tab → check the earnings warning → look at ATM strike bid/ask on your broker → size 1–3% of portfolio → set calendar reminder 30 days before expiry to exit. Simple, disciplined, repeatable.
+      </div>
+    </div>
+
+    <div style="border-top:1px solid #1e2133;padding-top:16px;margin-top:8px;font-size:11px;color:#374151;text-align:center">
+      Not financial advice. This tool is for educational and research purposes only. Always do your own due diligence before investing. Past performance does not guarantee future results.
+    </div>
+  </div>
+</div>
+
 </div><!-- end .screener-page -->
 
 <script>
@@ -399,6 +653,17 @@ function loadKeys(){
     document.getElementById('screenerPage').classList.add('active');
     setupRefreshUI();
     loadStocks(); // keys exist, safe to load
+  }
+}
+function toggleGuide(){
+  const c = document.getElementById('guideContent');
+  const a = document.getElementById('guideArrow');
+  if(c.style.display === 'none'){
+    c.style.display = 'block';
+    a.textContent = '▲ Hide';
+  } else {
+    c.style.display = 'none';
+    a.textContent = '▼ Show';
   }
 }
 function saveKey(i){
@@ -489,10 +754,12 @@ async function refreshAll(){
   for(let i=0;i<done.length;i++){
     const ticker=done[i];
     document.getElementById('rmsg').textContent=`Refreshing ${ticker} (${i+1}/${done.length})…`;
-    // Remove old entry, insert new loading entry
+    // Preserve existing AI summary before removing the old entry
+    const existing = stocks.find(s=>s.ticker===ticker);
+    const savedAnalysis = existing?.analysis || null;
     stocks=stocks.filter(s=>s.ticker!==ticker);
     const nid=Date.now()+(i*100);
-    stocks.unshift({id:nid,ticker,status:'loading',step:'Refreshing…'});
+    stocks.unshift({id:nid,ticker,status:'loading',step:'Refreshing…',_savedAnalysis:savedAnalysis});
     renderTable();
     await run(nid,ticker);
     if(i<done.length-1)await new Promise(r=>setTimeout(r,4000));
@@ -573,7 +840,7 @@ function finalize(id, t, result, restricted){
   else {
     // Preserve existing AI summary if this is a refresh (don't wipe it)
     const existing = stocks[idx];
-    const analysis = existing?.analysis || null;
+    const analysis = existing?.analysis || existing?._savedAnalysis || null;
     stocks[idx]={id,status:'done',updatedAt:new Date().toLocaleString(),...result,analysis};
   }
   save(); renderTable();
@@ -1264,9 +1531,10 @@ async function reload(id,e){
   e.stopPropagation();
   const s=stocks.find(x=>x.id===id);if(!s)return;
   const t=s.ticker;
+  const savedAnalysis = s.analysis || null;
   stocks=stocks.filter(x=>x.id!==id);
   const nid=Date.now();
-  stocks.unshift({id:nid,ticker:t,status:'loading',step:'Starting…'});
+  stocks.unshift({id:nid,ticker:t,status:'loading',step:'Starting…',_savedAnalysis:savedAnalysis});
   if(activeDP===id)closeDP();
   renderTable();
   await run(nid,t);
