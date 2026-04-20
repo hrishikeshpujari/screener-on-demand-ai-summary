@@ -128,7 +128,104 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
 .ai-btn:disabled{opacity:.5;cursor:not-allowed}
 .ai-btn-sm{background:#1e2133;color:#8892a4;border:1px solid #2d3044;padding:4px 10px;border-radius:5px;font-size:10px;cursor:pointer}
 .ai-btn-sm:hover{color:#fff;border-color:#4f6ef7}
-/* ── SETUP PAGE ── */
+/* ── NAV TABS ── */
+.app-nav{display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid #1e2133}
+.app-tab{padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:none;color:#64748b;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-2px;transition:color .15s}
+.app-tab:hover{color:#cbd5e1}
+.app-tab.active{color:#fff;border-bottom-color:#4f6ef7}
+/* ── PORTFOLIO PAGE ── */
+.port-page{display:none}
+.port-page.active{display:block}
+.port-header{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.port-title{font-size:18px;font-weight:700;color:#fff;flex:1}
+.port-btn{padding:9px 16px;background:#141620;border:1px solid #2d3044;border-radius:8px;color:#94a3b8;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600;white-space:nowrap;transition:all .15s}
+.port-btn:hover{border-color:#4f6ef7;color:#fff}
+.port-btn.primary{background:#4f6ef7;border-color:#4f6ef7;color:#fff}
+.port-btn.primary:hover{background:#3d5ce0}
+.port-btn.danger{border-color:#7f1d1d;color:#f87171}
+.port-btn.danger:hover{background:#310d0d}
+.port-section{margin-bottom:24px}
+.port-section-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.port-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#4a5568}
+.port-section-count{font-size:11px;background:#1e2133;color:#64748b;padding:2px 8px;border-radius:10px}
+.port-empty{text-align:center;padding:24px;color:#374151;font-size:13px;border:1px dashed #1e2133;border-radius:10px}
+/* Position cards */
+.pos-card{background:#141620;border:1px solid #1e2133;border-radius:10px;margin-bottom:8px;overflow:hidden;transition:border-color .15s}
+.pos-card:hover{border-color:#2d3044}
+.pos-card-main{display:flex;align-items:center;gap:12px;padding:14px 16px;flex-wrap:wrap}
+.pos-ticker{font-size:15px;font-weight:800;color:#fff;min-width:60px}
+.pos-name{font-size:12px;color:#4a5568;flex:1;min-width:100px}
+.pos-meta{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.pos-stat{text-align:center}
+.pos-stat-lbl{font-size:10px;color:#374151;margin-bottom:2px;text-transform:uppercase;letter-spacing:.04em}
+.pos-stat-val{font-size:13px;font-weight:700;color:#e2e8f0}
+.pos-pnl-pos{color:#4ade80}
+.pos-pnl-neg{color:#f87171}
+.pos-badges{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.pos-warn{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px}
+.pos-warn.red{background:#310d0d;color:#f87171;border:1px solid #7f1d1d}
+.pos-warn.yellow{background:#322a0d;color:#fbbf24;border:1px solid #854d0e}
+.pos-warn.blue{background:#0d1b3e;color:#60a5fa;border:1px solid #1d4ed8}
+.pos-actions{display:flex;gap:6px;margin-left:auto;flex-shrink:0}
+.pos-action-btn{padding:5px 10px;background:#1e2133;border:1px solid #2d3044;border-radius:6px;color:#94a3b8;font-size:11px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.pos-action-btn:hover{border-color:#4f6ef7;color:#fff}
+.pos-action-btn.delete{border-color:#2d3044}
+.pos-action-btn.delete:hover{border-color:#7f1d1d;color:#f87171;background:#1a0a0a}
+/* AI guidance panel on card */
+.pos-ai-panel{border-top:1px solid #1e2133;padding:14px 16px;background:#0c0e14}
+.pos-ai-loading{display:flex;align-items:center;gap:8px;color:#64748b;font-size:12px}
+.pos-ai-text{font-size:13px;color:#cbd5e1;line-height:1.75;word-wrap:break-word}
+.pos-ai-meta{font-size:10px;color:#374151;margin-top:8px}
+/* Portfolio summary */
+.port-summary{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:20px}
+.port-stat-card{background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px 16px}
+.port-stat-lbl{font-size:11px;color:#4a5568;margin-bottom:4px}
+.port-stat-val{font-size:20px;font-weight:800;color:#fff}
+.port-stat-sub{font-size:11px;color:#64748b;margin-top:2px}
+/* AI Chat */
+.port-chat{background:#141620;border:1px solid #1e2133;border-radius:10px;overflow:hidden;margin-top:20px}
+.port-chat-hdr{padding:14px 16px;border-bottom:1px solid #1e2133;display:flex;align-items:center;gap:8px}
+.port-chat-title{font-size:13px;font-weight:700;color:#fff;flex:1}
+.port-chat-clear{padding:4px 10px;background:none;border:1px solid #2d3044;border-radius:5px;color:#64748b;font-size:11px;cursor:pointer;font-family:inherit}
+.port-chat-clear:hover{color:#f87171;border-color:#7f1d1d}
+.port-chat-msgs{padding:16px;max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.port-chat-msgs:empty::before{content:'Ask anything about your portfolio — positions, risk, what to exit, when to add…';color:#374151;font-size:13px;text-align:center;padding:20px}
+.chat-msg{padding:12px 14px;border-radius:8px;font-size:13px;line-height:1.7;max-width:90%}
+.chat-msg.user{background:#1a1d27;color:#e2e8f0;border:1px solid #2d3044;align-self:flex-end}
+.chat-msg.ai{background:#0c0e14;color:#cbd5e1;border:1px solid #1e2133;align-self:flex-start}
+.chat-msg.ai.loading{color:#4a5568}
+.port-chat-input{display:flex;gap:8px;padding:12px 16px;border-top:1px solid #1e2133;background:#0f1219}
+.port-chat-input input{flex:1;padding:10px 13px;background:#141620;border:1px solid #2d3044;border-radius:8px;color:#fff;font-size:13px;font-family:inherit}
+.port-chat-input input:focus{outline:none;border-color:#4f6ef7}
+.port-chat-send{padding:10px 16px;background:#4f6ef7;border:none;border-radius:8px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600}
+.port-chat-send:hover{background:#3d5ce0}
+.port-chat-send:disabled{opacity:.4;cursor:not-allowed}
+/* Add position modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:#141620;border:1px solid #2d3044;border-radius:14px;padding:24px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:16px;font-weight:700;color:#fff;margin-bottom:20px}
+.modal-field{margin-bottom:14px}
+.modal-label{font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:5px;display:block}
+.modal-input{width:100%;padding:10px 13px;background:#0c0e14;border:1px solid #2d3044;border-radius:8px;color:#fff;font-size:13px;font-family:inherit}
+.modal-input:focus{outline:none;border-color:#4f6ef7}
+.modal-input::placeholder{color:#374151}
+.modal-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal-footer{display:flex;gap:8px;margin-top:20px;justify-content:flex-end}
+.modal-cancel{padding:10px 18px;background:none;border:1px solid #2d3044;border-radius:8px;color:#64748b;font-size:13px;cursor:pointer;font-family:inherit}
+.modal-cancel:hover{border-color:#f87171;color:#f87171}
+.modal-submit{padding:10px 20px;background:#4f6ef7;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.modal-submit:hover{background:#3d5ce0}
+.modal-tabs{display:flex;gap:4px;margin-bottom:20px}
+.modal-tab{flex:1;padding:8px;border:1px solid #2d3044;border-radius:6px;background:none;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.modal-tab.active{background:#4f6ef7;border-color:#4f6ef7;color:#fff}
+/* Alpaca sync */
+.alpaca-bar{background:#0d1b0d;border:1px solid #166534;border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.alpaca-dot{width:8px;height:8px;border-radius:50%;background:#4ade80;flex-shrink:0}
+.alpaca-info{flex:1;font-size:12px;color:#4ade80}
+.alpaca-info span{color:#64748b}
+.alpaca-sync-btn{padding:7px 14px;background:#0d3320;border:1px solid #166534;border-radius:6px;color:#4ade80;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.alpaca-sync-btn:hover{background:#134d28}
 .setup-page{display:none;min-height:100vh;padding:0;position:fixed;inset:0;background:#0c0e14;overflow-y:auto;z-index:100}
 .setup-page.active{display:block}
 .setup-wrap{max-width:680px;margin:0 auto;padding:48px 28px 80px}
@@ -281,6 +378,29 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
           <button class="setup-save" onclick="setupSave(4)">Save</button>
         </div>
       </div>
+
+      <div class="setup-card" id="scAlpaca">
+        <div class="setup-card-top">
+          <div class="setup-card-icon">🏦</div>
+          <div class="setup-card-info">
+            <div class="setup-card-name">Alpaca API Keys — Portfolio Sync</div>
+            <div class="setup-card-desc">Auto-import your real stock positions from Alpaca into the Portfolio tab. Syncs ticker, shares, and average cost basis. Options positions still entered manually.</div>
+            <a class="setup-card-link" href="https://alpaca.markets" target="_blank">Free account at alpaca.markets ↗</a>
+          </div>
+          <div class="setup-card-status missing" id="ssAlpaca">Not set</div>
+        </div>
+        <div class="setup-input-row" style="margin-bottom:6px">
+          <input class="setup-input" type="password" id="skAlpacaKey" placeholder="Alpaca API Key ID" autocomplete="off"/>
+        </div>
+        <div class="setup-input-row" style="margin-bottom:6px">
+          <input class="setup-input" type="password" id="skAlpacaSecret" placeholder="Alpaca Secret Key" autocomplete="off"/>
+          <button class="setup-save" onclick="setupSaveAlpaca()">Save</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+          <input type="checkbox" id="alpacaLive" onchange="localStorage.setItem('viss_alpaca_live',this.checked?'1':'0')" style="accent-color:#4f6ef7"/>
+          <label for="alpacaLive" style="font-size:11px;color:#4a5568">Use live trading account (uncheck for paper trading)</label>
+        </div>
+      </div>
     </div>
 
     <div class="setup-cta">
@@ -303,6 +423,14 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
 </div>
 <p class="sub">Graham · Buffett · Lynch · Al Brooks &nbsp;·&nbsp; <span style="color:#4ade80">Pure-math scoring</span> · <span style="color:#a78bfa">🧠 AI on-demand</span> · <span style="color:#4ade80;font-size:10px">●LIVE</span> via Finnhub + Twelve Data</p>
 
+<!-- App nav tabs -->
+<div class="app-nav">
+  <button class="app-tab active" id="navScreener" onclick="switchTab('screener')">📊 Screener</button>
+  <button class="app-tab" id="navPortfolio" onclick="switchTab('portfolio')">💼 Portfolio</button>
+</div>
+
+<!-- ── SCREENER TAB ── -->
+<div id="tabScreener">
 <div class="input-row">
   <input type="text" id="ti" placeholder="Stock ticker (e.g. AAPL, MSFT, KO) — stocks only, not crypto" maxlength="10"/>
   <button class="btn" onclick="go()">Analyze ↗</button>
@@ -310,11 +438,7 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
   <button class="btn-ai-all" id="aiAllBtn" onclick="summarizeAll()" disabled>🧠 AI Summary all</button>
   <button class="btn-clr" onclick="clearAll()">Clear all</button>
 </div>
-
 <div class="rbar" id="rbar"><span class="spin"></span><span id="rmsg">Refreshing…</span></div>
-
-<!-- Detail panel is rendered inline in the table rows -->
-
 <div class="empty-msg" id="empty">No stocks yet — enter a ticker above.</div>
 <div class="tbl-wrap" id="tw" style="display:none">
   <table>
@@ -491,7 +615,150 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
     <div style="border-top:1px solid #1e2133;padding-top:16px;margin-top:8px;font-size:11px;color:#374151;text-align:center">Not financial advice. For educational and research purposes only. Always do your own due diligence. Past performance does not guarantee future results.</div>
   </div>
 </div>
+</div><!-- end #tabScreener -->
+
+<!-- ── PORTFOLIO TAB ── -->
+<div id="tabPortfolio" style="display:none">
+
+  <!-- Alpaca sync bar (shown when key set) -->
+  <div class="alpaca-bar" id="alpacaBar" style="display:none">
+    <div class="alpaca-dot"></div>
+    <div class="alpaca-info">Alpaca connected <span id="alpacaLastSync"></span></div>
+    <button class="alpaca-sync-btn" onclick="syncAlpaca()">↻ Sync positions</button>
+  </div>
+
+  <!-- Portfolio summary stats -->
+  <div class="port-summary" id="portSummary" style="display:none"></div>
+
+  <!-- Header + actions -->
+  <div class="port-header">
+    <div class="port-title">My Positions</div>
+    <button class="port-btn" onclick="openModal('stock')">+ Add Stock</button>
+    <button class="port-btn" onclick="openModal('option')">+ Add Option</button>
+    <button class="port-btn primary" onclick="reviewPortfolio()" id="reviewBtn">🧠 Review Portfolio</button>
+  </div>
+
+  <!-- Stock positions -->
+  <div class="port-section">
+    <div class="port-section-hdr">
+      <div class="port-section-title">Stock Positions</div>
+      <div class="port-section-count" id="stockCount">0</div>
+    </div>
+    <div id="stockPositions"><div class="port-empty">No stock positions yet — click + Add Stock to get started.</div></div>
+  </div>
+
+  <!-- Options positions -->
+  <div class="port-section">
+    <div class="port-section-hdr">
+      <div class="port-section-title">Options Positions</div>
+      <div class="port-section-count" id="optionCount">0</div>
+    </div>
+    <div id="optionPositions"><div class="port-empty">No options positions yet — click + Add Option to get started.</div></div>
+  </div>
+
+  <!-- AI Chat -->
+  <div class="port-chat">
+    <div class="port-chat-hdr">
+      <div style="font-size:16px">🧠</div>
+      <div class="port-chat-title">Portfolio AI Assistant</div>
+      <button class="port-chat-clear" onclick="clearChat()">Clear chat</button>
+    </div>
+    <div class="port-chat-msgs" id="chatMsgs"></div>
+    <div class="port-chat-input">
+      <input id="chatInput" placeholder="Ask anything about your positions… e.g. 'Which position should I exit first?'" onkeydown="if(event.key==='Enter')sendChat()"/>
+      <button class="port-chat-send" onclick="sendChat()" id="chatSend">Send</button>
+    </div>
+  </div>
+</div><!-- end #tabPortfolio -->
+
 </div><!-- end .screener-page -->
+
+<!-- ══ ADD POSITION MODAL ══ -->
+<div class="modal-overlay" id="addPosModal">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">Add Position</div>
+    <div class="modal-tabs">
+      <button class="modal-tab active" id="mtStock" onclick="switchModalTab('stock')">📈 Stock</button>
+      <button class="modal-tab" id="mtOption" onclick="switchModalTab('option')">🎯 Option</button>
+    </div>
+
+    <!-- Stock fields -->
+    <div id="mfStock">
+      <div class="modal-field">
+        <label class="modal-label">Ticker Symbol</label>
+        <input class="modal-input" id="mTicker" placeholder="e.g. AAPL" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"/>
+      </div>
+      <div class="modal-row">
+        <div class="modal-field">
+          <label class="modal-label">Shares</label>
+          <input class="modal-input" id="mShares" type="number" placeholder="e.g. 10" min="0.001" step="any"/>
+        </div>
+        <div class="modal-field">
+          <label class="modal-label">Entry Price ($)</label>
+          <input class="modal-input" id="mEntryPrice" type="number" placeholder="e.g. 175.50" min="0" step="any"/>
+        </div>
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">Entry Date</label>
+        <input class="modal-input" id="mEntryDate" type="date"/>
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">Notes (optional)</label>
+        <input class="modal-input" id="mNotes" placeholder="e.g. Bought on EMA50 pullback"/>
+      </div>
+    </div>
+
+    <!-- Option fields -->
+    <div id="mfOption" style="display:none">
+      <div class="modal-field">
+        <label class="modal-label">Underlying Ticker</label>
+        <input class="modal-input" id="mOptTicker" placeholder="e.g. META" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"/>
+      </div>
+      <div class="modal-row">
+        <div class="modal-field">
+          <label class="modal-label">Type</label>
+          <select class="modal-input" id="mOptType">
+            <option value="call">Call</option>
+            <option value="put">Put</option>
+          </select>
+        </div>
+        <div class="modal-field">
+          <label class="modal-label">Strike Price ($)</label>
+          <input class="modal-input" id="mStrike" type="number" placeholder="e.g. 580" min="0" step="any"/>
+        </div>
+      </div>
+      <div class="modal-row">
+        <div class="modal-field">
+          <label class="modal-label">Expiry Date</label>
+          <input class="modal-input" id="mExpiry" type="date"/>
+        </div>
+        <div class="modal-field">
+          <label class="modal-label">Contracts</label>
+          <input class="modal-input" id="mContracts" type="number" placeholder="e.g. 2" min="1" step="1" value="1"/>
+        </div>
+      </div>
+      <div class="modal-row">
+        <div class="modal-field">
+          <label class="modal-label">Premium Paid (per share $)</label>
+          <input class="modal-input" id="mPremium" type="number" placeholder="e.g. 8.50" min="0" step="any"/>
+        </div>
+        <div class="modal-field">
+          <label class="modal-label">Entry Date</label>
+          <input class="modal-input" id="mOptDate" type="date"/>
+        </div>
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">Notes (optional)</label>
+        <input class="modal-input" id="mOptNotes" placeholder="e.g. Bought on breakout above $570"/>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-submit" onclick="savePosition()">Add Position</button>
+    </div>
+  </div>
+</div>
 
 <script>
 
@@ -561,6 +828,498 @@ function loadKeys(){
     loadStocks(); // keys exist, safe to load
   }
 }
+// ══ PORTFOLIO ══════════════════════════════════════════════════
+
+const PS = 'viss_positions'; // localStorage key
+let positions = []; // {id, type:'stock'|'option', ticker, ...fields, aiGuidance, aiGeneratedAt}
+let chatHistory = []; // [{role, content}]
+let modalType = 'stock';
+let editingPosId = null;
+
+function loadPositions(){
+  try { positions = JSON.parse(localStorage.getItem(PS)||'[]'); } catch(e){ positions=[]; }
+}
+function savePositions(){
+  localStorage.setItem(PS, JSON.stringify(positions));
+}
+
+// ── Tab switching ──
+function switchTab(tab){
+  document.getElementById('tabScreener').style.display = tab==='screener'?'block':'none';
+  document.getElementById('tabPortfolio').style.display = tab==='portfolio'?'block':'none';
+  document.getElementById('navScreener').classList.toggle('active', tab==='screener');
+  document.getElementById('navPortfolio').classList.toggle('active', tab==='portfolio');
+  if(tab==='portfolio'){ loadPositions(); renderPortfolio(); updateAlpacaBar(); }
+}
+
+// ── Modal ──
+function openModal(type, editId){
+  modalType = type;
+  editingPosId = editId || null;
+  switchModalTab(type);
+  document.getElementById('addPosModal').classList.add('open');
+  // Pre-fill today's date
+  const today = new Date().toISOString().split('T')[0];
+  if(!document.getElementById('mEntryDate').value) document.getElementById('mEntryDate').value = today;
+  if(!document.getElementById('mOptDate').value) document.getElementById('mOptDate').value = today;
+  // If editing, populate fields
+  if(editId){
+    const p = positions.find(x=>x.id===editId);
+    if(p) prefillModal(p);
+    document.getElementById('modalTitle').textContent = 'Edit Position';
+  } else {
+    document.getElementById('modalTitle').textContent = 'Add Position';
+    clearModal();
+  }
+}
+function closeModal(){
+  document.getElementById('addPosModal').classList.remove('open');
+  editingPosId = null;
+}
+function switchModalTab(type){
+  modalType = type;
+  document.getElementById('mtStock').classList.toggle('active', type==='stock');
+  document.getElementById('mtOption').classList.toggle('active', type==='option');
+  document.getElementById('mfStock').style.display = type==='stock'?'block':'none';
+  document.getElementById('mfOption').style.display = type==='option'?'block':'none';
+}
+function clearModal(){
+  ['mTicker','mShares','mEntryPrice','mNotes','mOptTicker','mStrike','mContracts','mPremium','mOptNotes'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.value = el.type==='number' ? '' : '';
+  });
+  document.getElementById('mContracts').value = '1';
+  document.getElementById('mOptType').value = 'call';
+}
+function prefillModal(p){
+  switchModalTab(p.type);
+  if(p.type==='stock'){
+    document.getElementById('mTicker').value = p.ticker||'';
+    document.getElementById('mShares').value = p.shares||'';
+    document.getElementById('mEntryPrice').value = p.entryPrice||'';
+    document.getElementById('mEntryDate').value = p.entryDate||'';
+    document.getElementById('mNotes').value = p.notes||'';
+  } else {
+    document.getElementById('mOptTicker').value = p.ticker||'';
+    document.getElementById('mOptType').value = p.optType||'call';
+    document.getElementById('mStrike').value = p.strike||'';
+    document.getElementById('mExpiry').value = p.expiry||'';
+    document.getElementById('mContracts').value = p.contracts||1;
+    document.getElementById('mPremium').value = p.premium||'';
+    document.getElementById('mOptDate').value = p.entryDate||'';
+    document.getElementById('mOptNotes').value = p.notes||'';
+  }
+}
+
+function savePosition(){
+  const type = modalType;
+  let pos;
+  if(type==='stock'){
+    const ticker = document.getElementById('mTicker').value.trim().toUpperCase();
+    const shares = parseFloat(document.getElementById('mShares').value);
+    const entryPrice = parseFloat(document.getElementById('mEntryPrice').value);
+    if(!ticker||isNaN(shares)||isNaN(entryPrice)){ alert('Please fill in ticker, shares, and entry price.'); return; }
+    pos = { type:'stock', ticker, shares, entryPrice,
+      entryDate: document.getElementById('mEntryDate').value,
+      notes: document.getElementById('mNotes').value.trim() };
+  } else {
+    const ticker = document.getElementById('mOptTicker').value.trim().toUpperCase();
+    const strike = parseFloat(document.getElementById('mStrike').value);
+    const expiry = document.getElementById('mExpiry').value;
+    const contracts = parseInt(document.getElementById('mContracts').value)||1;
+    const premium = parseFloat(document.getElementById('mPremium').value);
+    if(!ticker||isNaN(strike)||!expiry||isNaN(premium)){ alert('Please fill in all required option fields.'); return; }
+    pos = { type:'option', ticker, optType: document.getElementById('mOptType').value,
+      strike, expiry, contracts, premium,
+      entryDate: document.getElementById('mOptDate').value,
+      notes: document.getElementById('mOptNotes').value.trim() };
+  }
+  if(editingPosId){
+    const idx = positions.findIndex(x=>x.id===editingPosId);
+    if(idx!==-1){ pos.id=editingPosId; pos.aiGuidance=positions[idx].aiGuidance; pos.aiGeneratedAt=positions[idx].aiGeneratedAt; positions[idx]=pos; }
+  } else {
+    pos.id = Date.now()+'_'+Math.random().toString(36).slice(2,6);
+    positions.push(pos);
+  }
+  savePositions();
+  closeModal();
+  renderPortfolio();
+}
+
+function deletePosition(id){
+  if(!confirm('Remove this position?')) return;
+  positions = positions.filter(p=>p.id!==id);
+  savePositions();
+  renderPortfolio();
+}
+
+// ── Get live price + screener data for a ticker ──
+function getScreenerData(ticker){
+  return stocks.find(s=>s.ticker===ticker&&s.status==='done') || null;
+}
+function getLivePrice(ticker){
+  const s = getScreenerData(ticker);
+  return s?.currentPrice || null;
+}
+
+// ── Compute P&L ──
+function computeStockPnL(pos){
+  const cur = getLivePrice(pos.ticker);
+  if(!cur) return null;
+  const cost = pos.shares * pos.entryPrice;
+  const value = pos.shares * cur;
+  return { cost, value, pnl: value-cost, pnlPct: (value-cost)/cost*100, currentPrice: cur };
+}
+function computeOptionPnL(pos){
+  const cur = getLivePrice(pos.ticker);
+  const cost = pos.contracts * 100 * pos.premium;
+  // Rough intrinsic estimate — real value needs options pricing
+  const intrinsic = pos.optType==='call' ? Math.max(0,(cur||0)-pos.strike) : Math.max(0,pos.strike-(cur||0));
+  const daysToExpiry = Math.ceil((new Date(pos.expiry)-new Date())/(1000*60*60*24));
+  return { cost, currentPrice: cur, intrinsic, daysToExpiry, itm: intrinsic > 0 };
+}
+
+// ── Warnings ──
+function getOptionWarnings(pos){
+  const warns = [];
+  const pnl = computeOptionPnL(pos);
+  if(pnl.daysToExpiry <= 30) warns.push({type:'red', text:`⏰ ${pnl.daysToExpiry}d to expiry`});
+  else if(pnl.daysToExpiry <= 45) warns.push({type:'yellow', text:`📅 ${pnl.daysToExpiry}d to expiry`});
+  // Earnings warning from screener
+  const s = getScreenerData(pos.ticker);
+  if(s?.options?.earningsWarning==='YES') warns.push({type:'yellow', text:'⚡ Earnings soon'});
+  return warns;
+}
+function getStockWarnings(pos){
+  const warns = [];
+  const s = getScreenerData(pos.ticker);
+  if(s?.overallSignal==='SELL') warns.push({type:'red', text:'🚫 SELL signal'});
+  const pnl = computeStockPnL(pos);
+  if(pnl && pnl.pnlPct < -20) warns.push({type:'yellow', text:`⚠ Down ${Math.abs(pnl.pnlPct).toFixed(0)}%`});
+  return warns;
+}
+
+// ── Render ──
+function renderPortfolio(){
+  loadPositions();
+  const stockPos = positions.filter(p=>p.type==='stock');
+  const optPos = positions.filter(p=>p.type==='option');
+  document.getElementById('stockCount').textContent = stockPos.length;
+  document.getElementById('optionCount').textContent = optPos.length;
+
+  // Summary stats
+  let totalCost=0, totalValue=0, hasLive=false;
+  stockPos.forEach(p=>{ const pl=computeStockPnL(p); if(pl){totalCost+=pl.cost;totalValue+=pl.value;hasLive=true;} });
+  const summaryEl = document.getElementById('portSummary');
+  if(positions.length>0){
+    summaryEl.style.display='grid';
+    const totalPnl=totalValue-totalCost, totalPnlPct=totalCost>0?totalPnl/totalCost*100:0;
+    summaryEl.innerHTML = `
+      <div class="port-stat-card"><div class="port-stat-lbl">Positions</div><div class="port-stat-val">${positions.length}</div><div class="port-stat-sub">${stockPos.length} stocks · ${optPos.length} options</div></div>
+      ${hasLive?`<div class="port-stat-card"><div class="port-stat-lbl">Stock P&L</div><div class="port-stat-val ${totalPnl>=0?'pos-pnl-pos':'pos-pnl-neg'}">${totalPnl>=0?'+':''}$${Math.abs(totalPnl).toFixed(0)}</div><div class="port-stat-sub ${totalPnlPct>=0?'pos-pnl-pos':'pos-pnl-neg'}">${totalPnlPct>=0?'+':''}${totalPnlPct.toFixed(1)}%</div></div>`:''}
+      <div class="port-stat-card"><div class="port-stat-lbl">Alerts</div><div class="port-stat-val" style="color:#f87171">${positions.filter(p=>{const w=p.type==='option'?getOptionWarnings(p):getStockWarnings(p);return w.some(x=>x.type==='red');}).length}</div><div class="port-stat-sub">need attention</div></div>
+    `;
+  } else { summaryEl.style.display='none'; }
+
+  // Stock cards
+  const se = document.getElementById('stockPositions');
+  if(!stockPos.length){ se.innerHTML='<div class="port-empty">No stock positions yet — click + Add Stock to get started.</div>'; }
+  else { se.innerHTML = stockPos.map(p=>renderStockCard(p)).join(''); }
+
+  // Option cards
+  const oe = document.getElementById('optionPositions');
+  if(!optPos.length){ oe.innerHTML='<div class="port-empty">No options positions yet — click + Add Option to get started.</div>'; }
+  else { oe.innerHTML = optPos.map(p=>renderOptionCard(p)).join(''); }
+}
+
+function renderStockCard(p){
+  const pnl = computeStockPnL(p);
+  const s = getScreenerData(p.ticker);
+  const warns = getStockWarnings(p);
+  const warnHtml = warns.map(w=>`<span class="pos-warn ${w.type}">${w.text}</span>`).join('');
+  const signalBadge = s ? `<span class="badge ${vc(s.overallSignal)}" style="font-size:10px">${s.overallSignal} ${s.totalScore}/32</span>` : `<span style="font-size:10px;color:#374151">Not in screener</span>`;
+  const pnlHtml = pnl ? `<span class="${pnl.pnl>=0?'pos-pnl-pos':'pos-pnl-neg'}" style="font-weight:700;font-size:13px">${pnl.pnl>=0?'+':''}$${Math.abs(pnl.pnl).toFixed(0)} (${pnl.pnlPct>=0?'+':''}${pnl.pnlPct.toFixed(1)}%)</span>` : '<span style="color:#374151;font-size:11px">refresh screener for price</span>';
+  const aiPanel = p.aiGuidance ? `<div class="pos-ai-panel"><div class="pos-ai-text">${p.aiGuidance}</div><div class="pos-ai-meta">Generated ${p.aiGeneratedAt||''} · <button class="pos-action-btn" onclick="getPositionGuidance('${p.id}')">↻ Refresh</button></div></div>` :
+    p.aiLoading ? `<div class="pos-ai-panel"><div class="pos-ai-loading"><span class="spin"></span>Getting guidance…</div></div>` : '';
+
+  return `<div class="pos-card" id="pc-${p.id}">
+    <div class="pos-card-main">
+      <div class="pos-ticker">${p.ticker}</div>
+      <div class="pos-name">${s?.companyName||''}<br><span style="font-size:10px;color:#374151">${p.shares} shares · entry $${p.entryPrice.toFixed(2)} · ${p.entryDate||''}</span></div>
+      <div class="pos-meta">
+        <div class="pos-stat"><div class="pos-stat-lbl">Current</div><div class="pos-stat-val">${pnl?'$'+pnl.currentPrice.toFixed(2):'—'}</div></div>
+        <div class="pos-stat"><div class="pos-stat-lbl">P&L</div><div>${pnlHtml}</div></div>
+        <div class="pos-stat"><div class="pos-stat-lbl">Signal</div><div>${signalBadge}</div></div>
+      </div>
+      <div class="pos-badges">${warnHtml}</div>
+      <div class="pos-actions">
+        <button class="pos-action-btn" onclick="getPositionGuidance('${p.id}')">🧠 Ask AI</button>
+        <button class="pos-action-btn" onclick="openModal('stock','${p.id}')">✏</button>
+        <button class="pos-action-btn delete" onclick="deletePosition('${p.id}')">✕</button>
+      </div>
+    </div>
+    ${aiPanel}
+    ${p.notes?`<div style="padding:8px 16px;font-size:11px;color:#374151;border-top:1px solid #1e2133">📝 ${p.notes}</div>`:''}
+  </div>`;
+}
+
+function renderOptionCard(p){
+  const pnl = computeOptionPnL(p);
+  const s = getScreenerData(p.ticker);
+  const warns = getOptionWarnings(p);
+  const warnHtml = warns.map(w=>`<span class="pos-warn ${w.type}">${w.text}</span>`).join('');
+  const signalBadge = s ? `<span class="badge ${vc(s.overallSignal)}" style="font-size:10px">${s.overallSignal} ${s.totalScore}/32</span>` : `<span style="font-size:10px;color:#374151">Not in screener</span>`;
+  const itmBadge = pnl.currentPrice ? (pnl.itm ? '<span class="pos-warn blue">ITM</span>' : '<span class="pos-warn yellow">OTM</span>') : '';
+  const totalCost = (p.contracts*100*p.premium).toFixed(0);
+  const aiPanel = p.aiGuidance ? `<div class="pos-ai-panel"><div class="pos-ai-text">${p.aiGuidance}</div><div class="pos-ai-meta">Generated ${p.aiGeneratedAt||''} · <button class="pos-action-btn" onclick="getPositionGuidance('${p.id}')">↻ Refresh</button></div></div>` :
+    p.aiLoading ? `<div class="pos-ai-panel"><div class="pos-ai-loading"><span class="spin"></span>Getting guidance…</div></div>` : '';
+
+  return `<div class="pos-card" id="pc-${p.id}">
+    <div class="pos-card-main">
+      <div class="pos-ticker">${p.ticker}</div>
+      <div class="pos-name">${p.optType.toUpperCase()} $${p.strike} · ${p.expiry}<br><span style="font-size:10px;color:#374151">${p.contracts} contract${p.contracts>1?'s':''} · paid $${p.premium}/sh · total $${totalCost} · ${p.entryDate||''}</span></div>
+      <div class="pos-meta">
+        <div class="pos-stat"><div class="pos-stat-lbl">Stock now</div><div class="pos-stat-val">${pnl.currentPrice?'$'+pnl.currentPrice.toFixed(2):'—'}</div></div>
+        <div class="pos-stat"><div class="pos-stat-lbl">Days left</div><div class="pos-stat-val" style="color:${pnl.daysToExpiry<=30?'#f87171':pnl.daysToExpiry<=45?'#fbbf24':'#e2e8f0'}">${pnl.daysToExpiry}</div></div>
+        <div class="pos-stat"><div class="pos-stat-lbl">Signal</div><div>${signalBadge}</div></div>
+      </div>
+      <div class="pos-badges">${warnHtml}${itmBadge}</div>
+      <div class="pos-actions">
+        <button class="pos-action-btn" onclick="getPositionGuidance('${p.id}')">🧠 Ask AI</button>
+        <button class="pos-action-btn" onclick="openModal('option','${p.id}')">✏</button>
+        <button class="pos-action-btn delete" onclick="deletePosition('${p.id}')">✕</button>
+      </div>
+    </div>
+    ${aiPanel}
+    ${p.notes?`<div style="padding:8px 16px;font-size:11px;color:#374151;border-top:1px solid #1e2133">📝 ${p.notes}</div>`:''}
+  </div>`;
+}
+
+// ── AI Guidance per position ──
+async function getPositionGuidance(id){
+  const p = positions.find(x=>x.id===id);
+  if(!p) return;
+  p.aiLoading = true;
+  p.aiGuidance = null;
+  renderPortfolio();
+
+  const s = getScreenerData(p.ticker);
+  const pnl = p.type==='stock' ? computeStockPnL(p) : computeOptionPnL(p);
+
+  let prompt;
+  if(p.type==='stock'){
+    prompt = `I hold ${p.shares} shares of ${p.ticker}${s?` (${s.companyName})`:''}. 
+Entry: $${p.entryPrice} on ${p.entryDate||'unknown date'}.
+Current price: ${pnl?.currentPrice?'$'+pnl.currentPrice.toFixed(2):'unknown (not in screener)'}.
+P&L: ${pnl?`${pnl.pnl>=0?'+':''}$${pnl.pnl.toFixed(0)} (${pnl.pnlPct.toFixed(1)}%)`:'unknown'}.
+${s?`Screener score: ${s.totalScore}/32 · Signal: ${s.overallSignal} · Graham: ${s.graham?.score}/8 · Buffett: ${s.buffett?.score}/8 · Lynch: ${s.lynch?.score}/8 · Technical: ${s.technical?.score}/8.
+Technical trend: ${s.technical?.trendDirection}. EMA20: $${s.technical?.ema20?.toFixed(2)} · EMA50: $${s.technical?.ema50?.toFixed(2)} · EMA200: $${s.technical?.ema200?.toFixed(2)}.
+Support: $${s.technical?.supportLevel?.toFixed(2)} · Resistance: $${s.technical?.resistanceLevel?.toFixed(2)}.
+P/E: ${s.graham?.pe?.toFixed(1)}x · ROE: ${s.buffett?.roe?.toFixed(1)}% · Gross Margin: ${s.buffett?.grossMargin?.toFixed(1)}%.`:'No screener data available for this ticker.'}
+${p.notes?`My notes: ${p.notes}.`:''}
+
+Give me specific, actionable guidance on this position in 3-5 sentences. What should I do — hold, add, trim, or exit? Reference the actual numbers above. Be direct and specific about price levels or conditions that would trigger a decision.`;
+  } else {
+    prompt = `I hold ${p.contracts} ${p.optType} contract${p.contracts>1?'s':''} on ${p.ticker} with strike $${p.strike}, expiring ${p.expiry}.
+Paid: $${p.premium}/share ($${(p.contracts*100*p.premium).toFixed(0)} total).
+Entered: ${p.entryDate||'unknown'}.
+Current stock price: ${pnl?.currentPrice?'$'+pnl.currentPrice.toFixed(2):'unknown'}.
+Days to expiry: ${pnl.daysToExpiry}.
+Position is currently ${pnl.itm?`IN the money (intrinsic value ~$${pnl.intrinsic.toFixed(2)}/sh)`:'OUT of the money'}.
+${s?`Screener score: ${s.totalScore}/32 · Signal: ${s.overallSignal} · Technical: ${s.technical?.score}/8.
+Trend: ${s.technical?.trendDirection}. EMA20: $${s.technical?.ema20?.toFixed(2)} · EMA50: $${s.technical?.ema50?.toFixed(2)}.
+Earnings warning: ${s.options?.earningsWarning||'unknown'}.`:'No screener data for this ticker.'}
+${p.notes?`My notes: ${p.notes}.`:''}
+
+Give specific actionable guidance in 3-5 sentences: should I hold, take profit, cut losses, or roll? Consider the days remaining, ITM/OTM status, and the technical setup. Reference specific price levels or conditions. Include any earnings IV risk if relevant.`;
+  }
+
+  try {
+    const txt = await callAnthropic(prompt, false);
+    p.aiGuidance = txt.replace(/^(Here|Based|Given|As|Looking|For|With|Your|This)[^\n]*\n?/,'').trim();
+    p.aiGeneratedAt = new Date().toLocaleTimeString();
+  } catch(e) {
+    p.aiGuidance = `⚠ Error: ${e.message}`;
+  }
+  p.aiLoading = false;
+  savePositions();
+  renderPortfolio();
+}
+
+// ── Portfolio-wide AI review ──
+async function reviewPortfolio(){
+  if(!positions.length){ alert('Add some positions first.'); return; }
+  const btn = document.getElementById('reviewBtn');
+  btn.disabled = true; btn.textContent = '🧠 Reviewing…';
+
+  // Build context of all positions
+  const posContext = positions.map(p=>{
+    const s = getScreenerData(p.ticker);
+    if(p.type==='stock'){
+      const pnl = computeStockPnL(p);
+      return `STOCK: ${p.ticker} · ${p.shares}sh · entry $${p.entryPrice} · current ${pnl?.currentPrice?'$'+pnl.currentPrice.toFixed(2):'unknown'} · P&L ${pnl?`${pnl.pnlPct.toFixed(1)}%`:'unknown'} · Screener: ${s?s.totalScore+'/32 '+s.overallSignal:'not loaded'}`;
+    } else {
+      const pnl = computeOptionPnL(p);
+      return `OPTION: ${p.ticker} $${p.strike}${p.optType[0].toUpperCase()} exp ${p.expiry} · ${p.contracts}x · paid $${p.premium}/sh · ${pnl.daysToExpiry}d left · ${pnl.itm?'ITM':'OTM'} · stock ${pnl.currentPrice?'$'+pnl.currentPrice.toFixed(2):'unknown'} · Screener: ${s?s.totalScore+'/32 '+s.overallSignal:'not loaded'}`;
+    }
+  }).join('\n');
+
+  const prompt = `Review my investment portfolio and give me a prioritized action plan.
+
+CURRENT POSITIONS:
+${posContext}
+
+Provide a clear, prioritized review in this structure:
+1. URGENT (positions needing immediate attention — options near expiry, stop losses hit, severe signal deterioration)
+2. WATCH (positions to monitor closely this week)  
+3. HOLDS (positions looking fine, no action needed)
+4. OVERALL ASSESSMENT (1-2 sentences on portfolio balance, concentration risk, or missing opportunities)
+
+Be specific with tickers and price levels. Don't hedge everything — give direct recommendations.`;
+
+  // Add to chat as a system-initiated message
+  chatHistory.push({role:'user', content:'🧠 Portfolio Review (auto-generated)'});
+  renderChat();
+
+  try {
+    const txt = await callAnthropic(prompt, false);
+    chatHistory.push({role:'assistant', content:txt});
+  } catch(e) {
+    chatHistory.push({role:'assistant', content:`⚠ Error: ${e.message}`});
+  }
+  renderChat();
+  btn.disabled=false; btn.textContent='🧠 Review Portfolio';
+
+  // Scroll to chat
+  document.getElementById('chatMsgs').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+// ── Free-text Chat ──
+async function sendChat(){
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if(!msg) return;
+  input.value = '';
+
+  chatHistory.push({role:'user', content:msg});
+  renderChat();
+
+  const sendBtn = document.getElementById('chatSend');
+  sendBtn.disabled = true;
+
+  // Build portfolio context for system message
+  const posContext = positions.length ? positions.map(p=>{
+    const s = getScreenerData(p.ticker);
+    if(p.type==='stock'){
+      const pnl = computeStockPnL(p);
+      return `${p.ticker}: ${p.shares}sh entry $${p.entryPrice} now ${pnl?.currentPrice?'$'+pnl.currentPrice.toFixed(2):'?'} ${pnl?`(${pnl.pnlPct.toFixed(1)}%)`:''}  Score:${s?s.totalScore+'/32':'-'} ${s?.overallSignal||''}`;
+    } else {
+      const pnl = computeOptionPnL(p);
+      return `${p.ticker} $${p.strike}${p.optType[0].toUpperCase()} ${p.expiry}: ${p.contracts}x paid $${p.premium} · ${pnl.daysToExpiry}d · ${pnl.itm?'ITM':'OTM'} · stock ${pnl.currentPrice?'$'+pnl.currentPrice.toFixed(2):'?'} Score:${s?s.totalScore+'/32':'-'}`;
+    }
+  }).join('\n') : 'No positions added yet.';
+
+  const systemMsg = `You are an investment advisor AI for a value investor using a stock screener. The user's current portfolio:\n${posContext}\n\nAnswer concisely and specifically. Reference actual tickers and numbers from the portfolio when relevant. Be direct — give recommendations, not just analysis.`;
+
+  // Build messages with history (keep last 10 exchanges for context)
+  const recentHistory = chatHistory.slice(-20);
+  const messages = [{role:'user', content:systemMsg+'\n\nUser question: '+recentHistory[recentHistory.length-1].content}];
+  if(recentHistory.length > 1){
+    // Include prior exchanges for context
+    const prior = recentHistory.slice(0,-1).map(m=>({role:m.role, content:m.content}));
+    messages.splice(0,0,...prior);
+  }
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':keys[0],'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages})
+    });
+    const d = await res.json();
+    if(d.error) throw new Error(d.error.message);
+    const reply = d.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    chatHistory.push({role:'assistant', content:reply});
+  } catch(e) {
+    chatHistory.push({role:'assistant', content:`⚠ Error: ${e.message}`});
+  }
+
+  renderChat();
+  sendBtn.disabled = false;
+}
+
+function renderChat(){
+  const el = document.getElementById('chatMsgs');
+  if(!chatHistory.length){ el.innerHTML=''; return; }
+  el.innerHTML = chatHistory.map(m=>`<div class="chat-msg ${m.role}">${m.content.replace(/\n/g,'<br>')}</div>`).join('');
+  el.scrollTop = el.scrollHeight;
+}
+function clearChat(){ chatHistory=[]; renderChat(); }
+
+// ── Alpaca Integration ──
+function updateAlpacaBar(){
+  const bar = document.getElementById('alpacaBar');
+  const alpacaKey = localStorage.getItem('viss_key_alpaca_key');
+  const alpacaSecret = localStorage.getItem('viss_key_alpaca_secret');
+  if(alpacaKey && alpacaSecret){
+    bar.style.display='flex';
+    const last = localStorage.getItem('viss_alpaca_synced');
+    document.getElementById('alpacaLastSync').textContent = last ? `· last synced ${last}` : '';
+  } else {
+    bar.style.display='none';
+  }
+}
+
+async function syncAlpaca(){
+  const key = localStorage.getItem('viss_key_alpaca_key');
+  const secret = localStorage.getItem('viss_key_alpaca_secret');
+  if(!key||!secret){ alert('Add your Alpaca API key and secret in API Keys settings.'); return; }
+
+  const btn = document.querySelector('.alpaca-sync-btn');
+  btn.textContent = '⏳ Syncing…'; btn.disabled=true;
+
+  try {
+    // Alpaca paper trading URL — change to api.alpaca.markets for live
+    const base = localStorage.getItem('viss_alpaca_live')==='1' ? 'https://api.alpaca.markets' : 'https://paper-api.alpaca.markets';
+    const r = await fetch(`${base}/v2/positions`, {
+      headers:{'APCA-API-KEY-ID':key,'APCA-API-SECRET-KEY':secret}
+    });
+    if(!r.ok) throw new Error(`Alpaca error: ${r.status} ${r.statusText}`);
+    const alpacaPositions = await r.json();
+
+    // Merge into positions — don't duplicate, don't overwrite existing manual positions
+    let added=0, updated=0;
+    alpacaPositions.forEach(ap=>{
+      const ticker = ap.symbol;
+      const existing = positions.find(p=>p.type==='stock'&&p.ticker===ticker);
+      if(existing){
+        // Update shares if changed
+        if(existing.shares !== parseFloat(ap.qty)){ existing.shares=parseFloat(ap.qty); updated++; }
+      } else {
+        positions.push({
+          id: 'alpaca_'+ticker,
+          type:'stock', ticker,
+          shares: parseFloat(ap.qty),
+          entryPrice: parseFloat(ap.avg_entry_price),
+          entryDate: '',
+          notes: 'Imported from Alpaca',
+          alpacaImported: true,
+        });
+        added++;
+      }
+    });
+
+    savePositions();
+    localStorage.setItem('viss_alpaca_synced', new Date().toLocaleTimeString());
+    document.getElementById('alpacaLastSync').textContent = `· last synced ${new Date().toLocaleTimeString()}`;
+    renderPortfolio();
+    alert(`Alpaca sync complete: ${added} added, ${updated} updated.`);
+  } catch(e) {
+    alert(`Alpaca sync failed: ${e.message}`);
+  }
+  btn.textContent='↻ Sync positions'; btn.disabled=false;
+}
+
 function toggleGuide(){
   const c = document.getElementById('guideContent');
   const a = document.getElementById('guideArrow');
@@ -571,6 +1330,18 @@ function toggleGuide(){
     c.style.display = 'none';
     a.textContent = '▼ Show';
   }
+}
+function setupSaveAlpaca(){
+  const key = document.getElementById('skAlpacaKey').value.trim();
+  const secret = document.getElementById('skAlpacaSecret').value.trim();
+  if(!key||!secret){ alert('Enter both Alpaca API Key and Secret.'); return; }
+  localStorage.setItem('viss_key_alpaca_key', key);
+  localStorage.setItem('viss_key_alpaca_secret', secret);
+  document.getElementById('skAlpacaKey').value='';
+  document.getElementById('skAlpacaSecret').value='';
+  const s=document.getElementById('ssAlpaca');
+  s.textContent='✓ Set'; s.className='setup-card-status ok';
+  document.getElementById('scAlpaca').classList.add('done');
 }
 function saveKey(i){
   const v=document.getElementById('k'+i)?.value?.trim();
@@ -1725,6 +2496,7 @@ if(location.protocol==='file:'){
 }
 
 loadKeys(); // handles routing to setup or screener, and calls loadStocks when ready
+loadPositions();
 
 // Show last saved timestamp in subtitle
 setTimeout(()=>{
