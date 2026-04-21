@@ -1431,7 +1431,10 @@ function parseRobinhoodCSV(csv){
   savePositions();
   renderPortfolio();
   fetchMissingPrices();
-  if(s){ s.textContent='✓ Imported'; s.className='setup-card-status ok'; }
+
+  // Mark setup card as done if it exists
+  const setupStatus = document.getElementById('ssRobinhood');
+  if(setupStatus){ setupStatus.textContent='✓ Imported'; setupStatus.className='setup-card-status ok'; }
 
   // Auto-add ALL portfolio tickers to screener (regardless of whether they were just added or already existed)
   const allPortfolioTickers = [...new Set(positions.filter(p=>p.type==='stock').map(p=>p.ticker))];
@@ -1444,10 +1447,8 @@ function parseRobinhoodCSV(csv){
   alert(msg);
 
   if(notInScreener.length){
-    // Add to watchlist and start analyzing
     const current = getDefaultTickers();
     saveDefaultTickers([...new Set([...current, ...notInScreener])]);
-    // Queue analysis — switch to screener so user can see progress
     switchTab('screener');
     autoLoadDefaults(notInScreener);
   } else {
