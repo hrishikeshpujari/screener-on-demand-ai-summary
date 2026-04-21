@@ -845,7 +845,7 @@ function switchTab(tab){
   document.getElementById('tabPortfolio').style.display = tab==='portfolio'?'block':'none';
   document.getElementById('navScreener').classList.toggle('active', tab==='screener');
   document.getElementById('navPortfolio').classList.toggle('active', tab==='portfolio');
-  if(tab==='portfolio'){ loadPositions(); renderPortfolio(); updateAlpacaBar(); }
+  if(tab==='portfolio'){ loadPositions(); renderPortfolio(); fetchMissingPrices(); }
 }
 
 // ── Modal ──
@@ -950,12 +950,33 @@ function deletePosition(id){
 }
 
 // ── Get live price + screener data for a ticker ──
+const priceCache = {}; // ticker → price, for tickers not in screener
+
 function getScreenerData(ticker){
   return stocks.find(s=>s.ticker===ticker&&s.status==='done') || null;
 }
 function getLivePrice(ticker){
   const s = getScreenerData(ticker);
-  return s?.currentPrice || null;
+  if(s?.currentPrice) return s.currentPrice;
+  return priceCache[ticker] || null;
+}
+
+// Fetch prices from Finnhub for all portfolio tickers not in screener
+async function fetchMissingPrices(){
+  if(!keys[1]) return; // need Finnhub key
+  const tickers = [...new Set(positions.map(p=>p.ticker))];
+  const missing = tickers.filter(t => !getScreenerData(t) && !priceCache[t]);
+  if(!missing.length) return;
+
+  // Fetch in parallel (Finnhub 60/min limit — safe for small portfolios)
+  await Promise.all(missing.map(async ticker => {
+    try {
+      const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${keys[1]}`);
+      const d = await r.json();
+      if(d.c && d.c > 0) priceCache[ticker] = d.c;
+    } catch(e) {}
+  }));
+  renderPortfolio();
 }
 
 // ── Compute P&L ──
@@ -1318,7 +1339,7 @@ function parseRobinhoodCSV(csv){
 
   savePositions();
   renderPortfolio();
-  const s = document.getElementById('ssRobinhood');
+  fetchMissingPrices(); // fetch prices for tickers not yet in screener
   if(s){ s.textContent='✓ Imported'; s.className='setup-card-status ok'; }
   alert(`Robinhood import: ${added} positions added, ${skipped} skipped (existing or options).`);
   // Switch to portfolio tab
