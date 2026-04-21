@@ -429,6 +429,7 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
   <button class="btn" onclick="go()">Analyze ↗</button>
   <button class="btn-ref" id="refBtn" onclick="refreshAll()" disabled>↻ Refresh all</button>
   <button class="btn-ai-all" id="aiAllBtn" onclick="summarizeAll()" disabled>🧠 AI Summary all</button>
+  <button onclick="openWatchlistModal()" style="padding:10px 14px;background:#141620;border:1px solid #2d3044;border-radius:8px;color:#94a3b8;font-size:13px;cursor:pointer;font-family:inherit" title="Manage default watchlist">⭐ Watchlist</button>
   <button class="btn-clr" onclick="clearAll()">Clear all</button>
 </div>
 <div class="rbar" id="rbar"><span class="spin"></span><span id="rmsg">Refreshing…</span></div>
@@ -669,7 +670,30 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
 
 </div><!-- end .screener-page -->
 
-<!-- ══ ADD POSITION MODAL ══ -->
+<!-- ══ WATCHLIST MANAGER MODAL ══ -->
+<div class="modal-overlay" id="watchlistModal" style="display:none;align-items:center;justify-content:center">
+  <div class="modal" style="max-width:480px;width:100%">
+    <div class="modal-title">⭐ Manage Default Watchlist</div>
+    <p style="font-size:12px;color:#64748b;margin-bottom:16px;line-height:1.6">These tickers are automatically analyzed when you open the screener for the first time. Changes take effect on next clear &amp; reload.</p>
+
+    <div id="watchlistTags" style="display:flex;flex-wrap:wrap;gap:6px;min-height:40px;padding:10px;background:#0c0e14;border:1px solid #1e2133;border-radius:8px;margin-bottom:12px"></div>
+
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <input type="text" id="watchlistInput" placeholder="Add ticker (e.g. AAPL)" maxlength="10"
+        style="flex:1;padding:9px 12px;background:#141620;border:1px solid #2d3044;border-radius:7px;color:#fff;font-size:13px;font-family:inherit;text-transform:uppercase"
+        onkeydown="if(event.key==='Enter')addToWatchlist()"/>
+      <button onclick="addToWatchlist()" style="padding:9px 16px;background:#4f6ef7;border:none;border-radius:7px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">+ Add</button>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:space-between;align-items:center">
+      <button onclick="resetWatchlist()" style="padding:8px 14px;background:transparent;border:1px solid #2d3044;border-radius:7px;color:#64748b;font-size:12px;cursor:pointer;font-family:inherit">↺ Reset to defaults</button>
+      <div style="display:flex;gap:8px">
+        <button onclick="closeWatchlistModal()" style="padding:9px 18px;background:transparent;border:1px solid #2d3044;border-radius:7px;color:#94a3b8;font-size:13px;cursor:pointer;font-family:inherit">Cancel</button>
+        <button onclick="saveWatchlistModal()" style="padding:9px 18px;background:#4f6ef7;border:none;border-radius:7px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Save & Analyze New</button>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="addPosModal">
   <div class="modal">
     <div class="modal-title" id="modalTitle">Add Position</div>
@@ -763,7 +787,16 @@ const KS=KEYS.map(k=>'viss_key_'+k);
 const SS='viss_v8_stocks';
 
 // Pre-loaded watchlist — analyzed automatically on first open
-const DEFAULT_TICKERS = ['AMD','GOOG','META','AMZN','ELF','SOFI','CELH','FUBO','EL','CAKE','PYPL','ADBE','AXP','NKE','SPY'];
+const BUILTIN_DEFAULTS = ['AMD','GOOG','META','AMZN','ELF','SOFI','CELH','FUBO','EL','CAKE','PYPL','ADBE','AXP','NKE','SPY'];
+function getDefaultTickers(){
+  try {
+    const saved = localStorage.getItem('viss_watchlist');
+    return saved ? JSON.parse(saved) : BUILTIN_DEFAULTS;
+  } catch(e){ return BUILTIN_DEFAULTS; }
+}
+function saveDefaultTickers(list){
+  localStorage.setItem('viss_watchlist', JSON.stringify(list));
+}
 
 let keys=['','','','',''], stocks=[], activeDP=null, refreshing=false;
 
@@ -1273,6 +1306,66 @@ function renderChat(){
 }
 function clearChat(){ chatHistory=[]; renderChat(); }
 
+// ── Watchlist Manager ──
+let watchlistDraft = [];
+function openWatchlistModal(){
+  watchlistDraft = [...getDefaultTickers()];
+  renderWatchlistTags();
+  const m = document.getElementById('watchlistModal');
+  m.style.display='flex';
+  document.getElementById('watchlistInput').focus();
+}
+function closeWatchlistModal(){
+  document.getElementById('watchlistModal').style.display='none';
+}
+function renderWatchlistTags(){
+  const el = document.getElementById('watchlistTags');
+  if(!el) return;
+  el.innerHTML = watchlistDraft.map(t =>
+    `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;font-size:12px;font-weight:600;color:#e2e8f0">
+      ${t}
+      <button onclick="removeFromWatchlist('${t}')" style="background:none;border:none;color:#4a5568;cursor:pointer;font-size:13px;padding:0;line-height:1">✕</button>
+    </span>`
+  ).join('') || '<span style="font-size:12px;color:#374151">No tickers — add some above</span>';
+}
+function addToWatchlist(){
+  const inp = document.getElementById('watchlistInput');
+  const t = inp.value.trim().toUpperCase().replace(/[^A-Z.]/g,'');
+  if(!t) return;
+  if(!watchlistDraft.includes(t)) watchlistDraft.push(t);
+  inp.value='';
+  renderWatchlistTags();
+  inp.focus();
+}
+function removeFromWatchlist(t){
+  watchlistDraft = watchlistDraft.filter(x=>x!==t);
+  renderWatchlistTags();
+}
+function resetWatchlist(){
+  watchlistDraft = [...BUILTIN_DEFAULTS];
+  renderWatchlistTags();
+}
+function saveWatchlistModal(){
+  saveDefaultTickers(watchlistDraft);
+  closeWatchlistModal();
+  // Analyze any new tickers not yet in screener
+  const newTickers = watchlistDraft.filter(t => !stocks.find(s=>s.ticker===t&&s.status==='done'));
+  if(newTickers.length){
+    autoLoadDefaults(newTickers);
+  }
+}
+
+// ── Auto-add portfolio tickers to screener ──
+function addPortfolioTickersToScreener(tickers){
+  const missing = tickers.filter(t => !stocks.find(s=>s.ticker===t));
+  if(!missing.length) return;
+  // Add to watchlist silently and start analyzing
+  const current = getDefaultTickers();
+  const merged = [...new Set([...current, ...missing])];
+  saveDefaultTickers(merged);
+  autoLoadDefaults(missing);
+}
+
 // ── Robinhood CSV Import ──
 function handleRobinhoodFile(input){
   const file = input.files[0];
@@ -1339,11 +1432,17 @@ function parseRobinhoodCSV(csv){
 
   savePositions();
   renderPortfolio();
-  fetchMissingPrices(); // fetch prices for tickers not yet in screener
+  fetchMissingPrices();
   if(s){ s.textContent='✓ Imported'; s.className='setup-card-status ok'; }
-  alert(`Robinhood import: ${added} positions added, ${skipped} skipped (existing or options).`);
-  // Switch to portfolio tab
-  switchPage('portfolio');
+
+  // Auto-add imported tickers to screener
+  const importedTickers = [...new Set(positions.map(p=>p.ticker))];
+  const newToScreener = importedTickers.filter(t => !stocks.find(x=>x.ticker===t));
+  const msg = `Robinhood import: ${added} positions added, ${skipped} skipped.\n\n` +
+    (newToScreener.length ? `${newToScreener.length} new tickers queued for screener analysis: ${newToScreener.join(', ')}` : 'All tickers already in screener.');
+  alert(msg);
+  switchTab('portfolio');
+  if(newToScreener.length) addPortfolioTickersToScreener(newToScreener);
 }
 
 
@@ -1384,10 +1483,10 @@ function loadStocks(){
     document.getElementById('empty').innerHTML =
       '<div style="text-align:center;padding:32px">' +
       '<div style="font-size:28px;margin-bottom:12px">⚡</div>' +
-      '<div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:8px">Loading your ' + DEFAULT_TICKERS.length + ' stocks</div>' +
+      '<div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:8px">Loading your ' + getDefaultTickers().length + ' stocks</div>' +
       '<div style="font-size:12px;color:#555;margin-bottom:16px">Paced at 1 stock per 4 seconds to stay within Twelve Data free tier limits.<br>~1 minute total. AI summaries generated on-demand via 🧠 button.</div>' +
       '</div>';
-    autoLoadDefaults(DEFAULT_TICKERS);
+    autoLoadDefaults(getDefaultTickers());
   }
 }
 
