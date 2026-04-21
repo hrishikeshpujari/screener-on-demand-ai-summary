@@ -1270,17 +1270,18 @@ function importRobinhoodCSV(){
 }
 
 function parseRobinhoodCSV(csv){
-  // Robinhood CSV columns: Name, Symbol, Market Value, Price, Quantity, Average Cost, Equity Percent, Percent Change, Total Return
+  // Robinhood CSV columns: name, symbol, shares, price, averageCost, totalReturn, equity
   const lines = csv.trim().split('\n');
   if(lines.length < 2){ alert('CSV appears empty or invalid.'); return; }
 
-  // Find header row
-  const header = lines[0].split(',').map(h => h.trim().replace(/"/g,'').toLowerCase());
-  const col = name => header.findIndex(h => h.includes(name));
+  // Find header row — normalize: lowercase, strip BOM, quotes, spaces
+  const rawHeader = lines[0].replace(/^\uFEFF/,''); // strip BOM
+  const header = rawHeader.split(',').map(h => h.trim().replace(/"/g,'').toLowerCase().replace(/\s+/g,''));
+  const col = name => header.findIndex(h => h === name || h.includes(name));
 
   const symCol = col('symbol') !== -1 ? col('symbol') : col('instrument');
-  const qtyCol = col('quantity') !== -1 ? col('quantity') : col('shares');
-  const costCol = col('average cost') !== -1 ? col('average cost') : col('avg cost');
+  const qtyCol = col('shares') !== -1 ? col('shares') : col('quantity');
+  const costCol = col('averagecost') !== -1 ? col('averagecost') : col('average cost') !== -1 ? col('average cost') : col('avg cost');
   const nameCol = col('name') !== -1 ? col('name') : -1;
 
   if(symCol === -1){ alert('Could not find Symbol column in CSV. Make sure this is a Robinhood positions export.'); return; }
@@ -1306,6 +1307,7 @@ function parseRobinhoodCSV(csv){
       positions.push({
         id: 'rh_'+ticker+'_'+Date.now(),
         type:'stock', ticker,
+        companyName: nameCol !== -1 ? row[nameCol] : '',
         shares, entryPrice: avgCost,
         entryDate: '',
         notes: 'Imported from Robinhood',
