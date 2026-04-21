@@ -1357,12 +1357,10 @@ function saveWatchlistModal(){
 
 // ── Auto-add portfolio tickers to screener ──
 function addPortfolioTickersToScreener(tickers){
-  const missing = tickers.filter(t => !stocks.find(s=>s.ticker===t));
+  const missing = tickers.filter(t => !stocks.find(s=>s.ticker===t && s.status==='done'));
   if(!missing.length) return;
-  // Add to watchlist silently and start analyzing
   const current = getDefaultTickers();
-  const merged = [...new Set([...current, ...missing])];
-  saveDefaultTickers(merged);
+  saveDefaultTickers([...new Set([...current, ...missing])]);
   autoLoadDefaults(missing);
 }
 
@@ -1435,14 +1433,26 @@ function parseRobinhoodCSV(csv){
   fetchMissingPrices();
   if(s){ s.textContent='✓ Imported'; s.className='setup-card-status ok'; }
 
-  // Auto-add imported tickers to screener
-  const importedTickers = [...new Set(positions.map(p=>p.ticker))];
-  const newToScreener = importedTickers.filter(t => !stocks.find(x=>x.ticker===t));
-  const msg = `Robinhood import: ${added} positions added, ${skipped} skipped.\n\n` +
-    (newToScreener.length ? `${newToScreener.length} new tickers queued for screener analysis: ${newToScreener.join(', ')}` : 'All tickers already in screener.');
+  // Auto-add ALL portfolio tickers to screener (regardless of whether they were just added or already existed)
+  const allPortfolioTickers = [...new Set(positions.filter(p=>p.type==='stock').map(p=>p.ticker))];
+  const notInScreener = allPortfolioTickers.filter(t => !stocks.find(x=>x.ticker===t && x.status==='done'));
+
+  const msg = `Robinhood import complete.\n${added} new positions added, ${skipped} updated/skipped.\n\n` +
+    (notInScreener.length
+      ? `📊 Queuing ${notInScreener.length} tickers for screener analysis:\n${notInScreener.join(', ')}`
+      : '✅ All portfolio tickers already in screener.');
   alert(msg);
-  switchTab('portfolio');
-  if(newToScreener.length) addPortfolioTickersToScreener(newToScreener);
+
+  if(notInScreener.length){
+    // Add to watchlist and start analyzing
+    const current = getDefaultTickers();
+    saveDefaultTickers([...new Set([...current, ...notInScreener])]);
+    // Queue analysis — switch to screener so user can see progress
+    switchTab('screener');
+    autoLoadDefaults(notInScreener);
+  } else {
+    switchTab('portfolio');
+  }
 }
 
 
