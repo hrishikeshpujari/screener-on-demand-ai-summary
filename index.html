@@ -379,26 +379,19 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
         </div>
       </div>
 
-      <div class="setup-card" id="scAlpaca">
+      <div class="setup-card" id="scRobinhood">
         <div class="setup-card-top">
-          <div class="setup-card-icon">🏦</div>
+          <div class="setup-card-icon">🟢</div>
           <div class="setup-card-info">
-            <div class="setup-card-name">Alpaca API Keys — Portfolio Sync</div>
-            <div class="setup-card-desc">Auto-import your real stock positions from Alpaca into the Portfolio tab. Syncs ticker, shares, and average cost basis. Options positions still entered manually.</div>
-            <a class="setup-card-link" href="https://alpaca.markets" target="_blank">Free account at alpaca.markets ↗</a>
+            <div class="setup-card-name">Robinhood — Import Positions (optional)</div>
+            <div class="setup-card-desc">Import your stock positions from Robinhood CSV export. In Robinhood app: Account → Statements → Export. Upload the CSV here to auto-populate your Portfolio tab.</div>
+            <a class="setup-card-link" href="https://robinhood.com/account/statements" target="_blank">Robinhood Statements ↗</a>
           </div>
-          <div class="setup-card-status missing" id="ssAlpaca">Not set</div>
+          <div class="setup-card-status missing" id="ssRobinhood">Optional</div>
         </div>
-        <div class="setup-input-row" style="margin-bottom:6px">
-          <input class="setup-input" type="password" id="skAlpacaKey" placeholder="Alpaca API Key ID" autocomplete="off"/>
-        </div>
-        <div class="setup-input-row" style="margin-bottom:6px">
-          <input class="setup-input" type="password" id="skAlpacaSecret" placeholder="Alpaca Secret Key" autocomplete="off"/>
-          <button class="setup-save" onclick="setupSaveAlpaca()">Save</button>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
-          <input type="checkbox" id="alpacaLive" onchange="localStorage.setItem('viss_alpaca_live',this.checked?'1':'0')" style="accent-color:#4f6ef7"/>
-          <label for="alpacaLive" style="font-size:11px;color:#4a5568">Use live trading account (uncheck for paper trading)</label>
+        <div class="setup-input-row">
+          <input class="setup-input" type="file" id="skRobinhood" accept=".csv" style="color:#94a3b8;font-family:inherit;font-size:12px"/>
+          <button class="setup-save" onclick="importRobinhoodCSV()">Import</button>
         </div>
       </div>
     </div>
@@ -620,11 +613,14 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
 <!-- ── PORTFOLIO TAB ── -->
 <div id="tabPortfolio" style="display:none">
 
-  <!-- Alpaca sync bar (shown when key set) -->
-  <div class="alpaca-bar" id="alpacaBar" style="display:none">
-    <div class="alpaca-dot"></div>
-    <div class="alpaca-info">Alpaca connected <span id="alpacaLastSync"></span></div>
-    <button class="alpaca-sync-btn" onclick="syncAlpaca()">↻ Sync positions</button>
+  <!-- Robinhood import bar -->
+  <div class="alpaca-bar" id="robinhoodBar" style="display:flex">
+    <div class="alpaca-dot" style="background:#4ade80"></div>
+    <div class="alpaca-info">Import from <strong>Robinhood</strong> <span>· Account → Statements → Export CSV</span></div>
+    <label style="padding:7px 14px;background:#0d3320;border:1px solid #166534;border-radius:6px;color:#4ade80;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">
+      📂 Import CSV
+      <input type="file" accept=".csv" onchange="handleRobinhoodFile(this)" style="display:none"/>
+    </label>
   </div>
 
   <!-- Portfolio summary stats -->
@@ -1256,69 +1252,77 @@ function renderChat(){
 }
 function clearChat(){ chatHistory=[]; renderChat(); }
 
-// ── Alpaca Integration ──
-function updateAlpacaBar(){
-  const bar = document.getElementById('alpacaBar');
-  const alpacaKey = localStorage.getItem('viss_key_alpaca_key');
-  const alpacaSecret = localStorage.getItem('viss_key_alpaca_secret');
-  if(alpacaKey && alpacaSecret){
-    bar.style.display='flex';
-    const last = localStorage.getItem('viss_alpaca_synced');
-    document.getElementById('alpacaLastSync').textContent = last ? `· last synced ${last}` : '';
-  } else {
-    bar.style.display='none';
-  }
+// ── Robinhood CSV Import ──
+function handleRobinhoodFile(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => parseRobinhoodCSV(e.target.result);
+  reader.readAsText(file);
 }
 
-async function syncAlpaca(){
-  const key = localStorage.getItem('viss_key_alpaca_key');
-  const secret = localStorage.getItem('viss_key_alpaca_secret');
-  if(!key||!secret){ alert('Add your Alpaca API key and secret in API Keys settings.'); return; }
-
-  const btn = document.querySelector('.alpaca-sync-btn');
-  btn.textContent = '⏳ Syncing…'; btn.disabled=true;
-
-  try {
-    // Alpaca paper trading URL — change to api.alpaca.markets for live
-    const base = localStorage.getItem('viss_alpaca_live')==='1' ? 'https://api.alpaca.markets' : 'https://paper-api.alpaca.markets';
-    const r = await fetch(`${base}/v2/positions`, {
-      headers:{'APCA-API-KEY-ID':key,'APCA-API-SECRET-KEY':secret}
-    });
-    if(!r.ok) throw new Error(`Alpaca error: ${r.status} ${r.statusText}`);
-    const alpacaPositions = await r.json();
-
-    // Merge into positions — don't duplicate, don't overwrite existing manual positions
-    let added=0, updated=0;
-    alpacaPositions.forEach(ap=>{
-      const ticker = ap.symbol;
-      const existing = positions.find(p=>p.type==='stock'&&p.ticker===ticker);
-      if(existing){
-        // Update shares if changed
-        if(existing.shares !== parseFloat(ap.qty)){ existing.shares=parseFloat(ap.qty); updated++; }
-      } else {
-        positions.push({
-          id: 'alpaca_'+ticker,
-          type:'stock', ticker,
-          shares: parseFloat(ap.qty),
-          entryPrice: parseFloat(ap.avg_entry_price),
-          entryDate: '',
-          notes: 'Imported from Alpaca',
-          alpacaImported: true,
-        });
-        added++;
-      }
-    });
-
-    savePositions();
-    localStorage.setItem('viss_alpaca_synced', new Date().toLocaleTimeString());
-    document.getElementById('alpacaLastSync').textContent = `· last synced ${new Date().toLocaleTimeString()}`;
-    renderPortfolio();
-    alert(`Alpaca sync complete: ${added} added, ${updated} updated.`);
-  } catch(e) {
-    alert(`Alpaca sync failed: ${e.message}`);
-  }
-  btn.textContent='↻ Sync positions'; btn.disabled=false;
+function importRobinhoodCSV(){
+  const input = document.getElementById('skRobinhood');
+  if(!input || !input.files[0]){ alert('Select a Robinhood CSV file first.'); return; }
+  const reader = new FileReader();
+  reader.onload = e => parseRobinhoodCSV(e.target.result);
+  reader.readAsText(input.files[0]);
 }
+
+function parseRobinhoodCSV(csv){
+  // Robinhood CSV columns: Name, Symbol, Market Value, Price, Quantity, Average Cost, Equity Percent, Percent Change, Total Return
+  const lines = csv.trim().split('\n');
+  if(lines.length < 2){ alert('CSV appears empty or invalid.'); return; }
+
+  // Find header row
+  const header = lines[0].split(',').map(h => h.trim().replace(/"/g,'').toLowerCase());
+  const col = name => header.findIndex(h => h.includes(name));
+
+  const symCol = col('symbol') !== -1 ? col('symbol') : col('instrument');
+  const qtyCol = col('quantity') !== -1 ? col('quantity') : col('shares');
+  const costCol = col('average cost') !== -1 ? col('average cost') : col('avg cost');
+  const nameCol = col('name') !== -1 ? col('name') : -1;
+
+  if(symCol === -1){ alert('Could not find Symbol column in CSV. Make sure this is a Robinhood positions export.'); return; }
+
+  let added=0, skipped=0;
+  for(let i=1; i<lines.length; i++){
+    const row = lines[i].split(',').map(c=>c.trim().replace(/"/g,''));
+    const ticker = row[symCol]?.toUpperCase();
+    if(!ticker || ticker === 'SYMBOL' || ticker === '') continue;
+
+    // Skip options (they have format like AAPL 240119C00150000)
+    if(ticker.includes(' ') || ticker.length > 6){ skipped++; continue; }
+
+    const shares = parseFloat(row[qtyCol]) || 0;
+    const avgCost = parseFloat(row[costCol]) || 0;
+
+    const existing = positions.find(p=>p.type==='stock'&&p.ticker===ticker);
+    if(existing){
+      existing.shares = shares;
+      existing.entryPrice = avgCost || existing.entryPrice;
+      skipped++;
+    } else {
+      positions.push({
+        id: 'rh_'+ticker+'_'+Date.now(),
+        type:'stock', ticker,
+        shares, entryPrice: avgCost,
+        entryDate: '',
+        notes: 'Imported from Robinhood',
+      });
+      added++;
+    }
+  }
+
+  savePositions();
+  renderPortfolio();
+  const s = document.getElementById('ssRobinhood');
+  if(s){ s.textContent='✓ Imported'; s.className='setup-card-status ok'; }
+  alert(`Robinhood import: ${added} positions added, ${skipped} skipped (existing or options).`);
+  // Switch to portfolio tab
+  switchPage('portfolio');
+}
+
 
 function toggleGuide(){
   const c = document.getElementById('guideContent');
@@ -1330,18 +1334,6 @@ function toggleGuide(){
     c.style.display = 'none';
     a.textContent = '▼ Show';
   }
-}
-function setupSaveAlpaca(){
-  const key = document.getElementById('skAlpacaKey').value.trim();
-  const secret = document.getElementById('skAlpacaSecret').value.trim();
-  if(!key||!secret){ alert('Enter both Alpaca API Key and Secret.'); return; }
-  localStorage.setItem('viss_key_alpaca_key', key);
-  localStorage.setItem('viss_key_alpaca_secret', secret);
-  document.getElementById('skAlpacaKey').value='';
-  document.getElementById('skAlpacaSecret').value='';
-  const s=document.getElementById('ssAlpaca');
-  s.textContent='✓ Set'; s.className='setup-card-status ok';
-  document.getElementById('scAlpaca').classList.add('done');
 }
 function saveKey(i){
   const v=document.getElementById('k'+i)?.value?.trim();
