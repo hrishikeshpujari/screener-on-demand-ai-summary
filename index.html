@@ -437,11 +437,19 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
 <div class="tbl-wrap" id="tw" style="display:none">
   <table>
     <thead><tr>
-      <th style="width:30px"></th>
-      <th>Ticker</th><th>Company</th><th>Price</th>
-      <th>Total /32</th><th>Fund /24</th><th>Tech /8</th>
-      <th>P/E</th><th>ROE</th><th>Gross Margin</th><th>EPS Growth</th>
-      <th>Trend</th><th>Signal</th>
+      <th style="width:24px"></th>
+      <th onclick="sortBy('ticker')" style="cursor:pointer;user-select:none">Ticker <span id="si-ticker">↕</span></th>
+      <th>Company</th>
+      <th onclick="sortBy('price')" style="cursor:pointer;user-select:none">Price <span id="si-price">↕</span></th>
+      <th onclick="sortBy('totalScore')" style="cursor:pointer;user-select:none">Total /32 <span id="si-totalScore">↓</span></th>
+      <th onclick="sortBy('fundScore')" style="cursor:pointer;user-select:none">Fund /24 <span id="si-fundScore">↕</span></th>
+      <th onclick="sortBy('techScore')" style="cursor:pointer;user-select:none">Tech /8 <span id="si-techScore">↕</span></th>
+      <th onclick="sortBy('pe')" style="cursor:pointer;user-select:none">P/E <span id="si-pe">↕</span></th>
+      <th onclick="sortBy('roe')" style="cursor:pointer;user-select:none">ROE <span id="si-roe">↕</span></th>
+      <th onclick="sortBy('grossMargin')" style="cursor:pointer;user-select:none">Gross Margin <span id="si-grossMargin">↕</span></th>
+      <th onclick="sortBy('epsGrowth')" style="cursor:pointer;user-select:none">EPS Growth <span id="si-epsGrowth">↕</span></th>
+      <th>Trend</th>
+      <th onclick="sortBy('signal')" style="cursor:pointer;user-select:none">Signal <span id="si-signal">↕</span></th>
       <th style="font-size:10px;color:#374151">Updated</th><th></th>
     </tr></thead>
     <tbody id="tbody"></tbody>
@@ -633,6 +641,7 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
     <button class="port-btn" onclick="openModal('stock')">+ Add Stock</button>
     <button class="port-btn" onclick="openModal('option')">+ Add Option</button>
     <button class="port-btn primary" onclick="reviewPortfolio()" id="reviewBtn">🧠 Review Portfolio</button>
+    <button class="port-btn" onclick="clearPortfolio()" style="border-color:#7f1d1d;color:#f87171">Clear all</button>
   </div>
 
   <!-- Stock positions -->
@@ -1457,8 +1466,37 @@ function parseRobinhoodCSV(csv){
 }
 
 
+let sortCol = 'totalScore', sortDir = -1;
+
+function sortBy(col){
+  if(sortCol === col) sortDir *= -1;
+  else { sortCol = col; sortDir = -1; }
+  // Update all sort icons
+  ['ticker','price','totalScore','fundScore','techScore','pe','roe','grossMargin','epsGrowth','signal'].forEach(c => {
+    const el = document.getElementById('si-'+c);
+    if(!el) return;
+    if(c === sortCol){ el.textContent = sortDir===-1?'↓':'↑'; el.style.opacity='1'; el.style.color='#4f6ef7'; }
+    else { el.textContent='↕'; el.style.opacity='.25'; el.style.color=''; }
+  });
+  renderTable();
+}
+function getSortVal(s, col){
+  switch(col){
+    case 'ticker':       return s.ticker||'';
+    case 'price':        return s.currentPrice||0;
+    case 'totalScore':   return s.totalScore||0;
+    case 'fundScore':    return s.fundamentalScore||0;
+    case 'techScore':    return s.technical?.score||0;
+    case 'pe':           return s.graham?.pe||9999;
+    case 'roe':          return s.buffett?.roe||0;
+    case 'grossMargin':  return s.buffett?.grossMargin||0;
+    case 'epsGrowth':    return s.lynch?.epsGrowthYoy||0;
+    case 'signal':       return ['BUY','HOLD','SELL'].indexOf(s.overallSignal);
+    default:             return 0;
+  }
+}
+
 function toggleGuide(){
-  const c = document.getElementById('guideContent');
   const a = document.getElementById('guideArrow');
   if(c.style.display === 'none'){
     c.style.display = 'block';
@@ -2342,6 +2380,12 @@ async function reload(id,e){
   await run(nid,t);
 }
 function rm(id,e){e.stopPropagation();stocks=stocks.filter(s=>s.id!==id);save();if(activeDP===id)closeDP();renderTable();document.getElementById('refBtn').disabled=stocks.filter(s=>s.status==='done').length===0;}
+function clearPortfolio(){
+  if(!confirm('Remove all positions? This cannot be undone.')) return;
+  positions = [];
+  savePositions();
+  renderPortfolio();
+}
 function clearAll(){if(!confirm('Remove all stocks?'))return;stocks=[];save();closeDP();renderTable();document.getElementById('refBtn').disabled=true;const _ab3=document.getElementById('aiAllBtn');if(_ab3)_ab3.disabled=true;}
 
 // ── RENDER TABLE ──
@@ -2357,7 +2401,15 @@ function renderTable(){
   if(!stocks.length){empty.style.display='block';tw.style.display='none';return;}
   empty.style.display='none';tw.style.display='block';
   try {
-    tbody.innerHTML=stocks.map(s=>{
+    // Sort done stocks, keep loading/error at top
+    const loading = stocks.filter(s=>s.status!=='done');
+    const done = stocks.filter(s=>s.status==='done').sort((a,b)=>{
+      const av = getSortVal(a, sortCol), bv = getSortVal(b, sortCol);
+      if(typeof av === 'string') return av.localeCompare(bv) * sortDir;
+      return (av - bv) * sortDir;
+    });
+    const sorted = [...loading, ...done];
+    tbody.innerHTML=sorted.map(s=>{
       if(s.status==='loading')return`<tr><td class="tkr"><span class="spin"></span>${s.ticker}</td><td colspan="15" style="color:#555;font-style:italic">${s.step||'Loading…'}</td></tr>`;
       if(s.status==='error')return`<tr><td class="tkr">${s.ticker}</td><td colspan="12" style="color:#f87171;font-size:11px">${s.error||'Error'}</td><td></td><td><button class="rmv" onclick="rm(${s.id},event)">✕</button></td></tr>`;
       const ts=s.totalScore??0,fs=s.fundamentalScore??0,ta=s.technical?.score??0,tc=sc(ts,32);
