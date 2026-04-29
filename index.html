@@ -1158,6 +1158,13 @@ function renderOptionCard(p){
 async function getPositionGuidance(id){
   const p = positions.find(x=>x.id===id);
   if(!p) return;
+
+  if(!keys[0]){ 
+    p.aiGuidance = '⚠ Anthropic API key not set — go to ⚙ API Keys to add it.';
+    renderPortfolio();
+    return;
+  }
+
   p.aiLoading = true;
   p.aiGuidance = null;
   renderPortfolio();
@@ -1167,24 +1174,29 @@ async function getPositionGuidance(id){
 
   let prompt;
   if(p.type==='stock'){
+    const curPx = pnl?.currentPrice ? '$'+pnl.currentPrice.toFixed(2) : 'unknown (not yet in screener)';
+    const pnlStr = pnl ? `${pnl.pnl>=0?'+':''}$${Math.abs(pnl.pnl).toFixed(0)} (${pnl.pnlPct>=0?'+':''}${pnl.pnlPct.toFixed(1)}%)` : 'unknown';
     prompt = `I hold ${p.shares} shares of ${p.ticker}${s?` (${s.companyName})`:''}. 
 Entry: $${p.entryPrice} on ${p.entryDate||'unknown date'}.
-Current price: ${pnl?.currentPrice?'$'+pnl.currentPrice.toFixed(2):'unknown (not in screener)'}.
-P&L: ${pnl?`${pnl.pnl>=0?'+':''}$${pnl.pnl.toFixed(0)} (${pnl.pnlPct.toFixed(1)}%)`:'unknown'}.
+Current price: ${curPx}.
+P&L: ${pnlStr}.
 ${s?`Screener score: ${s.totalScore}/32 · Signal: ${s.overallSignal} · Graham: ${s.graham?.score}/8 · Buffett: ${s.buffett?.score}/8 · Lynch: ${s.lynch?.score}/8 · Technical: ${s.technical?.score}/8.
 Technical trend: ${s.technical?.trendDirection}. EMA20: $${s.technical?.ema20?.toFixed(2)} · EMA50: $${s.technical?.ema50?.toFixed(2)} · EMA200: $${s.technical?.ema200?.toFixed(2)}.
 Support: $${s.technical?.supportLevel?.toFixed(2)} · Resistance: $${s.technical?.resistanceLevel?.toFixed(2)}.
-P/E: ${s.graham?.pe?.toFixed(1)}x · ROE: ${s.buffett?.roe?.toFixed(1)}% · Gross Margin: ${s.buffett?.grossMargin?.toFixed(1)}%.`:'No screener data available for this ticker.'}
+P/E: ${s.graham?.pe?.toFixed(1)}x · ROE: ${s.buffett?.roe?.toFixed(1)}% · Gross Margin: ${s.buffett?.grossMargin?.toFixed(1)}%.`:'No screener data available — base guidance on entry price and P&L only.'}
 ${p.notes?`My notes: ${p.notes}.`:''}
 
 Give me specific, actionable guidance on this position in 3-5 sentences. What should I do — hold, add, trim, or exit? Reference the actual numbers above. Be direct and specific about price levels or conditions that would trigger a decision.`;
   } else {
+    const curPx = pnl?.currentPrice ? '$'+pnl.currentPrice.toFixed(2) : 'unknown';
+    const daysLeft = pnl?.daysToExpiry ?? 'unknown';
+    const itmStr = pnl?.currentPrice ? (pnl.itm ? `IN the money (intrinsic ~$${pnl.intrinsic?.toFixed(2)}/sh)` : 'OUT of the money') : 'unknown';
     prompt = `I hold ${p.contracts} ${p.optType} contract${p.contracts>1?'s':''} on ${p.ticker} with strike $${p.strike}, expiring ${p.expiry}.
 Paid: $${p.premium}/share ($${(p.contracts*100*p.premium).toFixed(0)} total).
 Entered: ${p.entryDate||'unknown'}.
-Current stock price: ${pnl?.currentPrice?'$'+pnl.currentPrice.toFixed(2):'unknown'}.
-Days to expiry: ${pnl.daysToExpiry}.
-Position is currently ${pnl.itm?`IN the money (intrinsic value ~$${pnl.intrinsic.toFixed(2)}/sh)`:'OUT of the money'}.
+Current stock price: ${curPx}.
+Days to expiry: ${daysLeft}.
+Position is currently ${itmStr}.
 ${s?`Screener score: ${s.totalScore}/32 · Signal: ${s.overallSignal} · Technical: ${s.technical?.score}/8.
 Trend: ${s.technical?.trendDirection}. EMA20: $${s.technical?.ema20?.toFixed(2)} · EMA50: $${s.technical?.ema50?.toFixed(2)}.
 Earnings warning: ${s.options?.earningsWarning||'unknown'}.`:'No screener data for this ticker.'}
@@ -1198,7 +1210,7 @@ Give specific actionable guidance in 3-5 sentences: should I hold, take profit, 
     p.aiGuidance = txt.replace(/^(Here|Based|Given|As|Looking|For|With|Your|This)[^\n]*\n?/,'').trim();
     p.aiGeneratedAt = new Date().toLocaleTimeString();
   } catch(e) {
-    p.aiGuidance = `⚠ Error: ${e.message}`;
+    p.aiGuidance = `⚠ ${e.message}`;
   }
   p.aiLoading = false;
   savePositions();
@@ -2183,11 +2195,9 @@ function computeStock(ticker, fmp, history){
 async function fetchSummary(stockId){
   const s = stocks.find(x=>x.id===stockId);
   if(!s || s.status!=='done') return;
-  if(s.analysis && s.analysis.thesis) return; // Already generated — don't re-fetch
+  if(s.analysis && s.analysis.thesis) return; // Already has a good summary
 
-  // Mark generating
   s.analysis = {generating: true};
-  renderTable();
   renderTable();
 
   try {
@@ -2252,11 +2262,10 @@ Write with depth, real numbers from the data above, and specificity:
     s.analysis = analysis;
     save();
     renderTable();
-    renderTable();
   } catch(e) {
     s.analysis = {error: e.message};
     renderTable();
-    renderTable();
+    throw e; // rethrow so summarizeAll can count failures
   }
 }
 
@@ -2613,18 +2622,45 @@ function eswTab(id, name){
 
 // ── SUMMARIZE ALL ──
 async function summarizeAll(){
-  const done = stocks.filter(s=>s.status==='done' && (!s.analysis || !s.analysis.thesis));
-  if(!done.length){ alert('All stocks already have AI summaries.'); return; }
+  const hasSummary = stocks.filter(s=>s.status==='done' && s.analysis?.thesis);
+  const noSummary  = stocks.filter(s=>s.status==='done' && (!s.analysis || !s.analysis.thesis));
+  if(!keys[0]){ alert('Anthropic API key not set — go to ⚙ API Keys.'); return; }
+  if(!hasSummary.length && !noSummary.length){ alert('No analyzed stocks yet.'); return; }
+
+  let targets;
+  if(!noSummary.length){
+    // All have summaries — ask to regenerate
+    if(!confirm(`All ${hasSummary.length} stocks already have summaries.\nRegenerate all?`)) return;
+    targets = hasSummary;
+    targets.forEach(s => s.analysis = null);
+  } else if(hasSummary.length){
+    // Mix — let user choose
+    const missOnly = confirm(
+      `${noSummary.length} missing · ${hasSummary.length} already done.\n\nOK = generate missing only\nCancel = regenerate ALL`
+    );
+    targets = missOnly ? noSummary : [...noSummary, ...hasSummary];
+    if(!missOnly) hasSummary.forEach(s => s.analysis = null);
+  } else {
+    targets = noSummary;
+  }
+
   const btn = document.getElementById('aiAllBtn');
   btn.disabled = true;
-  for(let i=0; i<done.length; i++){
-    btn.textContent = `🧠 Generating ${i+1}/${done.length}…`;
-    await fetchSummary(done[i].id);
-    // 5 second gap between calls to stay under 30k tokens/min rate limit
-    if(i < done.length-1) await new Promise(r=>setTimeout(r,12000));
+  let succeeded = 0, failed = 0;
+  for(let i=0; i<targets.length; i++){
+    btn.textContent = `🧠 ${i+1}/${targets.length} — ${targets[i].ticker}…`;
+    try {
+      await fetchSummary(targets[i].id);
+      succeeded++;
+    } catch(e) {
+      failed++;
+      console.warn('Summary failed for', targets[i].ticker, e.message);
+    }
+    if(i < targets.length-1) await new Promise(r=>setTimeout(r,8000));
   }
   btn.disabled = false;
   btn.textContent = '🧠 AI Summary all';
+  if(failed) alert(`Done: ${succeeded} generated, ${failed} failed.`);
 }
 // ── OPTIONS HTML BUILDER (used in buildExpandRow) ──
 function buildOptionsHTML(s){
