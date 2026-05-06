@@ -423,6 +423,13 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
   <button class="app-tab" id="navDiscover" onclick="switchTab('discover')">🔭 Discover</button>
 </div>
 
+<!-- Global progress bar — visible from any tab when an operation is running -->
+<div id="globalProgress" style="display:none;background:linear-gradient(90deg,#0d2b1a 0%,#1a3a2a 100%);border:1px solid #166534;border-radius:8px;padding:10px 16px;margin-bottom:14px;align-items:center;gap:12px">
+  <span class="spin" style="border-top-color:#4ade80"></span>
+  <span id="globalProgressText" style="flex:1;font-size:13px;color:#86efac;font-weight:600">Working…</span>
+  <button onclick="forceCancel()" style="padding:5px 10px;background:transparent;border:1px solid #166534;border-radius:5px;color:#4ade80;font-size:11px;cursor:pointer;font-family:inherit">Cancel</button>
+</div>
+
 <!-- ── SCREENER TAB ── -->
 <div id="tabScreener">
 <div class="input-row">
@@ -820,6 +827,37 @@ function saveDefaultTickers(list){
 
 let keys=['','','','',''], stocks=[], activeDP=null, refreshing=false;
 let busyOp=null; // 'refresh' | 'discover-breakout' | etc — lock to prevent Twelve Data conflicts
+
+function showProgress(text){
+  const el = document.getElementById('globalProgress');
+  const t = document.getElementById('globalProgressText');
+  if(el) el.style.display = 'flex';
+  if(t) t.textContent = text;
+}
+function hideProgress(){
+  const el = document.getElementById('globalProgress');
+  if(el) el.style.display = 'none';
+}
+function forceCancel(){
+  if(!confirm('Cancel the running operation? Any unsaved progress will be lost.')) return;
+  busyOp = null;
+  // Clear any active scanning flags in localStorage
+  try {
+    const r = localStorage.getItem('viss_discover');
+    if(r){
+      const dr = JSON.parse(r);
+      Object.keys(dr).forEach(k => {
+        if(dr[k]?.scanning){ dr[k].scanning = null; dr[k].interrupted = true; }
+      });
+      localStorage.setItem('viss_discover', JSON.stringify(dr));
+      discoverResults = dr;
+    }
+  } catch(e){}
+  hideProgress();
+  refreshing = false;
+  if(typeof renderDiscover === 'function') renderDiscover();
+  if(typeof renderTable === 'function') renderTable();
+}
 
 // ── SETUP PAGE ──
 function showSetup(){
@@ -1659,6 +1697,7 @@ async function scanDiscover(category){
   const cat = DISCOVER_UNIVERSES[category];
   if(!cat){ busyOp=null; return; }
 
+  showProgress(`🔭 Scanning ${cat.title} — starting…`);
   discoverResults[category] = { scanning: '0/0', results: [], scannedAt: Date.now(), interrupted: false };
   saveDiscoverResults();
   renderDiscover();
@@ -1668,9 +1707,13 @@ async function scanDiscover(category){
 
   try {
     for(let i=0; i<tickers.length; i++){
+      // Allow cancellation mid-scan
+      if(busyOp !== `discover-${category}`) break;
       const t = tickers[i];
+      const progressMsg = `🔭 Scanning ${cat.title}: ${i+1}/${tickers.length} · ${t} · ${matches.length} matches`;
       discoverResults[category].scanning = `${i+1}/${tickers.length} · ${t}`;
       saveDiscoverResults();
+      showProgress(progressMsg);
       renderDiscover();
 
       try {
@@ -1701,6 +1744,7 @@ async function scanDiscover(category){
     }
   } finally {
     busyOp = null;
+    hideProgress();
   }
 
   // Sort by total score desc
@@ -1816,12 +1860,15 @@ async function autoLoadDefaults(tickers){
     else return;
   }
   busyOp = 'analyze';
+  showProgress(`📊 Analyzing 0/${tickers.length}…`);
   const BATCH = 4;        // stocks per batch — Twelve Data 8/min allows 4 in parallel safely
   const GAP_MS = 30000;   // 30s between batches = 4 calls per 30s = 8 calls/min, exactly at limit
   try {
     for(let b=0; b<tickers.length; b+=BATCH){
+      if(busyOp !== 'analyze') break; // allow cancel
       const batch = tickers.slice(b, b+BATCH).filter(t => !stocks.find(s=>s.ticker===t&&s.status==='done'));
       if(!batch.length) continue;
+      showProgress(`📊 Analyzing ${Math.min(b+BATCH, tickers.length)}/${tickers.length} — ${batch.join(', ')}`);
 
       // Add all loading entries
       const ids = batch.map((ticker, i) => {
@@ -1840,6 +1887,7 @@ async function autoLoadDefaults(tickers){
     }
   } finally {
     busyOp = null;
+    hideProgress();
   }
 }
 function save(){
@@ -1879,17 +1927,20 @@ async function refreshAll(){
     if(confirm(`Already running: ${busyOp}.\n\nClick OK to force-cancel and start fresh, or Cancel to wait.`)){ busyOp = null; }
     else return;
   }
-  busyOp = 'refresh';
   const done=stocks.filter(s=>s.status==='done').map(s=>s.ticker);
-  if(!done.length){ busyOp=null; return; }
+  if(!done.length) return;
+  busyOp = 'refresh';
   refreshing=true;
+  showProgress(`↻ Refreshing 0/${done.length}…`);
   document.getElementById('refBtn').disabled=true;const _ab3=document.getElementById('aiAllBtn');if(_ab3)_ab3.disabled=true;
   document.getElementById('rbar').classList.add('on');
 
   const BATCH = 4;
   const GAP_MS = 30000;
   for(let b=0; b<done.length; b+=BATCH){
+    if(busyOp !== 'refresh') break; // allow cancel
     const batch = done.slice(b, b+BATCH);
+    showProgress(`↻ Refreshing ${Math.min(b+BATCH, done.length)}/${done.length} — ${batch.join(', ')}`);
     document.getElementById('rmsg').textContent = `Refreshing batch ${Math.floor(b/BATCH)+1}/${Math.ceil(done.length/BATCH)} — ${batch.join(', ')}`;
 
     // Preserve analyses + replace each with loading entry
@@ -1913,6 +1964,7 @@ async function refreshAll(){
   document.getElementById('refBtn').disabled=false;const _ab2=document.getElementById('aiAllBtn');if(_ab2)_ab2.disabled=false;
   refreshing=false;
   busyOp=null;
+  hideProgress();
 }
 
 async function run(id,t){
