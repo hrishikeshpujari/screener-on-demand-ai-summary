@@ -1643,7 +1643,18 @@ function discoverCard(m, category){
 
 async function scanDiscover(category){
   if(!keys[1] || !keys[2]){ alert('Need Finnhub + Twelve Data keys to scan.'); return; }
-  if(busyOp){ alert(`Already running: ${busyOp}. Wait for it to finish before scanning.`); return; }
+  if(busyOp){
+    if(confirm(`Already running: ${busyOp}.\n\nClick OK to force-cancel and start fresh, or Cancel to wait.`)){
+      busyOp = null;
+      // also clear any stale scanning flag in localStorage
+      Object.keys(discoverResults).forEach(k => {
+        if(discoverResults[k]?.scanning){ discoverResults[k].scanning = null; discoverResults[k].interrupted = true; }
+      });
+      saveDiscoverResults();
+    } else {
+      return;
+    }
+  }
   busyOp = `discover-${category}`;
   const cat = DISCOVER_UNIVERSES[category];
   if(!cat){ busyOp=null; return; }
@@ -1800,7 +1811,10 @@ function loadStocks(){
 }
 
 async function autoLoadDefaults(tickers){
-  if(busyOp){ alert(`Already running: ${busyOp}. Wait for it to finish.`); return; }
+  if(busyOp){
+    if(confirm(`Already running: ${busyOp}.\n\nClick OK to force-cancel and start fresh, or Cancel to wait.`)){ busyOp = null; }
+    else return;
+  }
   busyOp = 'analyze';
   const BATCH = 4;        // stocks per batch — Twelve Data 8/min allows 4 in parallel safely
   const GAP_MS = 30000;   // 30s between batches = 4 calls per 30s = 8 calls/min, exactly at limit
@@ -1861,7 +1875,10 @@ async function go(){
 
 async function refreshAll(){
   if(refreshing||!keys[0])return;
-  if(busyOp){ alert(`Already running: ${busyOp}. Wait for it to finish.`); return; }
+  if(busyOp){
+    if(confirm(`Already running: ${busyOp}.\n\nClick OK to force-cancel and start fresh, or Cancel to wait.`)){ busyOp = null; }
+    else return;
+  }
   busyOp = 'refresh';
   const done=stocks.filter(s=>s.status==='done').map(s=>s.ticker);
   if(!done.length){ busyOp=null; return; }
