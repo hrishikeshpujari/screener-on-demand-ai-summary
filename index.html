@@ -420,6 +420,7 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
 <div class="app-nav">
   <button class="app-tab active" id="navScreener" onclick="switchTab('screener')">📊 Screener</button>
   <button class="app-tab" id="navPortfolio" onclick="switchTab('portfolio')">💼 Portfolio</button>
+  <button class="app-tab" id="navDiscover" onclick="switchTab('discover')">🔭 Discover</button>
 </div>
 
 <!-- ── SCREENER TAB ── -->
@@ -677,6 +678,16 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
   </div>
 </div><!-- end #tabPortfolio -->
 
+<!-- ══ DISCOVER TAB ══ -->
+<div id="tabDiscover" style="display:none">
+  <div style="margin-bottom:18px">
+    <h2 style="font-size:18px;font-weight:700;color:#fff;margin-bottom:6px">🔭 Discover Stocks</h2>
+    <p style="font-size:12px;color:#64748b;line-height:1.7">Curated universes scanned for breakouts, quality, value, and options setups. Results cached 24h. Click any stock to add it to the screener.</p>
+  </div>
+
+  <div id="discoverCategories" style="display:flex;flex-direction:column;gap:14px"></div>
+</div>
+
 </div><!-- end .screener-page -->
 
 <!-- ══ WATCHLIST MANAGER MODAL ══ -->
@@ -885,9 +896,12 @@ function savePositions(){
 function switchTab(tab){
   document.getElementById('tabScreener').style.display = tab==='screener'?'block':'none';
   document.getElementById('tabPortfolio').style.display = tab==='portfolio'?'block':'none';
+  document.getElementById('tabDiscover').style.display = tab==='discover'?'block':'none';
   document.getElementById('navScreener').classList.toggle('active', tab==='screener');
   document.getElementById('navPortfolio').classList.toggle('active', tab==='portfolio');
+  document.getElementById('navDiscover').classList.toggle('active', tab==='discover');
   if(tab==='portfolio'){ loadPositions(); renderPortfolio(); fetchMissingPrices(); }
+  if(tab==='discover'){ renderDiscover(); }
 }
 
 // ── Modal ──
@@ -1508,6 +1522,212 @@ function getSortVal(s, col){
   }
 }
 
+// ══ DISCOVER ══
+const DISCOVER_UNIVERSES = {
+  breakout: {
+    icon: '🚀',
+    title: 'Breaking Out',
+    desc: 'Strong technical momentum — recent breakouts above key EMAs. Best for swing trades.',
+    tickers: ['AAPL','MSFT','NVDA','GOOG','META','AMZN','AMD','AVGO','ORCL','CRM','NFLX','TSLA','UBER','PLTR','SHOP','SNOW','SQ','COIN','ROKU','ANET','MDB','DDOG','NET','ZS','CRWD','PANW','FTNT','NOW','TEAM','OKTA','HUBS','ESTC','S','GTLB','CFLT','U','RBLX','APP','DASH','ABNB','HOOD','SOFI','ARKK','TQQQ','SOXL','SMH','XLK','QQQ','IWM']
+  },
+  quality: {
+    icon: '💎',
+    title: 'Long-term Quality',
+    desc: 'Buffett-style: durable moats, high ROE, strong free cash flow. Core holdings for 5+ years.',
+    tickers: ['BRK.B','AAPL','MSFT','GOOG','V','MA','JPM','UNH','HD','COST','LOW','WMT','PG','KO','PEP','JNJ','LLY','MRK','ABBV','TMO','DHR','ADBE','CRM','ORCL','ACN','TXN','LIN','MMM','HON','CAT','DE','LMT','RTX','NEE','SO','D','MCO','SPGI','ICE','BLK','GS','MS','WFC','BAC','XOM','CVX','SLB','EOG','BX','KKR','MDLZ']
+  },
+  ltOptions: {
+    icon: '🎯',
+    title: 'Long-term Options (LEAPs)',
+    desc: 'BUY signal + uptrend + far from earnings. Good for 6-12 month call options.',
+    tickers: ['AAPL','MSFT','NVDA','GOOG','META','AMZN','AMD','AVGO','TSLA','NFLX','CRM','ORCL','UBER','SHOP','PLTR','COIN','SQ','MDB','DDOG','NOW','ANET','PANW','CRWD','SNOW','SPY','QQQ','IWM','XLK','SMH','SOXL','LLY','UNH','V','MA','JPM','HD','COST','BA','CAT','DE','GE','HON','LMT','RTX','WMT','TGT','DIS','MCD','SBUX','NKE']
+  },
+  stOptions: {
+    icon: '⚡',
+    title: 'Short-term Options',
+    desc: 'High-momentum names with near-term catalysts. Best for weekly/monthly options.',
+    tickers: ['NVDA','TSLA','AMD','META','GOOG','AMZN','MSFT','AAPL','NFLX','PLTR','COIN','HOOD','ROKU','U','RBLX','SOFI','RIVN','LCID','SNAP','PINS','UBER','DKNG','SHOP','BABA','PYPL','SQ','SPOT','ZM','PTON','CVNA','GME','AMC','BB','WISH','SPY','QQQ','IWM','TQQQ','SQQQ','SOXL','SOXS','UVXY','VIX','AAOI','ARM','MARA','RIOT','MSTR','SMCI']
+  },
+  dca: {
+    icon: '💰',
+    title: 'DCA Value',
+    desc: 'Dividend-paying quality businesses below their highs. Build positions slowly over months.',
+    tickers: ['JNJ','PG','KO','PEP','MMM','VZ','T','XOM','CVX','MO','PM','UPS','FDX','MCD','SBUX','TGT','WMT','HD','LOW','LMT','RTX','GD','NOC','CAT','DE','BA','GE','HON','MMC','TRV','ALL','AIG','MET','PRU','DUK','SO','D','NEE','EXC','AEP','SRE','OKE','PSX','VLO','MPC','HSY','GIS','K','CL','KMB','CLX','SCHD','VYM','VIG','HDV']
+  }
+};
+
+let discoverResults = {}; // category -> {results, scannedAt}
+
+function loadDiscoverResults(){
+  try {
+    const r = localStorage.getItem('viss_discover');
+    if(r) discoverResults = JSON.parse(r);
+  } catch(e){}
+}
+function saveDiscoverResults(){
+  localStorage.setItem('viss_discover', JSON.stringify(discoverResults));
+}
+
+function renderDiscover(){
+  loadDiscoverResults();
+  const el = document.getElementById('discoverCategories');
+  if(!el) return;
+  el.innerHTML = Object.entries(DISCOVER_UNIVERSES).map(([key, cat]) => {
+    const result = discoverResults[key];
+    const stale = result && (Date.now() - result.scannedAt) > 86400000;
+    const found = result?.results?.length || 0;
+    const ageStr = result ? new Date(result.scannedAt).toLocaleString() : '';
+    const matches = result?.results || [];
+    const scanning = result?.scanning;
+
+    return `<div style="background:#141620;border:1px solid #2d3044;border-radius:12px;overflow:hidden">
+      <div style="padding:16px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;border-bottom:${matches.length||scanning?'1px solid #1e2133':'none'}">
+        <div style="font-size:28px">${cat.icon}</div>
+        <div style="flex:1;min-width:200px">
+          <div style="font-size:15px;font-weight:700;color:#fff">${cat.title}</div>
+          <div style="font-size:12px;color:#64748b;line-height:1.5;margin-top:2px">${cat.desc}</div>
+        </div>
+        <div style="text-align:right">
+          ${result ? `<div style="font-size:11px;color:${stale?'#fbbf24':'#4ade80'};margin-bottom:4px">${stale?'⏰ Stale':'✓'} ${found} match${found===1?'':'es'}</div>
+                     <div style="font-size:10px;color:#374151">${ageStr}</div>` : '<div style="font-size:11px;color:#64748b">Not scanned yet</div>'}
+        </div>
+        <button onclick="scanDiscover('${key}')" ${scanning?'disabled':''} style="padding:9px 18px;background:${scanning?'#1e2133':'#4f6ef7'};border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:700;cursor:${scanning?'wait':'pointer'};font-family:inherit;white-space:nowrap">
+          ${scanning ? `⏳ ${scanning}` : (result?'↻ Rescan':'🔍 Scan')} (${cat.tickers.length})
+        </button>
+      </div>
+      ${matches.length ? `<div style="padding:14px 20px"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px">
+        ${matches.map(m => discoverCard(m, key)).join('')}
+      </div></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function discoverCard(m, category){
+  const sigCol = m.signal==='BUY' ? '#4ade80' : m.signal==='HOLD' ? '#fbbf24' : '#f87171';
+  return `<div style="background:#0c0e14;border:1px solid #1e2133;border-radius:8px;padding:12px;cursor:pointer" onclick="addDiscoveredToScreener('${m.ticker}')">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div style="font-size:14px;font-weight:800;color:#fff">${m.ticker}</div>
+      <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;background:${sigCol}22;color:${sigCol};border:1px solid ${sigCol}44">${m.signal||'—'}</span>
+    </div>
+    <div style="font-size:11px;color:#94a3b8;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.companyName||''}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:#64748b">
+      <span>$${m.price?.toFixed(2)||'—'}</span>
+      <span style="color:${m.totalScore>=22?'#4ade80':m.totalScore>=13?'#fbbf24':'#f87171'}">${m.totalScore}/32</span>
+      <span style="color:#60a5fa">Tech ${m.techScore}/8</span>
+      ${m.reason?`<span style="color:#a78bfa">· ${m.reason}</span>`:''}
+    </div>
+  </div>`;
+}
+
+async function scanDiscover(category){
+  if(!keys[1] || !keys[2]){ alert('Need Finnhub + Twelve Data keys to scan.'); return; }
+  const cat = DISCOVER_UNIVERSES[category];
+  if(!cat) return;
+
+  discoverResults[category] = { scanning: '0/0', results: [], scannedAt: Date.now() };
+  saveDiscoverResults();
+  renderDiscover();
+
+  const matches = [];
+  const tickers = cat.tickers;
+
+  for(let i=0; i<tickers.length; i++){
+    const t = tickers[i];
+    discoverResults[category].scanning = `${i+1}/${tickers.length} · ${t}`;
+    saveDiscoverResults();
+    renderDiscover();
+
+    try {
+      // Check if already in screener — reuse data
+      const existing = stocks.find(s => s.ticker===t && s.status==='done');
+      let stockData;
+      if(existing){
+        stockData = existing;
+      } else {
+        const fh = await fetchFinnhub(t);
+        if(!fh) continue;
+        const hist = await fetchPriceHistory(t);
+        if(!hist || hist.length<50) continue;
+        stockData = computeStock(t, fh, hist);
+      }
+
+      // Apply category-specific filters
+      const match = filterDiscover(category, stockData);
+      if(match) matches.push(match);
+    } catch(e) {
+      console.warn('Scan failed for', t, e.message);
+    }
+
+    // Rate limit pace — Twelve Data 8/min, only sleep if we actually called it
+    if(!stocks.find(s=>s.ticker===t && s.status==='done') && i<tickers.length-1){
+      await new Promise(r=>setTimeout(r, 4000));
+    }
+  }
+
+  // Sort by total score desc
+  matches.sort((a,b) => (b.totalScore||0) - (a.totalScore||0));
+
+  discoverResults[category] = { results: matches.slice(0, 20), scannedAt: Date.now(), scanning: null };
+  saveDiscoverResults();
+  renderDiscover();
+}
+
+function filterDiscover(category, s){
+  const base = {
+    ticker: s.ticker, companyName: s.companyName, price: s.currentPrice,
+    totalScore: s.totalScore, techScore: s.technical?.score||0, signal: s.overallSignal,
+  };
+
+  switch(category){
+    case 'breakout':
+      // Strong technical setup
+      if(s.technical?.score >= 6 && s.technical?.breakoutRecent && s.technical?.priceVsEma20==='above') {
+        return {...base, reason: `Recent breakout · ${s.technical?.trendDirection}`};
+      }
+      return null;
+
+    case 'quality':
+      // Buffett quality
+      if(s.buffett?.score >= 6 && s.buffett?.roe >= 15) {
+        return {...base, reason: `ROE ${s.buffett.roe.toFixed(0)}% · GM ${s.buffett.grossMargin?.toFixed(0)}%`};
+      }
+      return null;
+
+    case 'ltOptions':
+      // BUY signal + uptrend + earnings not imminent
+      if(s.overallSignal==='BUY' && s.technical?.trendDirection==='uptrend' && s.technical?.score>=6) {
+        return {...base, reason: `BUY + uptrend + Tech ${s.technical.score}/8`};
+      }
+      return null;
+
+    case 'stOptions':
+      // High momentum, breaking out, near-term catalyst
+      if(s.technical?.score>=5 && (s.technical?.breakoutRecent || s.technical?.strongTrendBars) && s.technical?.priceVsEma20==='above') {
+        return {...base, reason: `Strong momentum · Tech ${s.technical.score}/8`};
+      }
+      return null;
+
+    case 'dca':
+      // Quality value + dividend
+      if(s.graham?.score>=5 && s.graham?.dividendYield>2 && s.graham?.revenueGrowth5yr>0 && s.totalScore>=18) {
+        return {...base, reason: `Div ${s.graham.dividendYield.toFixed(1)}% · Graham ${s.graham.score}/8`};
+      }
+      return null;
+  }
+  return null;
+}
+
+function addDiscoveredToScreener(ticker){
+  if(stocks.find(s=>s.ticker===ticker && s.status==='done')){
+    switchTab('screener');
+    setTimeout(()=>{ const s=stocks.find(x=>x.ticker===ticker); if(s) toggleDP(s.id); }, 200);
+    return;
+  }
+  switchTab('screener');
+  document.getElementById('ti').value = ticker;
+  setTimeout(()=>go(), 100);
+}
+
 function toggleGuide(){
   const a = document.getElementById('guideArrow');
   if(c.style.display === 'none'){
@@ -1552,17 +1772,26 @@ function loadStocks(){
 }
 
 async function autoLoadDefaults(tickers){
-  for(let i=0;i<tickers.length;i++){
-    const ticker = tickers[i];
-    if(stocks.find(s=>s.ticker===ticker&&s.status==='done')) continue;
-    const id = Date.now() + Math.floor(Math.random()*1000);
-    stocks.push({id, ticker, status:'loading', step:`Analyzing ${ticker} (${i+1}/${tickers.length})…`});
-    renderTable();
+  const BATCH = 4;        // stocks per batch — Twelve Data 8/min allows 4 in parallel safely
+  const GAP_MS = 30000;   // 30s between batches = 4 calls per 30s = 8 calls/min, exactly at limit
+  for(let b=0; b<tickers.length; b+=BATCH){
+    const batch = tickers.slice(b, b+BATCH).filter(t => !stocks.find(s=>s.ticker===t&&s.status==='done'));
+    if(!batch.length) continue;
+
+    // Add all loading entries
+    const ids = batch.map((ticker, i) => {
+      const id = Date.now() + Math.floor(Math.random()*1000) + i;
+      stocks.push({id, ticker, status:'loading', step:`Analyzing (${b+i+1}/${tickers.length})…`});
+      return {id, ticker};
+    });
     document.getElementById('empty').style.display='none';
-    await run(id, ticker);
-    // 8s gap — Twelve Data free tier allows 8 calls/minute
-    // This ensures we never hit the rate limit during bulk load
-    if(i < tickers.length-1) await new Promise(r=>setTimeout(r,4000)); // 4s gap = ~15 stocks/min, within 8 calls/min Twelve Data limit
+    renderTable();
+
+    // PARALLEL: fire all stocks in this batch simultaneously
+    await Promise.all(ids.map(({id, ticker}) => run(id, ticker)));
+
+    // Rate-limit gap before next batch (skip on last batch)
+    if(b + BATCH < tickers.length) await new Promise(r=>setTimeout(r, GAP_MS));
   }
 }
 function save(){
@@ -1598,24 +1827,35 @@ async function go(){
 
 async function refreshAll(){
   if(refreshing||!keys[0])return;
-  const done=stocks.filter(s=>s.status==='done').map(s=>s.ticker); // snapshot tickers
+  const done=stocks.filter(s=>s.status==='done').map(s=>s.ticker);
   if(!done.length)return;
   refreshing=true;
   document.getElementById('refBtn').disabled=true;const _ab3=document.getElementById('aiAllBtn');if(_ab3)_ab3.disabled=true;
   document.getElementById('rbar').classList.add('on');
-  for(let i=0;i<done.length;i++){
-    const ticker=done[i];
-    document.getElementById('rmsg').textContent=`Refreshing ${ticker} (${i+1}/${done.length})…`;
-    // Preserve existing AI summary before removing the old entry
-    const existing = stocks.find(s=>s.ticker===ticker);
-    const savedAnalysis = existing?.analysis || null;
-    stocks=stocks.filter(s=>s.ticker!==ticker);
-    const nid=Date.now()+(i*100);
-    stocks.unshift({id:nid,ticker,status:'loading',step:'Refreshing…',_savedAnalysis:savedAnalysis});
+
+  const BATCH = 4;
+  const GAP_MS = 30000;
+  for(let b=0; b<done.length; b+=BATCH){
+    const batch = done.slice(b, b+BATCH);
+    document.getElementById('rmsg').textContent = `Refreshing batch ${Math.floor(b/BATCH)+1}/${Math.ceil(done.length/BATCH)} — ${batch.join(', ')}`;
+
+    // Preserve analyses + replace each with loading entry
+    const ids = batch.map((ticker, i) => {
+      const existing = stocks.find(s=>s.ticker===ticker);
+      const savedAnalysis = existing?.analysis || null;
+      stocks = stocks.filter(s=>s.ticker!==ticker);
+      const nid = Date.now() + (b+i)*100;
+      stocks.unshift({id:nid, ticker, status:'loading', step:'Refreshing…', _savedAnalysis:savedAnalysis});
+      return {id:nid, ticker};
+    });
     renderTable();
-    await run(nid,ticker);
-    if(i<done.length-1)await new Promise(r=>setTimeout(r,4000));
+
+    // PARALLEL: fire all in batch simultaneously
+    await Promise.all(ids.map(({id, ticker}) => run(id, ticker)));
+
+    if(b + BATCH < done.length) await new Promise(r=>setTimeout(r, GAP_MS));
   }
+
   document.getElementById('rbar').classList.remove('on');
   document.getElementById('refBtn').disabled=false;const _ab2=document.getElementById('aiAllBtn');if(_ab2)_ab2.disabled=false;
   refreshing=false;
@@ -1635,17 +1875,16 @@ async function run(id,t){
 
     let fin = null, priceHistory = null, finError = null;
     if(!restricted){
-      setStep(id,'Fetching fundamentals…');
-      try {
-        fin = await fetchFinnhub(t);
-      } catch(e) {
-        finError = e.message;
-        console.warn('Finnhub error:', e.message);
-      }
-      if(fin){
-        setStep(id,'Fetching price history…');
-        priceHistory = await fetchPriceHistory(t).catch(e=>{console.warn('History:',e.message);return null;});
-      }
+      setStep(id,'Fetching fundamentals + price history…');
+      // PARALLEL: Finnhub (3 internal calls) + Twelve Data fire simultaneously — saves ~1-2s per stock
+      const [finResult, histResult] = await Promise.allSettled([
+        fetchFinnhub(t),
+        fetchPriceHistory(t),
+      ]);
+      if(finResult.status === 'fulfilled') fin = finResult.value;
+      else { finError = finResult.reason?.message; console.warn('Finnhub error:', finError); }
+      if(histResult.status === 'fulfilled') priceHistory = histResult.value;
+      else console.warn('History error:', histResult.reason?.message);
     } else {
       // Restricted env (Claude.ai iframe) — can't fetch APIs directly due to CSP
       const idx = stocks.findIndex(s=>s.id===id);
@@ -2277,12 +2516,11 @@ async function callAnthropic(prompt, useSearch=false, retries=2){
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':keys[0],
       'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,
+    body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:800,temperature:0.3,
       ...(useSearch?{tools:[{type:'web_search_20250305',name:'web_search'}]}:{}),
       messages:[{role:'user',content:prompt}]})
   });
   if(res.status===429 && retries>0){
-    // Rate limited — wait 15 seconds then retry
     await new Promise(r=>setTimeout(r,15000));
     return callAnthropic(prompt, useSearch, retries-1);
   }
@@ -2647,16 +2885,22 @@ async function summarizeAll(){
   const btn = document.getElementById('aiAllBtn');
   btn.disabled = true;
   let succeeded = 0, failed = 0;
-  for(let i=0; i<targets.length; i++){
-    btn.textContent = `🧠 ${i+1}/${targets.length} — ${targets[i].ticker}…`;
-    try {
-      await fetchSummary(targets[i].id);
-      succeeded++;
-    } catch(e) {
-      failed++;
-      console.warn('Summary failed for', targets[i].ticker, e.message);
-    }
-    if(i < targets.length-1) await new Promise(r=>setTimeout(r,8000));
+
+  // PARALLEL: 3 stocks at a time. Haiku is fast (~3s/call), so a batch of 3 finishes in ~3-5s.
+  // Anthropic tier 1 = 50 req/min, so 3 parallel = 60% peak burst, well within limit.
+  const BATCH = 3;
+  for(let b=0; b<targets.length; b+=BATCH){
+    const batch = targets.slice(b, b+BATCH);
+    btn.textContent = `🧠 ${b+1}-${Math.min(b+BATCH, targets.length)}/${targets.length} — ${batch.map(t=>t.ticker).join(', ')}…`;
+
+    const results = await Promise.allSettled(batch.map(t => fetchSummary(t.id)));
+    results.forEach((r, i) => {
+      if(r.status === 'fulfilled') succeeded++;
+      else { failed++; console.warn('Summary failed for', batch[i].ticker, r.reason?.message); }
+    });
+
+    // Brief gap between batches to avoid spike — Haiku tier limits, plus token-per-min cap
+    if(b + BATCH < targets.length) await new Promise(r=>setTimeout(r, 2000));
   }
   btn.disabled = false;
   btn.textContent = '🧠 AI Summary all';
