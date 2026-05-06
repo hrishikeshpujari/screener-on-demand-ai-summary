@@ -2876,6 +2876,9 @@ function eswTab(id, name){
 
 // ── SUMMARIZE ALL ──
 async function summarizeAll(){
+  if(busyOp){
+    if(!confirm(`A "${busyOp}" operation is running. AI summaries will only generate for stocks already in 'done' state — others will be skipped.\n\nProceed anyway?`)) return;
+  }
   const hasSummary = stocks.filter(s=>s.status==='done' && s.analysis?.thesis);
   const noSummary  = stocks.filter(s=>s.status==='done' && (!s.analysis || !s.analysis.thesis));
   if(!keys[0]){ alert('Anthropic API key not set — go to ⚙ API Keys.'); return; }
