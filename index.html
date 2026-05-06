@@ -2532,7 +2532,7 @@ async function callAnthropic(prompt, useSearch=false, retries=2){
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':keys[0],
       'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:800,temperature:0.3,
+    body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:2000,temperature:0.3,
       ...(useSearch?{tools:[{type:'web_search_20250305',name:'web_search'}]}:{}),
       messages:[{role:'user',content:prompt}]})
   });
@@ -2571,9 +2571,24 @@ function parseJSON(txt){
     if(c==='{')depth++;
     else if(c==='}'){depth--;if(depth===0){end=i;break;}}
   }
-  if(end===-1)throw new Error('Incomplete JSON — brace mismatch');
-  try{return JSON.parse(cleaned.slice(0,end+1));}
-  catch(e){throw new Error('JSON parse failed: '+e.message);}
+  if(end!==-1){
+    try{return JSON.parse(cleaned.slice(0,end+1));}
+    catch(e){/* fall through to salvage */}
+  }
+
+  // SALVAGE: response was truncated (max_tokens hit). Extract complete "field": "value" pairs.
+  console.warn('JSON truncated, salvaging fields...');
+  const salvaged = {};
+  const fieldRegex = /"(\w+)"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
+  let m;
+  while((m = fieldRegex.exec(cleaned)) !== null){
+    salvaged[m[1]] = m[2].replace(/\\"/g,'"').replace(/\\n/g,' ');
+  }
+  if(Object.keys(salvaged).length > 0){
+    console.warn('Salvaged', Object.keys(salvaged).length, 'fields:', Object.keys(salvaged));
+    return salvaged;
+  }
+  throw new Error('Incomplete JSON — could not salvage any fields');
 }
 
 // ── Options via Cloudflare Worker proxy ──
