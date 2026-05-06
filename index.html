@@ -1562,7 +1562,17 @@ let discoverResults = {}; // category -> {results, scannedAt}
 function loadDiscoverResults(){
   try {
     const r = localStorage.getItem('viss_discover');
-    if(r) discoverResults = JSON.parse(r);
+    if(r){
+      discoverResults = JSON.parse(r);
+      // Clear stale scanning flags from interrupted scans (laptop sleep, tab close, etc)
+      Object.keys(discoverResults).forEach(k => {
+        if(discoverResults[k]?.scanning){
+          discoverResults[k].scanning = null;
+          discoverResults[k].interrupted = true;
+        }
+      });
+      saveDiscoverResults();
+    }
   } catch(e){}
 }
 function saveDiscoverResults(){
@@ -1580,20 +1590,31 @@ function renderDiscover(){
     const ageStr = result ? new Date(result.scannedAt).toLocaleString() : '';
     const matches = result?.results || [];
     const scanning = result?.scanning;
+    const interrupted = result?.interrupted;
 
-    return `<div style="background:#141620;border:1px solid #2d3044;border-radius:12px;overflow:hidden">
+    let statusBadge;
+    if(scanning){
+      statusBadge = `<div style="font-size:11px;color:#a78bfa;margin-bottom:4px">⏳ Scanning…</div><div style="font-size:10px;color:#374151">${ageStr}</div>`;
+    } else if(interrupted){
+      statusBadge = `<div style="font-size:11px;color:#fbbf24;margin-bottom:4px">⚠ Interrupted · ${found} found</div><div style="font-size:10px;color:#374151">Click Resume below</div>`;
+    } else if(result){
+      statusBadge = `<div style="font-size:11px;color:${stale?'#fbbf24':'#4ade80'};margin-bottom:4px">${stale?'⏰ Stale':'✓'} ${found} match${found===1?'':'es'}</div><div style="font-size:10px;color:#374151">${ageStr}</div>`;
+    } else {
+      statusBadge = '<div style="font-size:11px;color:#64748b">Not scanned yet</div>';
+    }
+
+    const btnLabel = scanning ? `⏳ ${scanning}` : interrupted ? '↻ Resume' : (result?'↻ Rescan':'🔍 Scan');
+
+    return `<div style="background:#141620;border:1px solid ${interrupted?'#854d0e':'#2d3044'};border-radius:12px;overflow:hidden">
       <div style="padding:16px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;border-bottom:${matches.length||scanning?'1px solid #1e2133':'none'}">
         <div style="font-size:28px">${cat.icon}</div>
         <div style="flex:1;min-width:200px">
           <div style="font-size:15px;font-weight:700;color:#fff">${cat.title}</div>
           <div style="font-size:12px;color:#64748b;line-height:1.5;margin-top:2px">${cat.desc}</div>
         </div>
-        <div style="text-align:right">
-          ${result ? `<div style="font-size:11px;color:${stale?'#fbbf24':'#4ade80'};margin-bottom:4px">${stale?'⏰ Stale':'✓'} ${found} match${found===1?'':'es'}</div>
-                     <div style="font-size:10px;color:#374151">${ageStr}</div>` : '<div style="font-size:11px;color:#64748b">Not scanned yet</div>'}
-        </div>
-        <button onclick="scanDiscover('${key}')" ${scanning?'disabled':''} style="padding:9px 18px;background:${scanning?'#1e2133':'#4f6ef7'};border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:700;cursor:${scanning?'wait':'pointer'};font-family:inherit;white-space:nowrap">
-          ${scanning ? `⏳ ${scanning}` : (result?'↻ Rescan':'🔍 Scan')} (${cat.tickers.length})
+        <div style="text-align:right">${statusBadge}</div>
+        <button onclick="scanDiscover('${key}')" ${scanning?'disabled':''} style="padding:9px 18px;background:${scanning?'#1e2133':interrupted?'#854d0e':'#4f6ef7'};border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:700;cursor:${scanning?'wait':'pointer'};font-family:inherit;white-space:nowrap">
+          ${btnLabel} (${cat.tickers.length})
         </button>
       </div>
       ${matches.length ? `<div style="padding:14px 20px"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px">
@@ -1627,7 +1648,7 @@ async function scanDiscover(category){
   const cat = DISCOVER_UNIVERSES[category];
   if(!cat){ busyOp=null; return; }
 
-  discoverResults[category] = { scanning: '0/0', results: [], scannedAt: Date.now() };
+  discoverResults[category] = { scanning: '0/0', results: [], scannedAt: Date.now(), interrupted: false };
   saveDiscoverResults();
   renderDiscover();
 
