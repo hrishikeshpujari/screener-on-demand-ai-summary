@@ -2512,7 +2512,25 @@ Write with depth, real numbers from the data above, and specificity:
 - catalysts: 1-2 sentences. Upcoming events that could move the stock.
 - sectorContext: 1-2 sentences. How it compares to sector peers.`;
 
-    const txt = await callAnthropic(prompt, false); // no web search — scores are already computed
+    const system = 'You are a financial analyst. Always respond with ONLY a valid JSON object. No preamble, no markdown fences, no commentary. Start your response with { and end with }.';
+
+    let lastUpdate = 0;
+    const txt = await callAnthropic(prompt, false, 2, {
+      system,
+      onChunk: (fullText) => {
+        // Throttle UI updates to every 200ms to avoid spamming renderTable
+        const now = Date.now();
+        if(now - lastUpdate < 200) return;
+        lastUpdate = now;
+
+        // Try to parse partial JSON — show what we have
+        try {
+          const partial = parseJSON(fullText);
+          s.analysis = {...partial, _streaming: true};
+          renderTable();
+        } catch(e){ /* ignore parse errors during streaming */ }
+      }
+    });
     const analysis = parseJSON(txt);
     s.analysis = analysis;
     save();
@@ -2520,30 +2538,78 @@ Write with depth, real numbers from the data above, and specificity:
   } catch(e) {
     s.analysis = {error: e.message};
     renderTable();
-    throw e; // rethrow so summarizeAll can count failures
+    throw e;
   }
 }
 
 // ── FMP parser for stable API (Aug 2025+) — handles correct field names ──
 
 // ── Helper: call Anthropic API ──
-async function callAnthropic(prompt, useSearch=false, retries=2){
-  const res=await fetch('https://api.anthropic.com/v1/messages',{
+async function callAnthropic(prompt, useSearch=false, retries=2, options={}){
+  const {onChunk, system} = options;
+  const useStreaming = !!onChunk;
+
+  const body = {
+    model:'claude-haiku-4-5',
+    max_tokens:2000,
+    temperature:0.3,
+    ...(system?{system}:{}),
+    ...(useSearch?{tools:[{type:'web_search_20250305',name:'web_search'}]}:{}),
+    ...(useStreaming?{stream:true}:{}),
+    stop_sequences:['\n\nNote:','\n\nAdditional','\n\nDisclaimer:'],
+    messages:[{role:'user',content:prompt}]
+  };
+
+  const res = await fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':keys[0],
       'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:2000,temperature:0.3,
-      ...(useSearch?{tools:[{type:'web_search_20250305',name:'web_search'}]}:{}),
-      messages:[{role:'user',content:prompt}]})
+    body:JSON.stringify(body)
   });
+
   if(res.status===429 && retries>0){
     await new Promise(r=>setTimeout(r,15000));
-    return callAnthropic(prompt, useSearch, retries-1);
+    return callAnthropic(prompt, useSearch, retries-1, options);
   }
   if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e?.error?.message||`Anthropic HTTP ${res.status}`);}
-  const d=await res.json();
-  if(d.error)throw new Error(d.error.message||'Anthropic error');
-  return d.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+
+  // Non-streaming path
+  if(!useStreaming){
+    const d = await res.json();
+    if(d.error)throw new Error(d.error.message||'Anthropic error');
+    return d.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+  }
+
+  // Streaming path — parse SSE
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let fullText = '', buffer = '';
+
+  while(true){
+    const {done, value} = await reader.read();
+    if(done) break;
+    buffer += decoder.decode(value, {stream:true});
+    // SSE events are separated by \n\n; each contains "event: <type>\ndata: <json>"
+    const events = buffer.split('\n\n');
+    buffer = events.pop() || ''; // keep incomplete event in buffer
+    for(const evt of events){
+      const dataLine = evt.split('\n').find(l=>l.startsWith('data: '));
+      if(!dataLine) continue;
+      try {
+        const data = JSON.parse(dataLine.slice(6));
+        if(data.type === 'content_block_delta' && data.delta?.type === 'text_delta'){
+          const chunk = data.delta.text;
+          fullText += chunk;
+          onChunk(fullText, chunk); // pass full text + new chunk
+        } else if(data.type === 'message_stop'){
+          break;
+        } else if(data.type === 'error'){
+          throw new Error(data.error?.message || 'Stream error');
+        }
+      } catch(e){ if(e.message?.includes('Stream error')) throw e; }
+    }
+  }
+  return fullText;
 }
 
 function n(v){return v===null||v===undefined?'null':(typeof v==='number'?parseFloat(v.toFixed(3)):v);}
@@ -2771,8 +2837,9 @@ function buildExpandRow(s){
   } else if(an.error){
     analysisHtml=`<div style="padding:12px;background:#1a0a0a;border-radius:8px;border:1px solid #7f1d1d"><div style="color:#f87171;font-size:12px">⚠ ${an.error}</div><button class="ai-btn" onclick="fetchSummary(${s.id})" style="margin-top:10px">↻ Retry</button></div>`;
   } else if(an.thesis){
+    const streaming = an._streaming;
     analysisHtml=[
-      `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:11px;color:#374151">AI analysis — based on pure-math scores</div><button class="ai-btn-sm" onclick="s=stocks.find(x=>x.id===${s.id});if(s){s.analysis=null;renderTable();fetchSummary(${s.id});}">↻ Regenerate</button></div>`,
+      `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:11px;color:${streaming?'#a78bfa':'#374151'}">${streaming?'<span class="spin" style="width:10px;height:10px"></span> Streaming AI analysis…':'AI analysis — based on pure-math scores'}</div>${streaming?'':`<button class="ai-btn-sm" onclick="s=stocks.find(x=>x.id===${s.id});if(s){s.analysis=null;renderTable();fetchSummary(${s.id});}">↻ Regenerate</button>`}</div>`,
       an.thesis?`<div class="an-block"><div class="an-lbl">📋 Investment Thesis</div><div class="an-txt">${an.thesis}</div></div>`:'',
       an.bullCase?`<div class="an-block"><div class="an-lbl" style="color:#4ade80">🐂 Bull Case</div><div class="an-txt">${an.bullCase}</div></div>`:'',
       an.bearCase?`<div class="an-block"><div class="an-lbl" style="color:#f87171">🐻 Bear Case</div><div class="an-txt">${an.bearCase}</div></div>`:'',
