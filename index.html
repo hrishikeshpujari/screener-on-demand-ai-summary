@@ -3647,7 +3647,7 @@ Write with depth, real numbers from the data above, and specificity:
     const txt = await callAnthropic(prompt, false, 2, {
       system,
       onChunk: (fullText) => {
-        // Throttle UI updates to every 200ms to avoid spamming renderTable
+        // Throttle UI updates to every 200ms
         const now = Date.now();
         if(now - lastUpdate < 200) return;
         lastUpdate = now;
@@ -3656,17 +3656,19 @@ Write with depth, real numbers from the data above, and specificity:
         try {
           const partial = parseJSON(fullText);
           s.analysis = {...partial, _streaming: true};
-          renderTable();
+          // Targeted update — only the analysis div, NOT the whole table (prevents flicker)
+          updateAnalysisOnly(stockId);
         } catch(e){ /* ignore parse errors during streaming */ }
       }
     });
     const analysis = parseJSON(txt);
     s.analysis = analysis;
     save();
-    renderTable();
+    // Final render: full table update so the row's visible state syncs
+    updateAnalysisOnly(stockId);
   } catch(e) {
     s.analysis = {error: e.message};
-    renderTable();
+    updateAnalysisOnly(stockId);
     throw e;
   }
 }
@@ -3949,6 +3951,40 @@ function toggleDP(id){
 }
 function closeDP(){ activeDP = null; renderTable(); }
 
+// Build the AI analysis section HTML. Used by both buildExpandRow and updateAnalysisOnly (for streaming).
+function buildAnalysisHtml(s){
+  const an = s.analysis || {};
+  if(an.generating){
+    return `<div style="text-align:center;padding:20px;background:var(--bg-surface);border-radius:8px;border:1px solid var(--border-default)"><span class="spin"></span><div style="font-size:13px;color:var(--text-muted);margin-top:10px">Generating AI analysis…</div></div>`;
+  }
+  if(an.error){
+    return `<div style="padding:12px;background:var(--accent-sell-bg);border-radius:8px;border:1px solid var(--accent-sell-border)"><div style="color:var(--accent-sell);font-size:12px">⚠ ${an.error}</div><button class="ai-btn" onclick="fetchSummary(${s.id})" style="margin-top:10px">↻ Retry</button></div>`;
+  }
+  if(an.thesis){
+    const streaming = an._streaming;
+    return [
+      `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:11px;color:${streaming?'var(--accent-ai)':'var(--text-muted)'}">${streaming?'<span class="spin" style="width:10px;height:10px"></span> Streaming AI analysis…':'AI analysis — based on pure-math scores'}</div>${streaming?'':`<button class="ai-btn-sm" onclick="s=stocks.find(x=>x.id===${s.id});if(s){s.analysis=null;renderTable();fetchSummary(${s.id});}">↻ Regenerate</button>`}</div>`,
+      an.thesis?`<div class="an-block"><div class="an-lbl">📋 Investment Thesis</div><div class="an-txt">${an.thesis}</div></div>`:'',
+      an.bullCase?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-buy)">🐂 Bull Case</div><div class="an-txt">${an.bullCase}</div></div>`:'',
+      an.bearCase?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-sell)">🐻 Bear Case</div><div class="an-txt">${an.bearCase}</div></div>`:'',
+      an.riskFactors?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-hold)">⚠️ Key Risks</div><div class="an-txt">${an.riskFactors}</div></div>`:'',
+      an.entryStrategy?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-info)">🎯 Entry Strategy</div><div class="an-txt">${an.entryStrategy}</div></div>`:'',
+      an.catalysts?`<div class="an-block"><div class="an-lbl">⚡ Catalysts</div><div class="an-txt">${an.catalysts}</div></div>`:'',
+      an.sectorContext?`<div class="an-block"><div class="an-lbl">🏭 Sector Context</div><div class="an-txt">${an.sectorContext}</div></div>`:'',
+    ].filter(Boolean).join('');
+  }
+  return `<div style="text-align:center;padding:20px;background:var(--bg-surface);border-radius:8px;border:1px dashed var(--border-strong)"><div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">No AI summary yet</div><button class="ai-btn" onclick="fetchSummary(${s.id})">🧠 Generate AI Summary</button><div style="font-size:11px;color:var(--text-faint);margin-top:8px">Uses pure-math scores as input · ~15 seconds</div></div>`;
+}
+
+// Update only the AI analysis div in the expanded row (no full re-render — prevents flicker during streaming)
+function updateAnalysisOnly(stockId){
+  const s = stocks.find(x => x.id === stockId);
+  if(!s) return;
+  const el = document.getElementById('etc-ov-' + stockId);
+  if(!el) return; // row not expanded — no need to update DOM
+  el.innerHTML = buildAnalysisHtml(s);
+}
+
 function buildExpandRow(s){
   const g=s.graham, b=s.buffett, l=s.lynch, ta=s.technical, lo=s.liveOptions;
   const ts=s.totalScore??0, tc=sc(ts,32);
@@ -3964,27 +4000,7 @@ function buildExpandRow(s){
   ].filter(Boolean).join('');
 
   // AI analysis section
-  const an = s.analysis || {};
-  let analysisHtml;
-  if(an.generating){
-    analysisHtml=`<div style="text-align:center;padding:20px;background:#0c0e14;border-radius:8px;border:1px solid #1e2133"><span class="spin"></span><div style="font-size:13px;color:#64748b;margin-top:10px">Generating AI analysis…</div></div>`;
-  } else if(an.error){
-    analysisHtml=`<div style="padding:12px;background:#1a0a0a;border-radius:8px;border:1px solid #7f1d1d"><div style="color:#f87171;font-size:12px">⚠ ${an.error}</div><button class="ai-btn" onclick="fetchSummary(${s.id})" style="margin-top:10px">↻ Retry</button></div>`;
-  } else if(an.thesis){
-    const streaming = an._streaming;
-    analysisHtml=[
-      `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:11px;color:${streaming?'#a78bfa':'#374151'}">${streaming?'<span class="spin" style="width:10px;height:10px"></span> Streaming AI analysis…':'AI analysis — based on pure-math scores'}</div>${streaming?'':`<button class="ai-btn-sm" onclick="s=stocks.find(x=>x.id===${s.id});if(s){s.analysis=null;renderTable();fetchSummary(${s.id});}">↻ Regenerate</button>`}</div>`,
-      an.thesis?`<div class="an-block"><div class="an-lbl">📋 Investment Thesis</div><div class="an-txt">${an.thesis}</div></div>`:'',
-      an.bullCase?`<div class="an-block"><div class="an-lbl" style="color:#4ade80">🐂 Bull Case</div><div class="an-txt">${an.bullCase}</div></div>`:'',
-      an.bearCase?`<div class="an-block"><div class="an-lbl" style="color:#f87171">🐻 Bear Case</div><div class="an-txt">${an.bearCase}</div></div>`:'',
-      an.riskFactors?`<div class="an-block"><div class="an-lbl" style="color:#fbbf24">⚠️ Key Risks</div><div class="an-txt">${an.riskFactors}</div></div>`:'',
-      an.entryStrategy?`<div class="an-block"><div class="an-lbl" style="color:#60a5fa">🎯 Entry Strategy</div><div class="an-txt">${an.entryStrategy}</div></div>`:'',
-      an.catalysts?`<div class="an-block"><div class="an-lbl">⚡ Catalysts</div><div class="an-txt">${an.catalysts}</div></div>`:'',
-      an.sectorContext?`<div class="an-block"><div class="an-lbl">🏭 Sector Context</div><div class="an-txt">${an.sectorContext}</div></div>`:'',
-    ].filter(Boolean).join('');
-  } else {
-    analysisHtml=`<div style="text-align:center;padding:20px;background:#0c0e14;border-radius:8px;border:1px solid #1e2133;border-style:dashed"><div style="font-size:13px;color:#64748b;margin-bottom:12px">No AI summary yet</div><button class="ai-btn" onclick="fetchSummary(${s.id})">🧠 Generate AI Summary</button><div style="font-size:11px;color:#374151;margin-top:8px">Uses pure-math scores as input · ~15 seconds</div></div>`;
-  }
+  let analysisHtml = buildAnalysisHtml(s);
 
   // Metric box helper
   const mb=(lbl,val,pass,neu=false)=>`<div class="mbox"><div class="ml">${lbl}</div><div class="mv ${neu?'neut':val==='—'?'neut':pass?'pass':'fail'}">${val}</div></div>`;
