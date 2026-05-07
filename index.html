@@ -1023,6 +1023,44 @@ tbody tr { transition: background 0.15s ease; }
   h1 { font-size: 18px; letter-spacing: 0; }
   .sub { font-size: 11px; line-height: 1.5; }
 
+  /* CRITICAL: prevent horizontal overflow on expanded row */
+  .expand-row > td { display: block; width: 100%; max-width: 100vw; box-sizing: border-box; }
+  .expand-inner { max-width: 100%; overflow-x: hidden; word-break: break-word; overflow-wrap: anywhere; padding: 14px !important; }
+  .expand-head { flex-wrap: wrap; gap: 6px !important; }
+  .expand-head > * { max-width: 100%; min-width: 0; }
+  .expand-tkr { font-size: 16px !important; }
+  .expand-nm { font-size: 11px !important; line-height: 1.4; flex: 1 1 100%; min-width: 0; }
+  .expand-px { font-size: 14px !important; flex: 0 1 auto; }
+  .expand-close { padding: 4px 10px; font-size: 11px; }
+
+  /* Pills row (signal badges) — wrap and shrink */
+  .pills { gap: 4px !important; }
+  .pill { font-size: 10px !important; padding: 3px 7px !important; line-height: 1.3; }
+
+  /* Liner text (EMA values etc) */
+  .liner { font-size: 11px !important; padding: 10px 12px !important; word-break: break-word; line-height: 1.5; }
+
+  /* Inner tabs */
+  .tabs { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+  .tab { white-space: nowrap; flex-shrink: 0; padding: 8px 12px !important; font-size: 12px !important; min-height: 38px; }
+
+  /* Analysis blocks */
+  .an-block { padding: 10px 12px !important; }
+  .an-lbl { font-size: 11px !important; }
+  .an-txt { font-size: 13px !important; line-height: 1.6; word-break: break-word; }
+
+  /* Score bar inside expanded row */
+  .sbar { flex-wrap: wrap; }
+  .slrg { font-size: 28px !important; }
+  .sden { font-size: 14px !important; }
+
+  /* Metric grid */
+  .mgrid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important; gap: 6px !important; }
+  .mbox { padding: 9px 11px !important; }
+  .ml { font-size: 10px !important; }
+  .mv { font-size: 13px !important; }
+  .slbl { font-size: 10px !important; margin: 14px 0 6px !important; }
+
   /* Toolbar — full-width buttons */
   .input-row { flex-direction: column; gap: 8px; padding: 10px; }
   .input-row input { min-width: 0; width: 100%; padding: 12px; }
@@ -1033,7 +1071,7 @@ tbody tr { transition: background 0.15s ease; }
   .input-row > button { width: 100%; padding: 12px; font-size: 13px; min-height: 44px; }
 
   /* Hide less-important table columns on mobile — keep ticker, price, total, signal */
-  table { min-width: 0; font-size: 12px; width: 100%; }
+  table { min-width: 0; font-size: 12px; width: 100%; table-layout: auto; }
   thead th:nth-child(3),  /* Company */
   thead th:nth-child(6),  /* Fund /24 */
   thead th:nth-child(7),  /* Tech /8 */
@@ -1057,6 +1095,7 @@ tbody tr { transition: background 0.15s ease; }
   .score-cell { padding: 3px 8px; font-size: 12px; }
 
   /* Hint at bottom of mobile table */
+  .tbl-wrap { overflow-x: hidden; max-width: 100vw; }
   .tbl-wrap::after {
     content: "Tap any row for full details";
     display: block;
@@ -1068,15 +1107,9 @@ tbody tr { transition: background 0.15s ease; }
     background: var(--bg-surface-2);
   }
 
-  /* Expanded row — adjust padding */
-  .expand-inner { padding: 16px !important; }
-  .expand-tkr { font-size: 18px; }
-  .expand-px { font-size: 16px; }
-  .expand-head { gap: 8px; }
-
   /* App nav tabs */
-  .app-nav { gap: 0; overflow-x: auto; flex-wrap: nowrap; }
-  .app-tab { padding: 10px 12px; font-size: 12px; min-height: 44px; flex-shrink: 0; }
+  .app-nav { gap: 0; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+  .app-tab { padding: 10px 12px; font-size: 12px; min-height: 44px; flex-shrink: 0; white-space: nowrap; }
 
   /* Modal — full width on mobile */
   .modal-overlay { padding: 12px; }
@@ -1135,7 +1168,6 @@ tbody tr { transition: background 0.15s ease; }
   /* Guide */
   #guideContent { padding: 16px !important; }
   #guideContent > div[style*="display:flex"][style*="flex-wrap:wrap"]:first-of-type {
-    /* Nav links wrap better */
     gap: 6px !important;
   }
   #guideContent a[href^="#g-"] {
@@ -2229,12 +2261,14 @@ async function getPositionGuidance(id){
 
   const s = getScreenerData(p.ticker);
   const pnl = p.type==='stock' ? computeStockPnL(p) : computeOptionPnL(p);
+  const today = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+  const dateContext = `Today's date: ${today}. When discussing earnings or upcoming events, reference real upcoming quarters relative to today (e.g. if today is mid-2026, upcoming earnings would be Q2 or Q3 2026, not 2024).\n\n`;
 
   let prompt;
   if(p.type==='stock'){
     const curPx = pnl?.currentPrice ? '$'+pnl.currentPrice.toFixed(2) : 'unknown (not yet in screener)';
     const pnlStr = pnl ? `${pnl.pnl>=0?'+':''}$${Math.abs(pnl.pnl).toFixed(0)} (${pnl.pnlPct>=0?'+':''}${pnl.pnlPct.toFixed(1)}%)` : 'unknown';
-    prompt = `I hold ${p.shares} shares of ${p.ticker}${s?` (${s.companyName})`:''}. 
+    prompt = dateContext + `I hold ${p.shares} shares of ${p.ticker}${s?` (${s.companyName})`:''}. 
 Entry: $${p.entryPrice} on ${p.entryDate||'unknown date'}.
 Current price: ${curPx}.
 P&L: ${pnlStr}.
@@ -2249,7 +2283,7 @@ Give me specific, actionable guidance on this position in 3-5 sentences. What sh
     const curPx = pnl?.currentPrice ? '$'+pnl.currentPrice.toFixed(2) : 'unknown';
     const daysLeft = pnl?.daysToExpiry ?? 'unknown';
     const itmStr = pnl?.currentPrice ? (pnl.itm ? `IN the money (intrinsic ~$${pnl.intrinsic?.toFixed(2)}/sh)` : 'OUT of the money') : 'unknown';
-    prompt = `I hold ${p.contracts} ${p.optType} contract${p.contracts>1?'s':''} on ${p.ticker} with strike $${p.strike}, expiring ${p.expiry}.
+    prompt = dateContext + `I hold ${p.contracts} ${p.optType} contract${p.contracts>1?'s':''} on ${p.ticker} with strike $${p.strike}, expiring ${p.expiry}.
 Paid: $${p.premium}/share ($${(p.contracts*100*p.premium).toFixed(0)} total).
 Entered: ${p.entryDate||'unknown'}.
 Current stock price: ${curPx}.
@@ -2293,7 +2327,10 @@ async function reviewPortfolio(){
     }
   }).join('\n');
 
-  const prompt = `Review my investment portfolio and give me a prioritized action plan.
+  const today = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+  const prompt = `Today's date: ${today}. When discussing earnings or upcoming events, reference real upcoming quarters relative to today.
+
+Review my investment portfolio and give me a prioritized action plan.
 
 CURRENT POSITIONS:
 ${posContext}
@@ -3586,8 +3623,10 @@ async function fetchSummary(stockId){
 
   try {
     const isETF = s.isETF || s.sector === 'ETF/Fund';
+    const today = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+    const dateContext = `Today's date: ${today}. Reference real upcoming quarters (e.g. if today is mid-2026, the next earnings would be Q2 or Q3 2026, not 2024). Do not reference dates earlier than this year as "upcoming".\n\n`;
     const prompt = isETF
-      ? `Analyze ${s.ticker} ETF based on its technical setup. Write a concise actionable analysis for a swing/position trader.
+      ? dateContext + `Analyze ${s.ticker} ETF based on its technical setup. Write a concise actionable analysis for a swing/position trader.
 
 TECHNICAL DATA:
 Price: $${s.currentPrice?.toFixed(2)}
@@ -3607,7 +3646,7 @@ Output ONLY valid JSON, no text before or after:
 - entryStrategy: Based on the EMA levels and support/resistance above.
 - catalysts: Macro events or sector rotations that could move it.
 - sectorContext: How this compares to other broad market ETFs.`
-      : `Analyze ${s.ticker} (${s.companyName}) based on these computed scores and financial metrics. Write a thorough, actionable investment analysis.
+      : dateContext + `Analyze ${s.ticker} (${s.companyName}) based on these computed scores and financial metrics. Write a thorough, actionable investment analysis.
 
 CURRENT DATA:
 Price: $${s.currentPrice?.toFixed(2)}
@@ -3632,19 +3671,20 @@ OPTIONS: Verdict is ${s.options?.verdict} — ${s.options?.verdictReason}
 Output ONLY valid JSON, no text before or after:
 {"thesis":"","bullCase":"","bearCase":"","riskFactors":"","entryStrategy":"","catalysts":"","sectorContext":""}
 
-Write with depth, real numbers from the data above, and specificity:
-- thesis: 3-4 sentences. Core investment case. Reference the actual scores and metrics.
-- bullCase: 2-3 sentences. Best case — specific growth drivers and catalysts.
-- bearCase: 2-3 sentences. What could go wrong — concrete risks.
+Write with depth, real numbers from the data above, and specificity. CRITICAL: For catalysts, sectorContext, and any reference to recent events/earnings, USE WEB SEARCH to find verified information. Do NOT make up dates or events. If web search returns nothing relevant, say so explicitly rather than fabricating.
+
+- thesis: 3-4 sentences. Core investment case grounded in the scores above.
+- bullCase: 2-3 sentences. Best case based on the data + verified recent positive developments (search the web).
+- bearCase: 2-3 sentences. Concrete risks based on the data + verified recent concerns (search the web).
 - riskFactors: 2-3 sentences. Specific risks to monitor.
 - entryStrategy: 2-3 sentences. Based on the technical levels above, when and how to enter.
-- catalysts: 1-2 sentences. Upcoming events that could move the stock.
-- sectorContext: 1-2 sentences. How it compares to sector peers.`;
+- catalysts: 1-2 sentences. SEARCH THE WEB for actual upcoming earnings dates, product launches, or events. Cite the specific date/event found. If nothing found, say "No specific near-term catalysts identified — check ${s.ticker} IR page."
+- sectorContext: 1-2 sentences. SEARCH THE WEB for how peers in the same sector are currently performing. Reference real recent peer comparisons.`;
 
-    const system = 'You are a financial analyst. Always respond with ONLY a valid JSON object. No preamble, no markdown fences, no commentary. Start your response with { and end with }.';
+    const system = 'You are a financial analyst with access to real-time web search. Always respond with ONLY a valid JSON object. No preamble, no markdown fences, no commentary. Start your response with { and end with }. Use web search to verify recent earnings dates, news catalysts, and current sector context. Do not invent dates or events.';
 
     let lastUpdate = 0;
-    const txt = await callAnthropic(prompt, false, 2, {
+    const txt = await callAnthropic(prompt, true, 2, {
       system,
       onChunk: (fullText) => {
         // Throttle UI updates to every 200ms
@@ -4137,9 +4177,9 @@ async function summarizeAll(){
   btn.disabled = true;
   let succeeded = 0, failed = 0;
 
-  // PARALLEL: 3 stocks at a time. Haiku is fast (~3s/call), so a batch of 3 finishes in ~3-5s.
-  // Anthropic tier 1 = 50 req/min, so 3 parallel = 60% peak burst, well within limit.
-  const BATCH = 3;
+  // PARALLEL: 2 stocks at a time. Web search adds ~3-5k tokens per call.
+  // 2 parallel × ~5000 tokens = ~10k tokens per batch. Need 20s+ between batches to stay under 30k tokens/min.
+  const BATCH = 2;
   for(let b=0; b<targets.length; b+=BATCH){
     const batch = targets.slice(b, b+BATCH);
     btn.textContent = `🧠 ${b+1}-${Math.min(b+BATCH, targets.length)}/${targets.length} — ${batch.map(t=>t.ticker).join(', ')}…`;
@@ -4150,8 +4190,8 @@ async function summarizeAll(){
       else { failed++; console.warn('Summary failed for', batch[i].ticker, r.reason?.message); }
     });
 
-    // Brief gap between batches to avoid spike — Haiku tier limits, plus token-per-min cap
-    if(b + BATCH < targets.length) await new Promise(r=>setTimeout(r, 2000));
+    // 20s gap — at ~10k tokens per batch, this stays under 30k tokens/min limit even with web search overhead.
+    if(b + BATCH < targets.length) await new Promise(r=>setTimeout(r, 20000));
   }
   btn.disabled = false;
   btn.textContent = '🧠 AI Summary all';
