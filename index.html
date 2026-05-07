@@ -474,6 +474,405 @@ td.updated { font-size: 10px; color: var(--text-faint); }
 /* Smooth row hover transition */
 tbody tr { transition: background 0.15s ease; }
 
+/* ══════════════════════════════════════════════════════════
+   DISCOVER CARDS
+   ══════════════════════════════════════════════════════════ */
+.disc-section {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.disc-section.interrupted { border-color: var(--accent-hold-border); }
+.disc-section.scanning { border-color: rgba(167, 139, 250, 0.4); }
+.disc-header {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.disc-header.with-results { border-bottom: 1px solid var(--border-default); }
+.disc-icon { font-size: 28px; line-height: 1; }
+.disc-info { flex: 1; min-width: 200px; }
+.disc-title { font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 3px; }
+.disc-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+.disc-meta { text-align: right; min-width: 140px; }
+.disc-meta-status { font-size: 11px; font-weight: 600; margin-bottom: 4px; }
+.disc-meta-status.ok { color: var(--accent-buy); }
+.disc-meta-status.stale { color: var(--accent-hold); }
+.disc-meta-status.interrupted { color: var(--accent-hold); }
+.disc-meta-status.scanning { color: var(--accent-ai); }
+.disc-meta-status.empty { color: var(--text-muted); }
+.disc-meta-time { font-size: 10px; color: var(--text-faint); }
+.disc-btn {
+  padding: 9px 18px;
+  border: none;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  background: var(--accent-info);
+  color: #fff;
+  transition: background 0.15s, opacity 0.15s;
+}
+.disc-btn:hover { background: var(--accent-info-hover); }
+.disc-btn:disabled { background: var(--bg-surface-2); color: var(--text-muted); cursor: wait; }
+.disc-btn.resume { background: var(--accent-hold); color: #fff; }
+.disc-btn.rescan { background: var(--bg-surface-2); color: var(--text-secondary); border: 1px solid var(--border-strong); }
+.disc-btn.rescan:hover { color: var(--text-primary); border-color: var(--border-focus); }
+
+.disc-results {
+  padding: 14px 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+.disc-card {
+  background: var(--bg-page);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.disc-card:hover {
+  border-color: var(--border-focus);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+[data-theme="light"] .disc-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.disc-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.disc-card-tkr { font-size: 14px; font-weight: 800; color: var(--text-primary); letter-spacing: 0.3px; }
+.disc-card-name { font-size: 11px; color: var(--text-tertiary); margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.disc-card-row { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; align-items: center; }
+.disc-card-row .px { color: var(--text-secondary); font-weight: 600; font-variant-numeric: tabular-nums; }
+.disc-card-row .score { font-weight: 700; font-variant-numeric: tabular-nums; }
+.disc-card-row .tech { color: var(--accent-info); font-weight: 600; font-variant-numeric: tabular-nums; }
+.disc-card-row .reason { color: var(--accent-ai); flex-basis: 100%; margin-top: 4px; }
+
+/* ══════════════════════════════════════════════════════════
+   PORTFOLIO POLISH (continued)
+   ══════════════════════════════════════════════════════════ */
+.pos-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+/* Summary stat cards (Positions, Stock P&L, Alerts) */
+.port-stat-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  padding: 14px 16px;
+  transition: border-color 0.15s;
+}
+.port-stat-card:hover { border-color: var(--border-strong); }
+.port-stat-card .port-stat-lbl {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.port-stat-card .port-stat-val {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.3px;
+}
+.port-stat-card .port-stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+/* Stock/Option position cards */
+.pos-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.pos-card:hover { border-color: var(--border-strong); }
+.pos-card-main {
+  display: grid;
+  grid-template-columns: 100px 1.5fr 2fr auto auto;
+  gap: 14px;
+  align-items: center;
+}
+@media (max-width: 720px) {
+  .pos-card-main { grid-template-columns: 1fr; gap: 8px; }
+  .pos-card-main .pos-meta { order: 99; }
+}
+
+.pos-ticker {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: 0.3px;
+}
+.pos-name {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  line-height: 1.5;
+}
+.pos-name span { color: var(--text-muted); }
+
+.pos-meta {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+@media (max-width: 720px) {
+  .pos-meta { gap: 12px; }
+}
+.pos-stat { min-width: 70px; }
+.pos-stat-lbl {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.pos-stat-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pos-pnl-pos { color: var(--accent-buy); font-weight: 700; }
+.pos-pnl-neg { color: var(--accent-sell); font-weight: 700; }
+
+.pos-badges { display: flex; gap: 4px; flex-wrap: wrap; }
+
+/* Warning badges on positions */
+.pos-warn {
+  display: inline-block;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 4px;
+  margin-right: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.pos-warn.red, .pos-warn.danger {
+  background: var(--accent-sell-bg);
+  color: var(--accent-sell);
+  border: 1px solid var(--accent-sell-border);
+}
+.pos-warn.yellow, .pos-warn.warn {
+  background: var(--accent-hold-bg);
+  color: var(--accent-hold);
+  border: 1px solid var(--accent-hold-border);
+}
+.pos-warn.green {
+  background: var(--accent-buy-bg);
+  color: var(--accent-buy);
+  border: 1px solid var(--accent-buy-border);
+}
+.pos-warn.blue, .pos-warn.info {
+  background: rgba(79, 110, 247, 0.12);
+  color: var(--accent-info);
+  border: 1px solid rgba(79, 110, 247, 0.35);
+}
+
+/* Action buttons on cards */
+.pos-actions { display: flex; gap: 4px; }
+.pos-action-btn {
+  padding: 6px 12px;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.pos-action-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--border-focus);
+  background: var(--bg-hover);
+}
+.pos-action-btn.delete:hover {
+  color: var(--accent-sell);
+  border-color: var(--accent-sell);
+}
+
+/* AI guidance panel inside position card */
+.pos-ai-panel {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: rgba(167, 139, 250, 0.06);
+  border-radius: 8px;
+  border-left: 3px solid var(--accent-ai);
+}
+.pos-ai-text {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+.pos-ai-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pos-ai-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* Section headers (STOCK POSITIONS, OPTIONS) */
+.port-section { margin-bottom: 22px; }
+.port-section-hdr {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.port-section-count {
+  background: var(--bg-surface-2);
+  color: var(--text-secondary);
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.port-empty {
+  background: var(--bg-surface);
+  border: 1px dashed var(--border-strong);
+  border-radius: 10px;
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* Portfolio toolbar */
+.port-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.port-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  flex: 1;
+}
+.port-btn {
+  padding: 9px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.port-btn:hover { border-color: var(--border-focus); color: var(--text-primary); }
+.port-btn.primary {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  border: none;
+  color: #fff;
+}
+.port-btn.primary:hover { opacity: 0.92; transform: translateY(-1px); }
+
+/* AI chat box on portfolio */
+.port-chat {
+  margin-top: 24px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  padding: 16px;
+}
+.port-chat-hdr {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.port-chat-clear {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: underline;
+}
+.port-chat-clear:hover { color: var(--accent-sell); }
+.port-chat-msgs {
+  max-height: 320px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+}
+.port-chat-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+}
+.port-chat-input:focus { outline: none; border-color: var(--border-focus); }
+
+/* Chat messages */
+.chat-msg {
+  padding: 10px 13px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.chat-msg.user {
+  background: rgba(79, 110, 247, 0.1);
+  color: var(--text-primary);
+  border-left: 3px solid var(--accent-info);
+}
+.chat-msg.ai {
+  background: rgba(167, 139, 250, 0.08);
+  color: var(--text-secondary);
+  border-left: 3px solid var(--accent-ai);
+}
+
 </style>
 </head>
 <body>
@@ -636,10 +1035,10 @@ tbody tr { transition: background 0.15s ease; }
 </div>
 
 <!-- Global progress bar — visible from any tab when an operation is running -->
-<div id="globalProgress" style="display:none;background:linear-gradient(90deg,#0d2b1a 0%,#1a3a2a 100%);border:1px solid #166534;border-radius:8px;padding:10px 16px;margin-bottom:14px;align-items:center;gap:12px">
-  <span class="spin" style="border-top-color:#4ade80"></span>
-  <span id="globalProgressText" style="flex:1;font-size:13px;color:#86efac;font-weight:600">Working…</span>
-  <button onclick="forceCancel()" style="padding:5px 10px;background:transparent;border:1px solid #166534;border-radius:5px;color:#4ade80;font-size:11px;cursor:pointer;font-family:inherit">Cancel</button>
+<div id="globalProgress" style="display:none;background:var(--accent-buy-bg);border:1px solid var(--accent-buy-border);border-radius:8px;padding:10px 16px;margin-bottom:14px;align-items:center;gap:12px">
+  <span class="spin" style="border-top-color:var(--accent-buy)"></span>
+  <span id="globalProgressText" style="flex:1;font-size:13px;color:var(--accent-buy);font-weight:600">Working…</span>
+  <button onclick="forceCancel()" style="padding:5px 10px;background:transparent;border:1px solid var(--accent-buy-border);border-radius:5px;color:var(--accent-buy);font-size:11px;cursor:pointer;font-family:inherit">Cancel</button>
 </div>
 
 <!-- ── SCREENER TAB ── -->
@@ -1433,15 +1832,15 @@ function renderStockCard(p){
   const s = getScreenerData(p.ticker);
   const warns = getStockWarnings(p);
   const warnHtml = warns.map(w=>`<span class="pos-warn ${w.type}">${w.text}</span>`).join('');
-  const signalBadge = s ? `<span class="badge ${vc(s.overallSignal)}" style="font-size:10px">${s.overallSignal} ${s.totalScore}/32</span>` : `<span style="font-size:10px;color:#374151">Not in screener</span>`;
-  const pnlHtml = pnl ? `<span class="${pnl.pnl>=0?'pos-pnl-pos':'pos-pnl-neg'}" style="font-weight:700;font-size:13px">${pnl.pnl>=0?'+':''}$${Math.abs(pnl.pnl).toFixed(0)} (${pnl.pnlPct>=0?'+':''}${pnl.pnlPct.toFixed(1)}%)</span>` : '<span style="color:#374151;font-size:11px">refresh screener for price</span>';
+  const signalBadge = s ? `<span class="badge ${vc(s.overallSignal)}" style="font-size:10px">${s.overallSignal} ${s.totalScore}/32</span>` : `<span style="font-size:10px;color:var(--text-muted)">Not in screener</span>`;
+  const pnlHtml = pnl ? `<span class="${pnl.pnl>=0?'pos-pnl-pos':'pos-pnl-neg'}" style="font-weight:700;font-size:13px">${pnl.pnl>=0?'+':''}$${Math.abs(pnl.pnl).toFixed(0)} (${pnl.pnlPct>=0?'+':''}${pnl.pnlPct.toFixed(1)}%)</span>` : '<span style="color:var(--text-muted);font-size:11px">refresh screener for price</span>';
   const aiPanel = p.aiGuidance ? `<div class="pos-ai-panel"><div class="pos-ai-text">${p.aiGuidance}</div><div class="pos-ai-meta">Generated ${p.aiGeneratedAt||''} · <button class="pos-action-btn" onclick="getPositionGuidance('${p.id}')">↻ Refresh</button></div></div>` :
     p.aiLoading ? `<div class="pos-ai-panel"><div class="pos-ai-loading"><span class="spin"></span>Getting guidance…</div></div>` : '';
 
   return `<div class="pos-card" id="pc-${p.id}">
     <div class="pos-card-main">
       <div class="pos-ticker">${p.ticker}</div>
-      <div class="pos-name">${s?.companyName||''}<br><span style="font-size:10px;color:#374151">${p.shares} shares · entry $${p.entryPrice.toFixed(2)} · ${p.entryDate||''}</span></div>
+      <div class="pos-name">${s?.companyName||''}<br><span style="font-size:10px;color:var(--text-muted)">${p.shares} shares · entry $${p.entryPrice.toFixed(2)} · ${p.entryDate||''}</span></div>
       <div class="pos-meta">
         <div class="pos-stat"><div class="pos-stat-lbl">Current</div><div class="pos-stat-val">${pnl?'$'+pnl.currentPrice.toFixed(2):'—'}</div></div>
         <div class="pos-stat"><div class="pos-stat-lbl">P&L</div><div>${pnlHtml}</div></div>
@@ -1464,7 +1863,7 @@ function renderOptionCard(p){
   const s = getScreenerData(p.ticker);
   const warns = getOptionWarnings(p);
   const warnHtml = warns.map(w=>`<span class="pos-warn ${w.type}">${w.text}</span>`).join('');
-  const signalBadge = s ? `<span class="badge ${vc(s.overallSignal)}" style="font-size:10px">${s.overallSignal} ${s.totalScore}/32</span>` : `<span style="font-size:10px;color:#374151">Not in screener</span>`;
+  const signalBadge = s ? `<span class="badge ${vc(s.overallSignal)}" style="font-size:10px">${s.overallSignal} ${s.totalScore}/32</span>` : `<span style="font-size:10px;color:var(--text-muted)">Not in screener</span>`;
   const itmBadge = pnl.currentPrice ? (pnl.itm ? '<span class="pos-warn blue">ITM</span>' : '<span class="pos-warn yellow">OTM</span>') : '';
   const totalCost = (p.contracts*100*p.premium).toFixed(0);
   const aiPanel = p.aiGuidance ? `<div class="pos-ai-panel"><div class="pos-ai-text">${p.aiGuidance}</div><div class="pos-ai-meta">Generated ${p.aiGeneratedAt||''} · <button class="pos-action-btn" onclick="getPositionGuidance('${p.id}')">↻ Refresh</button></div></div>` :
@@ -1473,7 +1872,7 @@ function renderOptionCard(p){
   return `<div class="pos-card" id="pc-${p.id}">
     <div class="pos-card-main">
       <div class="pos-ticker">${p.ticker}</div>
-      <div class="pos-name">${p.optType.toUpperCase()} $${p.strike} · ${p.expiry}<br><span style="font-size:10px;color:#374151">${p.contracts} contract${p.contracts>1?'s':''} · paid $${p.premium}/sh · total $${totalCost} · ${p.entryDate||''}</span></div>
+      <div class="pos-name">${p.optType.toUpperCase()} $${p.strike} · ${p.expiry}<br><span style="font-size:10px;color:var(--text-muted)">${p.contracts} contract${p.contracts>1?'s':''} · paid $${p.premium}/sh · total $${totalCost} · ${p.entryDate||''}</span></div>
       <div class="pos-meta">
         <div class="pos-stat"><div class="pos-stat-lbl">Stock now</div><div class="pos-stat-val">${pnl.currentPrice?'$'+pnl.currentPrice.toFixed(2):'—'}</div></div>
         <div class="pos-stat"><div class="pos-stat-lbl">Days left</div><div class="pos-stat-val" style="color:${pnl.daysToExpiry<=30?'#f87171':pnl.daysToExpiry<=45?'#fbbf24':'#e2e8f0'}">${pnl.daysToExpiry}</div></div>
@@ -1915,53 +2314,56 @@ function renderDiscover(){
     const ageStr = result ? new Date(result.scannedAt).toLocaleString() : '';
     const matches = result?.results || [];
     const scanning = result?.scanning;
-    const interrupted = result?.interrupted && !scanning; // hide interrupted when actively scanning
+    const interrupted = result?.interrupted && !scanning;
 
     let statusBadge;
     if(scanning){
-      statusBadge = `<div style="font-size:11px;color:#a78bfa;margin-bottom:4px">⏳ Scanning…</div><div style="font-size:10px;color:#374151">${ageStr}</div>`;
+      statusBadge = `<div class="disc-meta-status scanning">⏳ Scanning…</div><div class="disc-meta-time">${ageStr}</div>`;
     } else if(interrupted){
-      statusBadge = `<div style="font-size:11px;color:#fbbf24;margin-bottom:4px">⚠ Interrupted · ${found} found</div><div style="font-size:10px;color:#374151">Click Resume below</div>`;
+      statusBadge = `<div class="disc-meta-status interrupted">⚠ Interrupted · ${found} found</div><div class="disc-meta-time">Click Resume below</div>`;
     } else if(result){
-      statusBadge = `<div style="font-size:11px;color:${stale?'#fbbf24':'#4ade80'};margin-bottom:4px">${stale?'⏰ Stale':'✓'} ${found} match${found===1?'':'es'}</div><div style="font-size:10px;color:#374151">${ageStr}</div>`;
+      statusBadge = `<div class="disc-meta-status ${stale?'stale':'ok'}">${stale?'⏰ Stale':'✓'} ${found} match${found===1?'':'es'}</div><div class="disc-meta-time">${ageStr}</div>`;
     } else {
-      statusBadge = '<div style="font-size:11px;color:#64748b">Not scanned yet</div>';
+      statusBadge = '<div class="disc-meta-status empty">Not scanned yet</div>';
     }
 
     const btnLabel = scanning ? `⏳ ${scanning}` : interrupted ? '↻ Resume' : (result?'↻ Rescan':'🔍 Scan');
+    const btnCls = scanning ? '' : interrupted ? 'resume' : (result ? 'rescan' : '');
+    const sectionCls = scanning ? 'scanning' : interrupted ? 'interrupted' : '';
 
-    return `<div style="background:#141620;border:1px solid ${interrupted?'#854d0e':'#2d3044'};border-radius:12px;overflow:hidden">
-      <div style="padding:16px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;border-bottom:${matches.length||scanning?'1px solid #1e2133':'none'}">
-        <div style="font-size:28px">${cat.icon}</div>
-        <div style="flex:1;min-width:200px">
-          <div style="font-size:15px;font-weight:700;color:#fff">${cat.title}</div>
-          <div style="font-size:12px;color:#64748b;line-height:1.5;margin-top:2px">${cat.desc}</div>
+    return `<div class="disc-section ${sectionCls}">
+      <div class="disc-header ${matches.length||scanning?'with-results':''}">
+        <div class="disc-icon">${cat.icon}</div>
+        <div class="disc-info">
+          <div class="disc-title">${cat.title}</div>
+          <div class="disc-desc">${cat.desc}</div>
         </div>
-        <div style="text-align:right">${statusBadge}</div>
-        <button onclick="scanDiscover('${key}')" ${scanning?'disabled':''} style="padding:9px 18px;background:${scanning?'#1e2133':interrupted?'#854d0e':'#4f6ef7'};border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:700;cursor:${scanning?'wait':'pointer'};font-family:inherit;white-space:nowrap">
+        <div class="disc-meta">${statusBadge}</div>
+        <button class="disc-btn ${btnCls}" onclick="scanDiscover('${key}')" ${scanning?'disabled':''}>
           ${btnLabel} (${cat.tickers.length})
         </button>
       </div>
-      ${matches.length ? `<div style="padding:14px 20px"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px">
+      ${matches.length ? `<div class="disc-results">
         ${matches.map(m => discoverCard(m, key)).join('')}
-      </div></div>` : ''}
+      </div>` : ''}
     </div>`;
   }).join('');
 }
 
 function discoverCard(m, category){
-  const sigCol = m.signal==='BUY' ? '#4ade80' : m.signal==='HOLD' ? '#fbbf24' : '#f87171';
-  return `<div style="background:#0c0e14;border:1px solid #1e2133;border-radius:8px;padding:12px;cursor:pointer" onclick="addDiscoveredToScreener('${m.ticker}')">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-      <div style="font-size:14px;font-weight:800;color:#fff">${m.ticker}</div>
-      <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;background:${sigCol}22;color:${sigCol};border:1px solid ${sigCol}44">${m.signal||'—'}</span>
+  const sigCls = m.signal==='BUY' ? 'buy' : m.signal==='HOLD' ? 'hold' : 'sell';
+  const scoreCls = m.totalScore>=22 ? 'pass' : m.totalScore>=13 ? 'tsd' : 'fail';
+  return `<div class="disc-card" onclick="addDiscoveredToScreener('${m.ticker}')">
+    <div class="disc-card-top">
+      <div class="disc-card-tkr">${m.ticker}</div>
+      <span class="badge ${sigCls}" style="font-size:10px;padding:2px 8px">${m.signal||'—'}</span>
     </div>
-    <div style="font-size:11px;color:#94a3b8;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.companyName||''}</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:#64748b">
-      <span>$${m.price?.toFixed(2)||'—'}</span>
-      <span style="color:${m.totalScore>=22?'#4ade80':m.totalScore>=13?'#fbbf24':'#f87171'}">${m.totalScore}/32</span>
-      <span style="color:#60a5fa">Tech ${m.techScore}/8</span>
-      ${m.reason?`<span style="color:#a78bfa">· ${m.reason}</span>`:''}
+    <div class="disc-card-name">${m.companyName||''}</div>
+    <div class="disc-card-row">
+      <span class="px">$${m.price?.toFixed(2)||'—'}</span>
+      <span class="score ${scoreCls}">${m.totalScore}/32</span>
+      <span class="tech">Tech ${m.techScore}/8</span>
+      ${m.reason?`<span class="reason">${m.reason}</span>`:''}
     </div>
   </div>`;
 }
