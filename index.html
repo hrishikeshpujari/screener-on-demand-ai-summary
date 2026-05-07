@@ -7,6 +7,73 @@
 <title>Value Investor Stock Screener</title>
 
 <style>
+/* ══════════════════════════════════════════════════════════
+   DESIGN SYSTEM TOKENS
+   ══════════════════════════════════════════════════════════ */
+:root {
+  --bg-page: #0a0c12;
+  --bg-surface: #12151e;
+  --bg-surface-2: #1a1d27;
+  --bg-input: #0f1219;
+  --bg-hover: #1e2133;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #94a3b8;
+  --text-muted: #64748b;
+  --text-faint: #475569;
+  --border-default: #1e2133;
+  --border-strong: #2d3044;
+  --border-focus: #4f6ef7;
+  --accent-buy: #22c55e;
+  --accent-buy-bg: rgba(34, 197, 94, 0.1);
+  --accent-buy-border: rgba(34, 197, 94, 0.35);
+  --accent-hold: #eab308;
+  --accent-hold-bg: rgba(234, 179, 8, 0.1);
+  --accent-hold-border: rgba(234, 179, 8, 0.35);
+  --accent-sell: #ef4444;
+  --accent-sell-bg: rgba(239, 68, 68, 0.1);
+  --accent-sell-border: rgba(239, 68, 68, 0.35);
+  --accent-info: #4f6ef7;
+  --accent-ai: #a78bfa;
+}
+[data-theme="light"] {
+  --bg-page: #fafbfc;
+  --bg-surface: #ffffff;
+  --bg-surface-2: #f3f4f6;
+  --bg-input: #ffffff;
+  --bg-hover: #f3f4f6;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-tertiary: #475569;
+  --text-muted: #64748b;
+  --text-faint: #94a3b8;
+  --border-default: #e5e7eb;
+  --border-strong: #d1d5db;
+  --accent-buy: #16a34a;
+  --accent-hold: #ca8a04;
+  --accent-sell: #dc2626;
+  --accent-ai: #7c3aed;
+}
+/* Smooth theme transitions */
+body, .keybox, .tbl-wrap, table, thead th, tbody tr, .modal, .pos-card, .setup-card, .opt-card { transition: background 0.2s, color 0.2s, border-color 0.2s; }
+
+/* Theme toggle button */
+.theme-toggle {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.theme-toggle:hover { border-color: var(--border-focus); color: var(--text-primary); }
+
+/* ══════════════════════════════════════════════════════════
+   ORIGINAL STYLES (untouched, will be overridden below)
+   ══════════════════════════════════════════════════════════ */
 /* ── BASE ── */
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#0c0e14;color:#e2e8f0;min-height:100vh;padding:24px 28px 48px}
@@ -265,6 +332,119 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
 .setup-skip:hover{color:#64748b}
 .screener-page{display:none}
 .screener-page.active{display:block}
+
+/* ══════════════════════════════════════════════════════════
+   THEME OVERRIDES — rewire existing classes to use tokens
+   ══════════════════════════════════════════════════════════ */
+body { background: var(--bg-page); color: var(--text-secondary); font-size: 14px; }
+h1 { color: var(--text-primary); font-size: 24px; }
+.sub { color: var(--text-muted); font-size: 13px; }
+
+/* Surfaces */
+.keybox, .tbl-wrap, .pos-card, .setup-card, .opt-card, .opt-strike, .opt-rule, .modal, .chat-box, .mbox, .liner, .an-block, .port-stat, .port-chat {
+  background: var(--bg-surface);
+  border-color: var(--border-default);
+}
+.keybox { border-color: var(--border-strong); }
+thead th { background: var(--bg-surface-2); color: var(--text-tertiary); border-color: var(--border-strong); position: sticky; top: 0; z-index: 10; }
+tbody tr { border-color: var(--border-default); }
+tbody tr:hover { background: var(--bg-hover); }
+tbody tr.row-expanded { background: var(--bg-surface-2); }
+
+/* Inputs */
+.keyrow input, .input-row input, .modal-input, .setup-input, .chat-input, .port-chat-input {
+  background: var(--bg-input);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+/* Text colors */
+.tkr, .expand-tkr, .expand-px, .pos-ticker, .pos-tkr, .port-stat-val, .modal-title { color: var(--text-primary); }
+.expand-nm, .pos-name, .pos-detail, .ml, .keyhint, .setup-card-desc, .setup-card-link, .ai-btn-sm, .keyhead span { color: var(--text-tertiary); }
+.mv, .keyhead span { color: var(--text-primary); }
+
+/* Buttons */
+.btn { background: var(--accent-info); }
+.btn-clr { border-color: var(--border-strong); color: var(--text-muted); }
+.btn-clr:hover { border-color: var(--accent-sell); color: var(--accent-sell); }
+.btn-ref { background: var(--accent-buy-bg); border-color: var(--accent-buy-border); color: var(--accent-buy); }
+.theme-toggle, .pos-action-btn, .port-btn, .modal-cancel, .ai-btn-sm { background: var(--bg-surface); border-color: var(--border-strong); color: var(--text-secondary); }
+
+/* Badges keep their meaning */
+.buy { background: var(--accent-buy-bg); color: var(--accent-buy); border-color: var(--accent-buy-border); }
+.hold { background: var(--accent-hold-bg); color: var(--accent-hold); border-color: var(--accent-hold-border); }
+.sell { background: var(--accent-sell-bg); color: var(--accent-sell); border-color: var(--accent-sell-border); }
+.neutral { background: var(--bg-surface-2); color: var(--text-muted); border-color: var(--border-strong); }
+.pass { color: var(--accent-buy); }
+.fail { color: var(--accent-sell); }
+.neut { color: var(--text-tertiary); }
+.tup { color: var(--accent-buy); }
+.tdn { color: var(--accent-sell); }
+.tsd { color: var(--accent-hold); }
+
+/* Pills */
+.pill { background: var(--bg-surface); color: var(--text-tertiary); border-color: var(--border-default); }
+
+/* Tabs */
+.tab { color: var(--text-muted); }
+.tab.active { background: var(--bg-surface); color: var(--text-primary); border-color: var(--border-strong); }
+.app-tab { color: var(--text-muted); }
+.app-tab.active { color: var(--text-primary); border-bottom-color: var(--accent-info); }
+
+/* Tables tabular nums */
+table { font-variant-numeric: tabular-nums; }
+
+/* Light theme - softer shadows and higher contrast borders for cards */
+[data-theme="light"] body { background: var(--bg-page); }
+[data-theme="light"] .keybox, [data-theme="light"] .pos-card, [data-theme="light"] .setup-card, [data-theme="light"] .modal { box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+[data-theme="light"] .tbl-wrap { box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border-default); }
+[data-theme="light"] tbody tr:hover { background: #f8fafc; }
+[data-theme="light"] thead th { background: #f9fafb; }
+[data-theme="light"] .badge { font-weight: 700; }
+
+/* Mobile improvements */
+@media (max-width: 720px) {
+  body { padding: 16px 12px 48px; }
+  h1 { font-size: 18px; }
+  .input-row { flex-direction: column; align-items: stretch; }
+  .input-row input { min-width: 0; width: 100%; }
+  .input-row > .btn, .input-row > .btn-ref, .input-row > .btn-ai-all, .input-row > .btn-clr { width: 100%; }
+  thead th, tbody td { padding: 8px 10px; font-size: 12px; }
+  .app-tab { padding: 9px 14px; font-size: 12px; }
+}
+/* Score cells — make important data POP */
+.score-cell { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.score-cell-lg { font-size: 14px; padding: 5px 12px; }
+.score-buy { background: var(--accent-buy-bg); color: var(--accent-buy); border: 1px solid var(--accent-buy-border); }
+.score-hold { background: var(--accent-hold-bg); color: var(--accent-hold); border: 1px solid var(--accent-hold-border); }
+.score-sell { background: var(--accent-sell-bg); color: var(--accent-sell); border: 1px solid var(--accent-sell-border); }
+.score-neutral { background: var(--bg-surface-2); color: var(--text-tertiary); border: 1px solid var(--border-default); }
+.score-cell .denom { color: currentColor; opacity: 0.55; font-weight: 500; font-size: 0.85em; }
+
+/* Better progress bar */
+.prog { height: 3px; background: var(--border-default); border-radius: 2px; margin-top: 5px; overflow: hidden; }
+.prog-f { height: 100%; border-radius: 2px; transition: width 0.3s; }
+
+/* Cleaner row hover/selection */
+tbody tr { transition: background 0.12s; }
+tbody tr.row-expanded { box-shadow: inset 3px 0 0 var(--accent-info); }
+
+/* Loading row improvements */
+tbody tr.loading-row td { color: var(--text-muted); font-style: italic; opacity: 0.7; }
+
+/* Better trend indicators */
+td .trend { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+td .trend.up { background: var(--accent-buy-bg); color: var(--accent-buy); }
+td .trend.dn { background: var(--accent-sell-bg); color: var(--accent-sell); }
+td .trend.sd { background: var(--accent-hold-bg); color: var(--accent-hold); }
+
+/* Toolbar polish — better spacing */
+.input-row { gap: 10px; padding: 14px; background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.input-row input { background: var(--bg-input); }
+
+/* Updated timestamp - even more subtle */
+td.updated { font-size: 10px; color: var(--text-faint); }
+
 </style>
 </head>
 <body>
@@ -412,7 +592,10 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
 
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:8px">
   <h1>📚 Value Investor Stock Screener</h1>
-  <button onclick="showSetup()" style="padding:6px 12px;background:#141620;border:1px solid #2d3044;border-radius:6px;color:#64748b;font-size:11px;cursor:pointer;font-family:inherit">⚙ API Keys</button>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle theme">🌙</button>
+    <button class="theme-toggle" onclick="showSetup()">⚙ API Keys</button>
+  </div>
 </div>
 <p class="sub">Graham · Buffett · Lynch · Al Brooks &nbsp;·&nbsp; <span style="color:#4ade80">Pure-math scoring</span> · <span style="color:#a78bfa">🧠 AI on-demand</span> · <span style="color:#4ade80;font-size:10px">●LIVE</span> via Finnhub + Twelve Data</p>
 
@@ -1887,6 +2070,21 @@ function addDiscoveredToScreener(ticker){
   setTimeout(()=>go(), 100);
 }
 
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('viss_theme', next);
+  const btn = document.getElementById('themeBtn');
+  if(btn) btn.textContent = next === 'dark' ? '🌙' : '☀️';
+}
+function loadTheme(){
+  const saved = localStorage.getItem('viss_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  const btn = document.getElementById('themeBtn');
+  if(btn) btn.textContent = saved === 'dark' ? '🌙' : '☀️';
+}
+
 function toggleGuide(){
   const a = document.getElementById('guideArrow');
   if(c.style.display === 'none'){
@@ -2944,21 +3142,26 @@ function renderTable(){
       const updTime = s.updatedAt ? s.updatedAt.split(', ')[1]||s.updatedAt : '—';
       let expandHtml = '';
       if(isExpanded){ try{ expandHtml = buildExpandRow(s); }catch(e){ console.error('buildExpandRow error:', e); expandHtml = `<tr class="expand-row"><td colspan="15"><div class="expand-inner" style="color:#f87171">Error rendering detail: ${e.message}</div></td></tr>`; } }
+      // Pick score-cell color class based on tier
+      const totCls = s.overallSignal==='BUY' ? 'score-buy' : s.overallSignal==='HOLD' ? 'score-hold' : s.overallSignal==='SELL' ? 'score-sell' : 'score-neutral';
+      const fundCls = fs >= 16 ? 'score-buy' : fs >= 9 ? 'score-hold' : 'score-sell';
+      const techCls = ta >= 6 ? 'score-buy' : ta >= 4 ? 'score-hold' : 'score-sell';
+      const trendHtml = td==='uptrend' ? '<span class="trend up">▲ up</span>' : td==='downtrend' ? '<span class="trend dn">▼ dn</span>' : td ? '<span class="trend sd">◀▶</span>' : '<span style="color:var(--text-faint)">—</span>';
       return`<tr onclick="toggleDP(${s.id})" class="${isExpanded?'row-expanded':''}">
-        <td style="width:24px;padding:10px 4px;color:#4a5568;font-size:11px;text-align:center">${isExpanded?'▼':'▶'}</td>
+        <td style="width:24px;padding:10px 4px;color:var(--text-faint);font-size:11px;text-align:center">${isExpanded?'▼':'▶'}</td>
         <td class="tkr">${s.ticker}</td>
-        <td style="color:#94a3b8;max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:13px">${s.companyName||'—'}</td>
+        <td style="color:var(--text-tertiary);max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:13px">${s.companyName||'—'}</td>
         <td style="font-size:14px;font-weight:600">${pxHtml}</td>
-        <td style="color:${tc};font-weight:700;font-size:13px">${ts}/32<div class="prog"><div class="prog-f" style="width:${Math.round(ts/32*100)}%;background:${tc}"></div></div></td>
-        <td style="color:${sc(fs,24)};font-size:13px">${fs}/24</td>
-        <td style="color:${sc(ta,8)};font-size:13px">${ta}/8</td>
+        <td><span class="score-cell score-cell-lg ${totCls}">${ts}<span class="denom">/32</span></span><div class="prog"><div class="prog-f" style="width:${Math.round(ts/32*100)}%;background:${tc}"></div></div></td>
+        <td><span class="score-cell ${fundCls}">${fs}<span class="denom">/24</span></span></td>
+        <td><span class="score-cell ${techCls}">${ta}<span class="denom">/8</span></span></td>
         <td style="font-size:13px">${peHtml}</td>
         <td style="font-size:13px">${roeHtml}</td>
         <td style="font-size:13px">${gmHtml}</td>
         <td style="font-size:13px">${epsHtml}</td>
-        <td class="${trcls}" style="font-size:12px">${td==='uptrend'?'▲ up':td==='downtrend'?'▼ down':td?'◀▶':'—'}</td>
+        <td>${trendHtml}</td>
         <td><span class="badge ${vc(s.overallSignal)}">${s.overallSignal||'—'}</span></td>
-        <td style="font-size:10px;color:#374151;white-space:nowrap">${updTime}</td>
+        <td class="updated">${updTime}</td>
         <td style="white-space:nowrap">${optBadge}<button class="rldbtn" onclick="reload(${s.id},event)" title="Re-analyze">↻</button> <button class="rmv" onclick="rm(${s.id},event)">✕</button></td>
       </tr>${expandHtml}`;
     }).join('');
@@ -3219,6 +3422,7 @@ if(location.protocol==='file:'){
   if(fw)fw.style.display='block';
 }
 
+loadTheme(); // apply saved theme before anything renders
 loadKeys(); // handles routing to setup or screener, and calls loadStocks when ready
 clearStaleScanFlags(); // clean up any stuck scanning flags from previous interrupted runs
 loadPositions();
