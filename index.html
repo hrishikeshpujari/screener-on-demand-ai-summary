@@ -445,6 +445,35 @@ td .trend.sd { background: var(--accent-hold-bg); color: var(--accent-hold); }
 /* Updated timestamp - even more subtle */
 td.updated { font-size: 10px; color: var(--text-faint); }
 
+/* ══════════════════════════════════════════════════════════
+   ROW EXPAND ANIMATION
+   ══════════════════════════════════════════════════════════ */
+.expand-row > td {
+  padding: 0 !important;
+  background: var(--bg-page);
+  border-bottom: 1px solid var(--border-strong) !important;
+}
+.expand-inner {
+  padding: 0 24px;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  animation: expand-in 0.3s ease-out forwards;
+}
+@keyframes expand-in {
+  to {
+    max-height: 2000px;
+    opacity: 1;
+    padding: 20px 24px 24px;
+  }
+}
+/* Caret rotation on expand */
+.caret { display: inline-block; transition: transform 0.25s ease; }
+.caret.open { transform: rotate(90deg); }
+
+/* Smooth row hover transition */
+tbody tr { transition: background 0.15s ease; }
+
 </style>
 </head>
 <body>
@@ -3148,7 +3177,7 @@ function renderTable(){
       const techCls = ta >= 6 ? 'score-buy' : ta >= 4 ? 'score-hold' : 'score-sell';
       const trendHtml = td==='uptrend' ? '<span class="trend up">▲ up</span>' : td==='downtrend' ? '<span class="trend dn">▼ dn</span>' : td ? '<span class="trend sd">◀▶</span>' : '<span style="color:var(--text-faint)">—</span>';
       return`<tr onclick="toggleDP(${s.id})" class="${isExpanded?'row-expanded':''}">
-        <td style="width:24px;padding:10px 4px;color:var(--text-faint);font-size:11px;text-align:center">${isExpanded?'▼':'▶'}</td>
+        <td style="width:24px;padding:10px 4px;color:var(--text-faint);font-size:11px;text-align:center"><span class="caret ${isExpanded?'open':''}">▶</span></td>
         <td class="tkr">${s.ticker}</td>
         <td style="color:var(--text-tertiary);max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:13px">${s.companyName||'—'}</td>
         <td style="font-size:14px;font-weight:600">${pxHtml}</td>
