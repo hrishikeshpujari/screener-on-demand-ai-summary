@@ -1600,18 +1600,21 @@ let discoverResults = {}; // category -> {results, scannedAt}
 function loadDiscoverResults(){
   try {
     const r = localStorage.getItem('viss_discover');
-    if(r){
-      discoverResults = JSON.parse(r);
-      // Clear stale scanning flags from interrupted scans (laptop sleep, tab close, etc)
-      Object.keys(discoverResults).forEach(k => {
-        if(discoverResults[k]?.scanning){
-          discoverResults[k].scanning = null;
-          discoverResults[k].interrupted = true;
-        }
-      });
-      saveDiscoverResults();
-    }
+    if(r) discoverResults = JSON.parse(r);
   } catch(e){}
+}
+// Run only once on page init — clears stale scanning flags from interrupted scans
+function clearStaleScanFlags(){
+  loadDiscoverResults();
+  let dirty = false;
+  Object.keys(discoverResults).forEach(k => {
+    if(discoverResults[k]?.scanning){
+      discoverResults[k].scanning = null;
+      discoverResults[k].interrupted = true;
+      dirty = true;
+    }
+  });
+  if(dirty) saveDiscoverResults();
 }
 function saveDiscoverResults(){
   localStorage.setItem('viss_discover', JSON.stringify(discoverResults));
@@ -3144,6 +3147,7 @@ if(location.protocol==='file:'){
 }
 
 loadKeys(); // handles routing to setup or screener, and calls loadStocks when ready
+clearStaleScanFlags(); // clean up any stuck scanning flags from previous interrupted runs
 loadPositions();
 
 // Show last saved timestamp in subtitle
