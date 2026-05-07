@@ -1010,7 +1010,7 @@ tbody tr { transition: background 0.15s ease; }
       </button>
       <div class="setup-start-note" id="setupNote">Save your Anthropic, Finnhub, and Twelve Data keys to launch.</div>
       <br>
-      <button class="setup-skip" onclick="setupStart(true)">Skip setup — use baked-in keys</button>
+      <button class="setup-skip" onclick="setupStart(true)">Skip setup — I'll add keys later</button>
     </div>
   </div>
 </div>
@@ -1051,7 +1051,6 @@ tbody tr { transition: background 0.15s ease; }
   <button onclick="openWatchlistModal()" style="padding:10px 14px;background:#141620;border:1px solid #2d3044;border-radius:8px;color:#94a3b8;font-size:13px;cursor:pointer;font-family:inherit" title="Manage default watchlist">⭐ Watchlist</button>
   <button class="btn-clr" onclick="clearAll()">Clear all</button>
 </div>
-<div class="rbar" id="rbar"><span class="spin"></span><span id="rmsg">Refreshing…</span></div>
 <div class="empty-msg" id="empty">No stocks yet — enter a ticker above.</div>
 <div class="tbl-wrap" id="tw" style="display:none">
   <table>
@@ -1574,12 +1573,20 @@ function setupSave(i){
   if(inp) inp.value = '';
   setupRefreshUI();
 }
-function setupStart(){
-  if(!keys[0]||!keys[1]||!keys[2]){ alert('Please save your Anthropic, Finnhub, and Twelve Data keys first.'); return; }
+function setupStart(skip){
+  if(!skip && (!keys[0]||!keys[1]||!keys[2])){
+    alert('Please save your Anthropic, Finnhub, and Twelve Data keys first.\n\nOr click "Skip setup" to continue without keys (limited functionality).');
+    return;
+  }
+  if(skip && (!keys[0]||!keys[1]||!keys[2])){
+    if(!confirm('Continue without API keys? Most features will not work until you add keys via ⚙ API Keys later.')) return;
+  }
+  console.log('setupStart proceeding, skip=', !!skip);
   document.getElementById('setupPage').classList.remove('active');
   document.getElementById('screenerPage').classList.add('active');
   localStorage.setItem('viss_setup_done','1');
-  loadStocks(); // now trigger stock loading with keys in place
+  try { loadStocks(); }
+  catch(e) { console.error('loadStocks error:', e); }
 }
 
 function loadKeys(){
@@ -2517,7 +2524,9 @@ function loadTheme(){
 }
 
 function toggleGuide(){
+  const c = document.getElementById('guideContent');
   const a = document.getElementById('guideArrow');
+  if(!c || !a) return;
   if(c.style.display === 'none'){
     c.style.display = 'block';
     a.textContent = '▲ Hide';
@@ -2549,11 +2558,21 @@ function loadStocks(){
   const _ab=document.getElementById('aiAllBtn');if(_ab)_ab.disabled=stocks.filter(s=>s.status==='done').length===0;
 
   if(stocks.length === 0){
+    if(!keys[1] || !keys[2]){
+      // No required API keys — can't auto-load. Show empty state with hint.
+      document.getElementById('empty').innerHTML =
+        '<div style="text-align:center;padding:32px">' +
+        '<div style="font-size:28px;margin-bottom:12px">🔑</div>' +
+        '<div style="font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:8px">API keys needed</div>' +
+        '<div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Click <strong>⚙ API Keys</strong> in the top right to add Finnhub and Twelve Data keys.<br>The screener uses them to fetch fundamentals and price history.</div>' +
+        '</div>';
+      return;
+    }
     document.getElementById('empty').innerHTML =
       '<div style="text-align:center;padding:32px">' +
       '<div style="font-size:28px;margin-bottom:12px">⚡</div>' +
-      '<div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:8px">Loading your ' + getDefaultTickers().length + ' stocks</div>' +
-      '<div style="font-size:12px;color:#555;margin-bottom:16px">Paced at 1 stock per 4 seconds to stay within Twelve Data free tier limits.<br>~1 minute total. AI summaries generated on-demand via 🧠 button.</div>' +
+      '<div style="font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:8px">Loading your ' + getDefaultTickers().length + ' stocks</div>' +
+      '<div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Paced at 4 stocks per 30s to stay within Twelve Data free tier limits.<br>~2 minutes total. AI summaries generated on-demand via 🧠 button.</div>' +
       '</div>';
     autoLoadDefaults(getDefaultTickers());
   }
@@ -2638,7 +2657,7 @@ async function refreshAll(){
   refreshing=true;
   showProgress(`↻ Refreshing 0/${done.length}…`);
   document.getElementById('refBtn').disabled=true;const _ab3=document.getElementById('aiAllBtn');if(_ab3)_ab3.disabled=true;
-  document.getElementById('rbar').classList.add('on');
+  const _rb=document.getElementById('rbar');if(_rb)_rb.classList.add('on');
 
   const BATCH = 4;
   const GAP_MS = 30000;
@@ -2646,7 +2665,7 @@ async function refreshAll(){
     if(busyOp !== 'refresh') break; // allow cancel
     const batch = done.slice(b, b+BATCH);
     showProgress(`↻ Refreshing ${Math.min(b+BATCH, done.length)}/${done.length} — ${batch.join(', ')}`);
-    document.getElementById('rmsg').textContent = `Refreshing batch ${Math.floor(b/BATCH)+1}/${Math.ceil(done.length/BATCH)} — ${batch.join(', ')}`;
+    const _rm=document.getElementById('rmsg');if(_rm)_rm.textContent = `Refreshing batch ${Math.floor(b/BATCH)+1}/${Math.ceil(done.length/BATCH)} — ${batch.join(', ')}`;
 
     // Preserve analyses + replace each with loading entry
     const ids = batch.map((ticker, i) => {
@@ -2665,7 +2684,7 @@ async function refreshAll(){
     if(b + BATCH < done.length) await new Promise(r=>setTimeout(r, GAP_MS));
   }
 
-  document.getElementById('rbar').classList.remove('on');
+  const _rb2=document.getElementById('rbar');if(_rb2)_rb2.classList.remove('on');
   document.getElementById('refBtn').disabled=false;const _ab2=document.getElementById('aiAllBtn');if(_ab2)_ab2.disabled=false;
   refreshing=false;
   busyOp=null;
