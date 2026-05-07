@@ -483,6 +483,9 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
       <a href="#g-technical" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">📈 Technical</a>
       <a href="#g-longterm" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">💼 Long-Term</a>
       <a href="#g-options" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">🎯 Options</a>
+      <a href="#g-portfolio" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">💼 Portfolio</a>
+      <a href="#g-discover" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">🔭 Discover</a>
+      <a href="#g-workflow" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">⚡ Daily Workflow</a>
     </div>
 
     <!-- SCORES -->
@@ -620,6 +623,75 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
         </div>
       </div>
       <div style="background:#141620;border-left:3px solid #f87171;padding:14px 18px;border-radius:0 8px 8px 0"><strong style="color:#fff">Practical workflow:</strong> Total /32 ≥ 22 + Tech ≥ 6 + Options verdict = GO → open Options tab → check earnings warning → look up ATM strike bid/ask on your broker → size 1–3% of portfolio → set calendar reminder 30 days before expiry to exit.</div>
+    </div>
+
+    <!-- PORTFOLIO -->
+    <div id="g-portfolio" style="margin-bottom:32px">
+      <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">💼 Portfolio Tab — Track Your Real Positions</div>
+      <p style="margin-bottom:12px">The Portfolio tab lets you log your real stock and option positions so you get live P&amp;L tied to the screener's analysis. Use it to make data-driven decisions about your existing holdings.</p>
+
+      <div style="font-size:13px;font-weight:700;color:#4ade80;margin:16px 0 8px">Adding Positions</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-bottom:12px">
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:#4ade80;margin-bottom:4px">📂 Robinhood CSV Import</div><div style="font-size:11px;color:#64748b;line-height:1.6">Robinhood app → Account → Statements → Export CSV. Upload here for one-click import of all stock positions with shares + average cost.</div></div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:#4ade80;margin-bottom:4px">+ Add Stock</div><div style="font-size:11px;color:#64748b;line-height:1.6">Manual entry: ticker, shares, entry price, date, notes. For positions outside Robinhood or for manual tracking.</div></div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:#4ade80;margin-bottom:4px">+ Add Option</div><div style="font-size:11px;color:#64748b;line-height:1.6">Options: ticker, call/put, strike, expiry, contracts, premium paid. Auto-tracks days to expiry and ITM/OTM status.</div></div>
+      </div>
+
+      <div style="font-size:13px;font-weight:700;color:#4ade80;margin:16px 0 8px">Auto Alerts on Each Position</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin-bottom:12px">
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:#fbbf24;margin-bottom:4px">⏰ Time Stop (Options)</div><div style="font-size:11px;color:#64748b;line-height:1.6">Warning when an option is within 30 days of expiry. Theta decay accelerates — exit or roll.</div></div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:#f87171;margin-bottom:4px">🛑 Stop Loss (Options)</div><div style="font-size:11px;color:#64748b;line-height:1.6">Triggers when premium is down 50%+. Means thesis is likely wrong — cut losses.</div></div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:#fb923c;margin-bottom:4px">⚡ Earnings Soon</div><div style="font-size:11px;color:#64748b;line-height:1.6">Heads-up if earnings are within 6 weeks. Plan around IV crush risk.</div></div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:#a78bfa;margin-bottom:4px">📊 Live P&amp;L</div><div style="font-size:11px;color:#64748b;line-height:1.6">Position value vs cost basis updated whenever screener data refreshes. For non-screener tickers, fetches live price from Finnhub.</div></div>
+      </div>
+
+      <div style="font-size:13px;font-weight:700;color:#4ade80;margin:16px 0 8px">AI Guidance — Two Levels</div>
+      <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px;margin-bottom:12px">
+        <div style="display:flex;gap:12px;margin-bottom:10px"><div style="font-size:12px;font-weight:700;color:#fff;min-width:130px">🧠 Per Position</div><div style="font-size:12px;color:#64748b;line-height:1.6">Click "🧠 Ask AI" on any position card. Gets specific guidance: hold, add, trim, or exit — based on your entry price, current P&amp;L, and live screener score.</div></div>
+        <div style="display:flex;gap:12px"><div style="font-size:12px;font-weight:700;color:#fff;min-width:130px">🎯 Portfolio Review</div><div style="font-size:12px;color:#64748b;line-height:1.6">"🧠 Review Portfolio" button. AI looks at all positions together — flags concentration risk, value traps, identifies what's working vs what's not.</div></div>
+      </div>
+
+      <div style="background:#141620;border-left:3px solid #4ade80;padding:12px 16px;border-radius:0 8px 8px 0"><strong style="color:#fff">Best workflow:</strong> Import CSV monthly. Click "Refresh all" on Screener to get fresh fundamentals. Then check Portfolio for any new alerts. Run "Review Portfolio" quarterly to spot bigger patterns (concentration, sector drift, losers piling up).</div>
+    </div>
+
+    <!-- DISCOVER -->
+    <div id="g-discover" style="margin-bottom:32px">
+      <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">🔭 Discover Tab — Find New Stocks</div>
+      <p style="margin-bottom:12px">Discover scans curated universes of ~50 quality candidates per category to surface stocks matching specific investment styles. Each scan takes ~7 minutes due to Twelve Data rate limits — results cached 24 hours.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;margin:12px 0">
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px"><div style="font-size:13px;font-weight:700;color:#fbbf24;margin-bottom:6px">🚀 Breaking Out (~50 stocks)</div><div style="font-size:11px;color:#64748b;line-height:1.7;margin-bottom:4px">Liquid tech leaders + popular ETFs. AAPL, NVDA, AMD, COIN, PLTR, SHOP, etc.</div><div style="font-size:11px;color:#a78bfa">Filter: Tech ≥6/8 + recent breakout + above EMA20</div><div style="font-size:11px;color:#374151;margin-top:4px">Use for: swing trade entries</div></div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px"><div style="font-size:13px;font-weight:700;color:#a78bfa;margin-bottom:6px">💎 Long-term Quality (~50 stocks)</div><div style="font-size:11px;color:#64748b;line-height:1.7;margin-bottom:4px">Dividend aristocrats + megacaps + healthcare/staples. BRK.B, JNJ, V, COST, LLY, etc.</div><div style="font-size:11px;color:#a78bfa">Filter: Buffett ≥6/8 + ROE ≥15%</div><div style="font-size:11px;color:#374151;margin-top:4px">Use for: 5+ year core holdings</div></div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px"><div style="font-size:13px;font-weight:700;color:#60a5fa;margin-bottom:6px">🎯 Long-term Options / LEAPs (~50 stocks)</div><div style="font-size:11px;color:#64748b;line-height:1.7;margin-bottom:4px">Trending megacaps + sector ETFs. AAPL, MSFT, NVDA, META, SPY, QQQ, etc.</div><div style="font-size:11px;color:#a78bfa">Filter: BUY signal + uptrend + Tech ≥6/8</div><div style="font-size:11px;color:#374151;margin-top:4px">Use for: 6-12 month call options</div></div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px"><div style="font-size:13px;font-weight:700;color:#f87171;margin-bottom:6px">⚡ Short-term Options (~50 stocks)</div><div style="font-size:11px;color:#64748b;line-height:1.7;margin-bottom:4px">Volatile tech + meme stocks + leveraged ETFs. NVDA, TSLA, COIN, SOXL, MARA, etc.</div><div style="font-size:11px;color:#a78bfa">Filter: Tech ≥5/8 + breakout/strong bars + above EMA20</div><div style="font-size:11px;color:#374151;margin-top:4px">Use for: weekly/monthly options on momentum</div></div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px"><div style="font-size:13px;font-weight:700;color:#34d399;margin-bottom:6px">💰 DCA Value (~55 stocks)</div><div style="font-size:11px;color:#64748b;line-height:1.7;margin-bottom:4px">Dividend stalwarts + boring blue chips. KO, PEP, MCD, JNJ, PG, MMM, VZ, etc.</div><div style="font-size:11px;color:#a78bfa">Filter: Graham ≥5/8 + dividend ≥2% + revenue growth + Total ≥18/32</div><div style="font-size:11px;color:#374151;margin-top:4px">Use for: monthly dollar-cost averaging</div></div>
+      </div>
+
+      <div style="font-size:13px;font-weight:700;color:#4ade80;margin:16px 0 8px">How to Use Results</div>
+      <p style="font-size:12px;line-height:1.7;margin-bottom:12px">Top 20 matches per category are sorted by Total Score. Each card shows ticker, signal badge, price, score breakdown, and the specific reason it matched (e.g. "ROE 33% · GM 61%" or "Recent breakout · uptrend"). <strong style="color:#fff">Click any card</strong> to add the stock to your screener for full analysis — useful for vetting before adding to your watchlist or portfolio.</p>
+
+      <div style="background:#141620;border-left:3px solid #60a5fa;padding:12px 16px;border-radius:0 8px 8px 0"><strong style="color:#fff">Tip:</strong> Run scans during low-conflict times. Each scan takes 7 minutes and uses the full Twelve Data rate budget — you can't refresh stocks or run another scan simultaneously. Scan one category overnight or when not actively using the app.</div>
+    </div>
+
+    <!-- WORKFLOW -->
+    <div id="g-workflow" style="margin-bottom:32px">
+      <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">⚡ Daily / Weekly Workflow</div>
+      <p style="margin-bottom:12px">A practical routine for using all the screener's tools effectively:</p>
+
+      <div style="display:grid;gap:12px;margin-bottom:20px">
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:16px"><div style="font-size:13px;font-weight:700;color:#a78bfa;margin-bottom:8px">📅 Daily (5 minutes)</div><div style="font-size:12px;color:#64748b;line-height:1.7">1. Open Screener tab → glance at sorted scores · 2. Check Portfolio tab → look for new alerts (time stops, earnings warnings) · 3. If options getting close to time stop or hitting profit targets, act on them.</div></div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:16px"><div style="font-size:13px;font-weight:700;color:#60a5fa;margin-bottom:8px">📆 Weekly (15 minutes)</div><div style="font-size:12px;color:#64748b;line-height:1.7">1. Click "↻ Refresh all" on Screener — gets fresh fundamentals + technicals · 2. Sort by Total Score → spot any stocks that dropped from BUY to HOLD or worse · 3. Run "🧠 AI Summary all" once a week to keep theses fresh on top holdings · 4. Click "🧠 Review Portfolio" to catch concentration risk before it gets bigger.</div></div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:16px"><div style="font-size:13px;font-weight:700;color:#fbbf24;margin-bottom:8px">📊 Monthly (30 minutes)</div><div style="font-size:12px;color:#64748b;line-height:1.7">1. Re-import Robinhood CSV — keeps positions in sync · 2. Run one Discover scan (~7 min) — rotate through categories: Breaking Out, then Quality next month, etc · 3. Add interesting Discover results to your watchlist · 4. Review Portfolio AI guidance for each position — make any sell/trim/hold decisions deliberately.</div></div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:16px"><div style="font-size:13px;font-weight:700;color:#4ade80;margin-bottom:8px">🎯 Quarterly (1 hour)</div><div style="font-size:12px;color:#64748b;line-height:1.7">1. Run all 5 Discover scans over a few days · 2. Compare your portfolio to opportunities — anything you should swap into? · 3. Tax loss harvesting check (in November/December) · 4. Rebalance if any single position is &gt;20% of portfolio.</div></div>
+      </div>
+
+      <div style="background:#141620;border-left:3px solid #4ade80;padding:14px 18px;border-radius:0 8px 8px 0"><strong style="color:#fff">The 3 most important things this app helps you do:</strong>
+        <ol style="margin:8px 0 0 20px;font-size:12px;color:#94a3b8;line-height:1.8">
+          <li>Resist the urge to act on hype — scores tell you when fundamentals AND technicals align.</li>
+          <li>Catch problems early — Portfolio alerts surface issues before they become big losses.</li>
+          <li>Discover better opportunities than your watchlist — Discover scans surface quality stocks you'd never have found scrolling Twitter.</li>
+        </ol>
+      </div>
     </div>
 
     <div style="border-top:1px solid #1e2133;padding-top:16px;margin-top:8px;font-size:11px;color:#374151;text-align:center">Not financial advice. For educational and research purposes only. Always do your own due diligence. Past performance does not guarantee future results.</div>
@@ -1631,7 +1703,7 @@ function renderDiscover(){
     const ageStr = result ? new Date(result.scannedAt).toLocaleString() : '';
     const matches = result?.results || [];
     const scanning = result?.scanning;
-    const interrupted = result?.interrupted;
+    const interrupted = result?.interrupted && !scanning; // hide interrupted when actively scanning
 
     let statusBadge;
     if(scanning){
@@ -1715,6 +1787,7 @@ async function scanDiscover(category){
       const t = tickers[i];
       const progressMsg = `🔭 Scanning ${cat.title}: ${i+1}/${tickers.length} · ${t} · ${matches.length} matches`;
       discoverResults[category].scanning = `${i+1}/${tickers.length} · ${t}`;
+      discoverResults[category].interrupted = false;
       saveDiscoverResults();
       showProgress(progressMsg);
       renderDiscover();
