@@ -1499,7 +1499,7 @@ tbody tr { transition: background 0.15s ease; }
     <!-- FAIR & ENTRY -->
     <div id="g-fairentry" class="guide-section" style="display:none;margin-bottom:32px">
       <div style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:12px">💰 Fair Price &amp; Entry Price</div>
-      <p style="margin-bottom:14px">Two price columns help you answer the most important questions before buying: <strong style="color:var(--text-primary)">"Is this a bargain?"</strong> and <strong style="color:var(--text-primary)">"What price should I pay?"</strong> Both are derived directly from formulas in the books in the project library.</p>
+      <p style="margin-bottom:14px">Two price columns help you answer the most important questions before buying: <strong style="color:var(--text-primary)">"Is this a bargain?"</strong> and <strong style="color:var(--text-primary)">"What price should I pay?"</strong> Both are derived directly from formulas in <em>The Intelligent Investor</em> by Benjamin Graham and <em>Trading Price Action: Ranges</em> by Al Brooks.</p>
 
       <div style="font-size:13px;font-weight:700;color:var(--accent-buy);margin:20px 0 10px">💰 Fair Price (Graham's Intelligent Investor, Chapter 11)</div>
 
@@ -3938,7 +3938,7 @@ Write with depth, real numbers from the data above, and specificity. CRITICAL: F
 // ── FMP parser for stable API (Aug 2025+) — handles correct field names ──
 
 // ── Helper: call Anthropic API ──
-async function callAnthropic(prompt, useSearch=false, retries=2, options={}){
+async function callAnthropic(prompt, useSearch=false, retries=3, options={}){
   const {onChunk, system} = options;
   const useStreaming = !!onChunk;
 
@@ -3960,11 +3960,19 @@ async function callAnthropic(prompt, useSearch=false, retries=2, options={}){
     body:JSON.stringify(body)
   });
 
-  if(res.status===429 && retries>0){
-    await new Promise(r=>setTimeout(r,15000));
+  // Retry on 429 (rate limit), 529 (overloaded), 500 (server error)
+  if((res.status===429 || res.status===529 || res.status===500) && retries>0){
+    // Honor retry-after header if present (in seconds), otherwise use exponential backoff
+    const retryAfter = res.headers.get('retry-after');
+    const waitMs = retryAfter ? parseInt(retryAfter)*1000 : (4-retries)*15000; // 15s, 30s, 45s
+    console.warn(`API ${res.status} — retrying in ${waitMs/1000}s (${retries} retries left)`);
+    await new Promise(r=>setTimeout(r, waitMs));
     return callAnthropic(prompt, useSearch, retries-1, options);
   }
-  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e?.error?.message||`Anthropic HTTP ${res.status}`);}
+  if(!res.ok){
+    const e=await res.json().catch(()=>({}));
+    throw new Error(e?.error?.message||`Anthropic HTTP ${res.status}`);
+  }
 
   // Non-streaming path
   if(!useStreaming){
@@ -4421,25 +4429,24 @@ async function summarizeAll(){
   btn.disabled = true;
   let succeeded = 0, failed = 0;
 
-  // PARALLEL: 2 stocks at a time. Web search adds ~3-5k tokens per call.
-  // 2 parallel × ~5000 tokens = ~10k tokens per batch. Need 20s+ between batches to stay under 30k tokens/min.
-  const BATCH = 2;
-  for(let b=0; b<targets.length; b+=BATCH){
-    const batch = targets.slice(b, b+BATCH);
-    btn.textContent = `🧠 ${b+1}-${Math.min(b+BATCH, targets.length)}/${targets.length} — ${batch.map(t=>t.ticker).join(', ')}…`;
-
-    const results = await Promise.allSettled(batch.map(t => fetchSummary(t.id)));
-    results.forEach((r, i) => {
-      if(r.status === 'fulfilled') succeeded++;
-      else { failed++; console.warn('Summary failed for', batch[i].ticker, r.reason?.message); }
-    });
-
-    // 20s gap — at ~10k tokens per batch, this stays under 30k tokens/min limit even with web search overhead.
-    if(b + BATCH < targets.length) await new Promise(r=>setTimeout(r, 20000));
+  // SEQUENTIAL: web search adds ~3-5k tokens per call and the search itself takes 3-8 seconds.
+  // Running 1 at a time with a 12s gap = max 5 calls/min × 5k tokens = 25k tokens/min, safely under 30k limit.
+  // Slower than parallel but virtually eliminates rate-limit failures.
+  for(let i=0; i<targets.length; i++){
+    btn.textContent = `🧠 ${i+1}/${targets.length} — ${targets[i].ticker}…`;
+    try {
+      await fetchSummary(targets[i].id);
+      succeeded++;
+    } catch(e) {
+      failed++;
+      console.warn('Summary failed for', targets[i].ticker, e.message);
+    }
+    // 12s gap — comfortable margin under 30k tokens/min with web search overhead.
+    if(i+1 < targets.length) await new Promise(r=>setTimeout(r, 12000));
   }
   btn.disabled = false;
   btn.textContent = '🧠 AI Summary all';
-  if(failed) alert(`Done: ${succeeded} generated, ${failed} failed.`);
+  if(failed) alert(`Done: ${succeeded} generated, ${failed} failed.${failed?'\n\nCheck browser console (F12) for specific errors. You can re-run "AI Summary all" — it will only retry the failed ones.':''}`);
 }
 // ── OPTIONS HTML BUILDER (used in buildExpandRow) ──
 function buildOptionsHTML(s){
