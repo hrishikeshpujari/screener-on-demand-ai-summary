@@ -1244,6 +1244,109 @@ tbody tr { transition: background 0.15s ease; }
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════
+   FILTER BAR — Screener filtering controls
+   ══════════════════════════════════════════════════════════ */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  margin: 0 0 10px;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.filter-bar.has-active {
+  border-color: var(--accent-info);
+  box-shadow: 0 0 0 1px var(--accent-info) inset;
+}
+.flt-search {
+  flex: 1 1 220px;
+  min-width: 180px;
+  padding: 8px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+.flt-search::placeholder { color: var(--text-muted); }
+.flt-search:focus { outline: none; border-color: var(--accent-info); }
+.flt-group { display: flex; align-items: center; gap: 5px; }
+.flt-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.flt-select {
+  padding: 7px 9px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.flt-select:hover { border-color: var(--text-muted); }
+.flt-select:focus { outline: none; border-color: var(--accent-info); }
+.flt-select.changed {
+  border-color: var(--accent-info);
+  color: var(--accent-info);
+  font-weight: 600;
+}
+.flt-reset {
+  padding: 7px 12px;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.filter-bar.has-active .flt-reset {
+  border-color: var(--accent-info);
+  color: var(--accent-info);
+}
+.flt-reset:hover { background: var(--bg-hover); color: var(--text-primary); }
+.flt-results-info {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: -4px 0 10px;
+  padding: 0 4px;
+  display: none;
+}
+.flt-results-info.show { display: block; }
+.flt-results-info b { color: var(--accent-info); font-weight: 700; }
+.flt-results-info .flt-clear-link {
+  margin-left: 8px;
+  color: var(--accent-info);
+  cursor: pointer;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+/* Mobile — wrap groups two-up, full-width search and reset */
+@media (max-width: 720px) {
+  .filter-bar { padding: 10px; gap: 6px; }
+  .flt-search { flex: 1 1 100%; min-width: 0; min-height: 40px; }
+  .flt-group { flex: 1 1 calc(50% - 3px); min-width: 0; }
+  .flt-label { display: none; }
+  .flt-select { width: 100%; min-height: 40px; padding: 9px; }
+  .flt-reset { flex: 1 1 100%; min-height: 40px; padding: 10px; }
+}
 </style>
 </head>
 <body>
@@ -1423,6 +1526,57 @@ tbody tr { transition: background 0.15s ease; }
   <button class="btn-clr" onclick="clearAll()">Clear all</button>
 </div>
 <div class="empty-msg" id="empty">No stocks yet — enter a ticker above.</div>
+<div class="filter-bar" id="filterBar" style="display:none">
+  <input type="text" id="fltSearch" class="flt-search" oninput="applyFilters()" placeholder="🔍 Search ticker or company…" aria-label="Search stocks"/>
+  <div class="flt-group">
+    <span class="flt-label">Signal</span>
+    <select id="fltSignal" class="flt-select" onchange="applyFilters()" aria-label="Filter by signal">
+      <option value="">All</option>
+      <option value="BUY">BUY</option>
+      <option value="HOLD">HOLD</option>
+      <option value="SELL">SELL</option>
+    </select>
+  </div>
+  <div class="flt-group">
+    <span class="flt-label">Total ≥</span>
+    <select id="fltMinTotal" class="flt-select" onchange="applyFilters()" aria-label="Minimum total score">
+      <option value="0">Any</option>
+      <option value="13">13+ (HOLD)</option>
+      <option value="20">20+</option>
+      <option value="22">22+ (BUY)</option>
+      <option value="26">26+ (High conf)</option>
+    </select>
+  </div>
+  <div class="flt-group">
+    <span class="flt-label">Tech ≥</span>
+    <select id="fltMinTech" class="flt-select" onchange="applyFilters()" aria-label="Minimum tech score">
+      <option value="0">Any</option>
+      <option value="4">4+</option>
+      <option value="6">6+ (Uptrend)</option>
+      <option value="7">7+ (Strong)</option>
+    </select>
+  </div>
+  <div class="flt-group">
+    <span class="flt-label">Value</span>
+    <select id="fltValuation" class="flt-select" onchange="applyFilters()" aria-label="Filter by valuation">
+      <option value="">All</option>
+      <option value="under">Undervalued</option>
+      <option value="near">Near fair</option>
+      <option value="over">Overvalued</option>
+    </select>
+  </div>
+  <div class="flt-group">
+    <span class="flt-label">Entry</span>
+    <select id="fltEntry" class="flt-select" onchange="applyFilters()" aria-label="Filter by entry">
+      <option value="">All</option>
+      <option value="ready">At/below entry</option>
+      <option value="near">Near entry (≤5%)</option>
+      <option value="wait">Wait (downtrend)</option>
+    </select>
+  </div>
+  <button class="flt-reset" onclick="resetFilters()" title="Clear all filters">↻ Reset</button>
+</div>
+<div class="flt-results-info" id="fltResultsInfo"></div>
 <div class="tbl-wrap" id="tw" style="display:none">
   <table>
     <thead><tr>
@@ -4141,10 +4295,120 @@ function fp(v){return v===null||v===undefined?'—':'$'+Number(v).toFixed(2);}
 const cats=['','Slow Grower','Stalwart','Fast Grower','Cyclical','Turnaround','Asset Play'];
 const confLbl={HIGH:'★★★ High',MEDIUM:'★★ Medium',LOW:'★ Low',AVOID:'⚠ Avoid'};
 
+// ══════════════════════════════════════════════════════════
+// FILTER BAR — applyFilters, resetFilters, filterStocks
+// ══════════════════════════════════════════════════════════
+let activeFilters = {
+  search: '', signal: '', minTotal: 0, minTech: 0, valuation: '', entry: ''
+};
+const FILTER_DEFAULTS = {
+  fltSearch:'', fltSignal:'', fltMinTotal:'0', fltMinTech:'0', fltValuation:'', fltEntry:''
+};
+
+function readFilterInputs(){
+  return {
+    search: (document.getElementById('fltSearch')?.value||'').toLowerCase().trim(),
+    signal: document.getElementById('fltSignal')?.value || '',
+    minTotal: parseInt(document.getElementById('fltMinTotal')?.value||'0', 10) || 0,
+    minTech: parseInt(document.getElementById('fltMinTech')?.value||'0', 10) || 0,
+    valuation: document.getElementById('fltValuation')?.value || '',
+    entry: document.getElementById('fltEntry')?.value || '',
+  };
+}
+
+function filtersAreActive(f){
+  return !!(f.search || f.signal || f.minTotal>0 || f.minTech>0 || f.valuation || f.entry);
+}
+
+function applyFilters(){
+  activeFilters = readFilterInputs();
+  const bar = document.getElementById('filterBar');
+  if(bar) bar.classList.toggle('has-active', filtersAreActive(activeFilters));
+  // Tag individually-changed controls so they stand out
+  for(const [id, def] of Object.entries(FILTER_DEFAULTS)){
+    const el = document.getElementById(id);
+    if(el && el.tagName === 'SELECT'){
+      el.classList.toggle('changed', el.value !== def);
+    }
+  }
+  renderTable();
+}
+
+function resetFilters(){
+  const ids = Object.keys(FILTER_DEFAULTS);
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.value = FILTER_DEFAULTS[id];
+    el.classList.remove('changed');
+  });
+  applyFilters();
+}
+
+// Returns true if stock passes all active filters. Always passes for non-'done' rows.
+function stockMatchesFilters(s, f){
+  if(s.status !== 'done') return true; // never hide loading/error rows
+  if(f.search){
+    const hay = (s.ticker + ' ' + (s.companyName||'')).toLowerCase();
+    if(!hay.includes(f.search)) return false;
+  }
+  if(f.signal && s.overallSignal !== f.signal) return false;
+  if(f.minTotal > 0 && (s.totalScore||0) < f.minTotal) return false;
+  if(f.minTech > 0 && (s.technical?.score||0) < f.minTech) return false;
+
+  // Valuation: compare currentPrice to fairPrice
+  if(f.valuation){
+    if(!s.fairPrice || !s.currentPrice) return false; // can't classify without both
+    const upsidePct = (s.fairPrice - s.currentPrice) / s.currentPrice * 100;
+    if(f.valuation === 'under' && upsidePct <= 5) return false;   // fair > current by >5%
+    if(f.valuation === 'over' && upsidePct >= -5) return false;   // fair < current by >5%
+    if(f.valuation === 'near' && Math.abs(upsidePct) > 5) return false;
+  }
+
+  // Entry: compare currentPrice to entryPrice (null = "wait" / downtrend)
+  if(f.entry){
+    if(f.entry === 'wait'){
+      if(s.entryPrice != null) return false;
+    } else {
+      if(s.entryPrice == null || !s.currentPrice) return false;
+      const distPct = (s.currentPrice - s.entryPrice) / s.entryPrice * 100;
+      // ready: price at or below entry  (distPct <= 0)
+      // near:  price 0-5% above entry   (0 < distPct <= 5)
+      if(f.entry === 'ready' && distPct > 0) return false;
+      if(f.entry === 'near' && (distPct <= 0 || distPct > 5)) return false;
+    }
+  }
+  return true;
+}
+
+function updateFilterResultsInfo(visibleDone, totalDone){
+  const info = document.getElementById('fltResultsInfo');
+  if(!info) return;
+  if(filtersAreActive(activeFilters) && totalDone > 0){
+    info.classList.add('show');
+    if(visibleDone === 0){
+      info.innerHTML = `No stocks match the current filters (<b>0</b> of <b>${totalDone}</b>). <span class="flt-clear-link" onclick="resetFilters()">Clear filters</span>`;
+    } else {
+      info.innerHTML = `Showing <b>${visibleDone}</b> of <b>${totalDone}</b> stocks. <span class="flt-clear-link" onclick="resetFilters()">Clear filters</span>`;
+    }
+  } else {
+    info.classList.remove('show');
+    info.innerHTML = '';
+  }
+}
+
 function renderTable(){
   const tbody=document.getElementById('tbody'),empty=document.getElementById('empty'),tw=document.getElementById('tw');
-  if(!stocks.length){empty.style.display='block';tw.style.display='none';return;}
+  const fb=document.getElementById('filterBar'),info=document.getElementById('fltResultsInfo');
+  if(!stocks.length){
+    empty.style.display='block';
+    tw.style.display='none';
+    if(fb) fb.style.display='none';
+    if(info){ info.classList.remove('show'); info.innerHTML=''; }
+    return;
+  }
   empty.style.display='none';tw.style.display='block';
+  if(fb) fb.style.display='flex';
   try {
     // Sort done stocks, keep loading/error at top
     const loading = stocks.filter(s=>s.status!=='done');
@@ -4153,7 +4417,20 @@ function renderTable(){
       if(typeof av === 'string') return av.localeCompare(bv) * sortDir;
       return (av - bv) * sortDir;
     });
-    const sorted = [...loading, ...done];
+    // Apply active filters (filtering only applies to 'done' rows)
+    const doneFiltered = done.filter(s => stockMatchesFilters(s, activeFilters));
+    updateFilterResultsInfo(doneFiltered.length, done.length);
+    const sorted = [...loading, ...doneFiltered];
+
+    // If filters wiped out all done rows and there are no loading rows either, show a friendly empty-state row
+    if(sorted.length === 0){
+      tbody.innerHTML = `<tr><td colspan="17" style="text-align:center;padding:28px 12px;color:var(--text-muted);font-size:13px">
+        No stocks match the current filters.
+        &nbsp;<span style="color:var(--accent-info);cursor:pointer;text-decoration:underline;font-weight:600" onclick="resetFilters()">Clear filters</span>
+      </td></tr>`;
+      return;
+    }
+
     tbody.innerHTML=sorted.map(s=>{
       if(s.status==='loading')return`<tr><td class="tkr"><span class="spin"></span>${s.ticker}</td><td colspan="17" style="color:#555;font-style:italic">${s.step||'Loading…'}</td></tr>`;
       if(s.status==='error')return`<tr><td class="tkr">${s.ticker}</td><td colspan="14" style="color:#f87171;font-size:11px">${s.error||'Error'}</td><td></td><td><button class="rmv" onclick="rm(${s.id},event)">✕</button></td></tr>`;
