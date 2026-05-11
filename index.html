@@ -1006,6 +1006,27 @@ tbody tr { transition: background 0.15s ease; }
 /* Sub text near header */
 .sub { color: var(--text-muted); }
 
+/* Guide tab buttons */
+.guide-tab {
+  padding: 7px 14px;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: 20px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.guide-tab:hover { color: var(--text-primary); border-color: var(--border-strong); }
+.guide-tab.active {
+  background: var(--accent-info);
+  color: #fff;
+  border-color: var(--accent-info);
+}
+
 /* ══════════════════════════════════════════════════════════
    MOBILE RESPONSIVE — Milestone 3
    ══════════════════════════════════════════════════════════ */
@@ -1435,23 +1456,24 @@ tbody tr { transition: background 0.15s ease; }
   </button>
   <div id="guideContent" style="display:none;background:#0f1219;border:1px solid #1e2133;border-top:none;border-radius:0 0 10px 10px;padding:28px 32px;line-height:1.8;color:#94a3b8;font-size:13px">
 
-    <!-- Nav -->
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid #1e2133">
-      <a href="#g-scores" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">📊 Scores</a>
-      <a href="#g-signals" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">🚦 Signals</a>
-      <a href="#g-graham" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">🏦 Graham</a>
-      <a href="#g-buffett" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">🎩 Buffett</a>
-      <a href="#g-lynch" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">🔍 Lynch</a>
-      <a href="#g-technical" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">📈 Technical</a>
-      <a href="#g-longterm" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">💼 Long-Term</a>
-      <a href="#g-options" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">🎯 Options</a>
-      <a href="#g-portfolio" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">💼 Portfolio</a>
-      <a href="#g-discover" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">🔭 Discover</a>
-      <a href="#g-workflow" style="padding:6px 14px;background:#1a1d27;border:1px solid #2d3044;border-radius:20px;color:#94a3b8;font-size:12px;text-decoration:none;font-weight:600">⚡ Daily Workflow</a>
+    <!-- Nav (tabs — click to show only that section) -->
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border-default)">
+      <button class="guide-tab active" data-section="workflow" onclick="showGuideSection('workflow')">🚀 Start Here</button>
+      <button class="guide-tab" data-section="scores" onclick="showGuideSection('scores')">📊 Scores</button>
+      <button class="guide-tab" data-section="signals" onclick="showGuideSection('signals')">🚦 Signals</button>
+      <button class="guide-tab" data-section="fairentry" onclick="showGuideSection('fairentry')">💰 Fair &amp; Entry</button>
+      <button class="guide-tab" data-section="portfolio" onclick="showGuideSection('portfolio')">💼 Portfolio</button>
+      <button class="guide-tab" data-section="discover" onclick="showGuideSection('discover')">🔭 Discover</button>
+      <button class="guide-tab" data-section="graham" onclick="showGuideSection('graham')">🏦 Graham</button>
+      <button class="guide-tab" data-section="buffett" onclick="showGuideSection('buffett')">🎩 Buffett</button>
+      <button class="guide-tab" data-section="lynch" onclick="showGuideSection('lynch')">🔍 Lynch</button>
+      <button class="guide-tab" data-section="technical" onclick="showGuideSection('technical')">📈 Technical</button>
+      <button class="guide-tab" data-section="longterm" onclick="showGuideSection('longterm')">💼 Long-Term</button>
+      <button class="guide-tab" data-section="options" onclick="showGuideSection('options')">🎯 Options</button>
     </div>
 
     <!-- SCORES -->
-    <div id="g-scores" style="margin-bottom:32px">
+    <div id="g-scores" class="guide-section" style="display:none;margin-bottom:32px">
       <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">📊 Understanding the Scoring System</div>
       <p style="margin-bottom:12px">Every stock is scored out of <strong style="color:#fff">32 points</strong> across four frameworks — 8 points each. Each point is binary: pass or fail. No partial credit. This makes scores directly comparable across stocks and time.</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:16px 0">
@@ -1464,7 +1486,7 @@ tbody tr { transition: background 0.15s ease; }
     </div>
 
     <!-- SIGNALS -->
-    <div id="g-signals" style="margin-bottom:32px">
+    <div id="g-signals" class="guide-section" style="display:none;margin-bottom:32px">
       <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">🚦 Reading BUY / HOLD / SELL Signals</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:16px">
         <div style="background:#0d3320;border:1px solid #166534;border-radius:8px;padding:16px"><div style="font-size:14px;font-weight:700;color:#4ade80;margin-bottom:8px">✅ BUY — 22+ / 32</div><div style="font-size:12px;color:#86efac;line-height:1.7">Strong across multiple frameworks. Best when both Fund /24 AND Tech /8 are strong. A BUY with poor technicals = wait for a better entry point.</div></div>
@@ -1474,8 +1496,80 @@ tbody tr { transition: background 0.15s ease; }
       <div style="background:#141620;border-left:3px solid #fbbf24;padding:12px 16px;border-radius:0 8px 8px 0"><strong style="color:#fff">Confidence levels:</strong> <span style="color:#4ade80">★★★ High (26+)</span> = strong conviction across all frameworks. <span style="color:#fbbf24">★★ Medium (20–25)</span> = good but mixed signals. <span style="color:#f87171">★ Low / Avoid (&lt;20)</span> = weak evidence, treat the signal skeptically.</div>
     </div>
 
+    <!-- FAIR & ENTRY -->
+    <div id="g-fairentry" class="guide-section" style="display:none;margin-bottom:32px">
+      <div style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:12px">💰 Fair Price &amp; Entry Price</div>
+      <p style="margin-bottom:14px">Two price columns help you answer the most important questions before buying: <strong style="color:var(--text-primary)">"Is this a bargain?"</strong> and <strong style="color:var(--text-primary)">"What price should I pay?"</strong> Both are derived directly from formulas in the books in the project library.</p>
+
+      <div style="font-size:13px;font-weight:700;color:var(--accent-buy);margin:20px 0 10px">💰 Fair Price (Graham's Intelligent Investor, Chapter 11)</div>
+
+      <div style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:14px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:8px">Primary: Graham's Growth Formula</div>
+        <div style="font-family:ui-monospace,monospace;font-size:13px;color:var(--accent-info);background:var(--bg-input);padding:10px 14px;border-radius:6px;margin-bottom:10px">Value = EPS × (8.5 + 2g)</div>
+        <div style="font-size:12px;color:var(--text-tertiary);line-height:1.7">Where <strong style="color:var(--text-secondary)">g</strong> = expected annual growth rate (we cap at 15% to avoid unrealistic numbers on hot growth stocks). This is Graham's "foreshortened formula" for valuing growth stocks. The 8.5 represents the base multiplier for a company with zero growth — anything above that comes from earnings growth.</div>
+      </div>
+
+      <div style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:14px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:8px">Fallback: Graham Number</div>
+        <div style="font-family:ui-monospace,monospace;font-size:13px;color:var(--accent-info);background:var(--bg-input);padding:10px 14px;border-radius:6px;margin-bottom:10px">Value = √(22.5 × EPS × BVPS)</div>
+        <div style="font-size:12px;color:var(--text-tertiary);line-height:1.7">Used when growth data is missing. Graham's <em>defensive investor</em> rule of thumb: P/E × P/B should not exceed 22.5. So fair value lies at the price where that product equals exactly 22.5. Conservative, lower than the growth formula.</div>
+      </div>
+
+      <div style="font-size:13px;font-weight:700;color:var(--accent-info);margin:20px 0 10px">📈 Entry Price (Al Brooks, Trading Price Action: Ranges)</div>
+
+      <p style="margin-bottom:12px;font-size:13px">Brooks' core principle: <strong style="color:var(--text-primary)">the highest-quality entries are pullbacks to support, not breakouts.</strong> Buying at support means you can place a tight stop and have a known reward-to-risk ratio.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;margin-bottom:14px">
+        <div style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--accent-buy);margin-bottom:6px">▲ UPTREND</div><div style="font-size:11px;color:var(--text-tertiary);line-height:1.6">Entry = <strong style="color:var(--text-secondary)">EMA50</strong>. Wait for a deep pullback to the 50-day EMA — Brooks favors this over EMA20 because it gives better risk/reward and filters out shallow pullbacks that often fail.</div></div>
+        <div style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--accent-hold);margin-bottom:6px">◀▶ SIDEWAYS</div><div style="font-size:11px;color:var(--text-tertiary);line-height:1.6">Entry = <strong style="color:var(--text-secondary)">support level</strong>. Range trade: buy near the bottom of the range, sell near the top. Use the recent swing low as the entry trigger.</div></div>
+        <div style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--accent-info);margin-bottom:6px">↗ MILD TREND</div><div style="font-size:11px;color:var(--text-tertiary);line-height:1.6">Entry = <strong style="color:var(--text-secondary)">EMA20</strong>. When the trend is real but not strongly directional, the shorter EMA acts as nearby support. More conservative than waiting for EMA50.</div></div>
+        <div style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--accent-sell);margin-bottom:6px">▼ DOWNTREND</div><div style="font-size:11px;color:var(--text-tertiary);line-height:1.6">Entry = <strong style="color:var(--text-secondary)">"wait"</strong>. Brooks rule: don't try to catch falling knives. In a confirmed downtrend, wait for trend reversal before considering an entry. No specific price target.</div></div>
+      </div>
+
+      <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin:20px 0 10px">🎨 Color Coding in the Table</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:12px">
+          <div style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:8px">Fair column</div>
+          <div style="font-size:11px;color:var(--text-tertiary);line-height:1.7">
+            <span style="color:var(--accent-buy);font-weight:700">🟢 Green</span> = >5% below fair (undervalued — bargain)<br>
+            <span style="color:var(--accent-hold);font-weight:700">🟡 Yellow</span> = within ±5% of fair (fairly valued)<br>
+            <span style="color:var(--accent-sell);font-weight:700">🔴 Red</span> = >5% above fair (overvalued — pricey)
+          </div>
+        </div>
+        <div style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:12px">
+          <div style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:8px">Entry column</div>
+          <div style="font-size:11px;color:var(--text-tertiary);line-height:1.7">
+            <span style="color:var(--accent-buy);font-weight:700">🟢 Green</span> = price at or below entry (buy now)<br>
+            <span style="color:var(--accent-hold);font-weight:700">🟡 Yellow</span> = needs &lt;5% pullback to entry<br>
+            <span style="color:var(--text-tertiary);font-weight:700">⚪ "wait"</span> = downtrend — don't catch knives
+          </div>
+        </div>
+      </div>
+
+      <div style="background:var(--bg-surface);border-left:3px solid var(--accent-buy);padding:14px 18px;border-radius:0 8px 8px 0;margin-bottom:14px">
+        <strong style="color:var(--text-primary)">How to use both together:</strong>
+        <ol style="margin:8px 0 0 20px;font-size:12px;color:var(--text-tertiary);line-height:1.8">
+          <li><strong style="color:var(--text-secondary)">Fair Price tells WHAT to pay</strong> — the maximum reasonable price based on the business value</li>
+          <li><strong style="color:var(--text-secondary)">Entry Price tells WHEN to pay</strong> — the technical setup that gives you the best risk/reward</li>
+          <li><strong style="color:var(--text-secondary)">Best setup:</strong> Fair is green (undervalued) AND Entry is green (at/below technical support). This is rare — it means the market hates a stock that the math says is cheap and the chart says is at support.</li>
+          <li><strong style="color:var(--text-secondary)">Common setup:</strong> Fair is green but Entry needs pullback. The stock is cheap but you can get it cheaper. Set a price alert at entry level.</li>
+          <li><strong style="color:var(--text-secondary)">Avoid:</strong> Fair is red AND Entry says "wait." Overvalued in a downtrend. No reason to buy.</li>
+        </ol>
+      </div>
+
+      <div style="background:var(--bg-surface);border-left:3px solid var(--accent-hold);padding:14px 18px;border-radius:0 8px 8px 0">
+        <strong style="color:var(--text-primary)">Honest limitations:</strong>
+        <ul style="margin:8px 0 0 20px;font-size:12px;color:var(--text-tertiary);line-height:1.7">
+          <li>Graham's formula assumes growth will continue at the rate it has been — for declining businesses, it overestimates value</li>
+          <li>For unprofitable companies (negative EPS), the formula breaks down — we fall back to a book-value-based estimate</li>
+          <li>Entry Price assumes the trend continues — a strong trend reversal invalidates the setup</li>
+          <li>These are <em>starting points for analysis</em>, not buy signals. Always read the AI summary and check recent news.</li>
+        </ul>
+      </div>
+    </div>
+
     <!-- GRAHAM -->
-    <div id="g-graham" style="margin-bottom:32px">
+    <div id="g-graham" class="guide-section" style="display:none;margin-bottom:32px">
       <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">🏦 Benjamin Graham — Safety &amp; Value</div>
       <p style="margin-bottom:12px">Graham's approach: buy stocks trading significantly below intrinsic value with a <em>margin of safety</em>. He was Buffett's mentor and wrote <em>The Intelligent Investor</em>. His criteria filter for cheap, safe, financially sound companies.</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin:12px 0">
@@ -1492,7 +1586,7 @@ tbody tr { transition: background 0.15s ease; }
     </div>
 
     <!-- BUFFETT -->
-    <div id="g-buffett" style="margin-bottom:32px">
+    <div id="g-buffett" class="guide-section" style="display:none;margin-bottom:32px">
       <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">🎩 Warren Buffett — Quality &amp; Moat</div>
       <p style="margin-bottom:12px">Buffett evolved Graham's approach: buy <em>wonderful companies at fair prices</em>. He looks for durable competitive advantages (moats), exceptional management, and businesses that generate consistent free cash flow for decades.</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin:12px 0">
@@ -1509,7 +1603,7 @@ tbody tr { transition: background 0.15s ease; }
     </div>
 
     <!-- LYNCH -->
-    <div id="g-lynch" style="margin-bottom:32px">
+    <div id="g-lynch" class="guide-section" style="display:none;margin-bottom:32px">
       <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">🔍 Peter Lynch — Growth at a Reasonable Price</div>
       <p style="margin-bottom:12px">Lynch managed Magellan Fund to 29% annual returns. His approach: find companies growing faster than their P/E ratio implies (low PEG), with insider buying, manageable debt, and a story a regular person can understand.</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin:12px 0">
@@ -1526,7 +1620,7 @@ tbody tr { transition: background 0.15s ease; }
     </div>
 
     <!-- TECHNICAL -->
-    <div id="g-technical" style="margin-bottom:32px">
+    <div id="g-technical" class="guide-section" style="display:none;margin-bottom:32px">
       <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">📈 Al Brooks Technical Analysis</div>
       <p style="margin-bottom:12px">Al Brooks spent 30+ years developing a price action methodology. Unlike lagging indicators, his approach reads the raw bar-by-bar story the market tells. We compute 8 criteria from 250 days of real price data via Twelve Data.</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin:12px 0">
@@ -1543,7 +1637,7 @@ tbody tr { transition: background 0.15s ease; }
     </div>
 
     <!-- LONG TERM -->
-    <div id="g-longterm" style="margin-bottom:32px">
+    <div id="g-longterm" class="guide-section" style="display:none;margin-bottom:32px">
       <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">💼 Long-Term Investing Strategy</div>
       <p style="margin-bottom:16px">A 5-step framework for building a long-term portfolio using the screener signals:</p>
       <div style="display:grid;gap:12px;margin-bottom:20px">
@@ -1564,7 +1658,7 @@ tbody tr { transition: background 0.15s ease; }
     </div>
 
     <!-- OPTIONS -->
-    <div id="g-options" style="margin-bottom:16px">
+    <div id="g-options" class="guide-section" style="display:none;margin-bottom:32px">
       <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">🎯 Options Strategy — 6-Month Calls</div>
       <p style="margin-bottom:12px">The screener focuses on <strong style="color:#fff">buying call options</strong> with ~6 month expiry. Not day trading — a directional bet that a fundamentally strong, technically bullish stock will be higher in 6 months.</p>
       <div style="background:#1f0a0a;border:1px solid #7f1d1d;border-radius:8px;padding:14px;margin-bottom:16px;font-size:12px;color:#fca5a5;line-height:1.8"><strong style="color:#f87171">⚠ Risk warning:</strong> Options can expire worthless — you can lose 100% of the premium paid. Never risk more than 1–5% of your portfolio on a single options position. Only use options on stocks you'd be happy owning as shares.</div>
@@ -1588,7 +1682,7 @@ tbody tr { transition: background 0.15s ease; }
     </div>
 
     <!-- PORTFOLIO -->
-    <div id="g-portfolio" style="margin-bottom:32px">
+    <div id="g-portfolio" class="guide-section" style="display:none;margin-bottom:32px">
       <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">💼 Portfolio Tab — Track Your Real Positions</div>
       <p style="margin-bottom:12px">The Portfolio tab lets you log your real stock and option positions so you get live P&amp;L tied to the screener's analysis. Use it to make data-driven decisions about your existing holdings.</p>
 
@@ -1617,7 +1711,7 @@ tbody tr { transition: background 0.15s ease; }
     </div>
 
     <!-- DISCOVER -->
-    <div id="g-discover" style="margin-bottom:32px">
+    <div id="g-discover" class="guide-section" style="display:none;margin-bottom:32px">
       <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">🔭 Discover Tab — Find New Stocks</div>
       <p style="margin-bottom:12px">Discover scans curated universes of ~50 quality candidates per category to surface stocks matching specific investment styles. Each scan takes ~7 minutes due to Twelve Data rate limits — results cached 24 hours.</p>
 
@@ -1636,27 +1730,92 @@ tbody tr { transition: background 0.15s ease; }
     </div>
 
     <!-- WORKFLOW -->
-    <div id="g-workflow" style="margin-bottom:32px">
-      <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:12px">⚡ Daily / Weekly Workflow</div>
-      <p style="margin-bottom:12px">A practical routine for using all the screener's tools effectively:</p>
+    <div id="g-workflow" class="guide-section" style="margin-bottom:32px">
+      <div style="font-size:18px;font-weight:700;color:var(--text-primary);margin-bottom:14px">🚀 Start Here — What this app does &amp; how to use it</div>
 
-      <div style="display:grid;gap:12px;margin-bottom:20px">
-        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:16px"><div style="font-size:13px;font-weight:700;color:#a78bfa;margin-bottom:8px">📅 Daily (5 minutes)</div><div style="font-size:12px;color:#64748b;line-height:1.7">1. Open Screener tab → glance at sorted scores · 2. Check Portfolio tab → look for new alerts (time stops, earnings warnings) · 3. If options getting close to time stop or hitting profit targets, act on them.</div></div>
-        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:16px"><div style="font-size:13px;font-weight:700;color:#60a5fa;margin-bottom:8px">📆 Weekly (15 minutes)</div><div style="font-size:12px;color:#64748b;line-height:1.7">1. Click "↻ Refresh all" on Screener — gets fresh fundamentals + technicals · 2. Sort by Total Score → spot any stocks that dropped from BUY to HOLD or worse · 3. Run "🧠 AI Summary all" once a week to keep theses fresh on top holdings · 4. Click "🧠 Review Portfolio" to catch concentration risk before it gets bigger.</div></div>
-        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:16px"><div style="font-size:13px;font-weight:700;color:#fbbf24;margin-bottom:8px">📊 Monthly (30 minutes)</div><div style="font-size:12px;color:#64748b;line-height:1.7">1. Re-import Robinhood CSV — keeps positions in sync · 2. Run one Discover scan (~7 min) — rotate through categories: Breaking Out, then Quality next month, etc · 3. Add interesting Discover results to your watchlist · 4. Review Portfolio AI guidance for each position — make any sell/trim/hold decisions deliberately.</div></div>
-        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:16px"><div style="font-size:13px;font-weight:700;color:#4ade80;margin-bottom:8px">🎯 Quarterly (1 hour)</div><div style="font-size:12px;color:#64748b;line-height:1.7">1. Run all 5 Discover scans over a few days · 2. Compare your portfolio to opportunities — anything you should swap into? · 3. Tax loss harvesting check (in November/December) · 4. Rebalance if any single position is &gt;20% of portfolio.</div></div>
+      <p style="margin-bottom:16px;line-height:1.7">This is a <strong style="color:var(--text-primary)">value-investing stock screener</strong> for retail investors. It scores stocks across four classic frameworks (Graham, Buffett, Lynch, Brooks), gives you fair price + entry price targets grounded in those books, tracks your real portfolio positions, and uses AI to generate analysis on demand. The goal: bring disciplined, math-based stock research within reach without expensive Bloomberg-style tools.</p>
+
+      <div style="font-size:14px;font-weight:700;color:var(--accent-buy);margin:24px 0 10px">🎯 What it answers for you</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-bottom:18px">
+        <div style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:14px">
+          <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:6px">🔍 "Is this stock worth buying?"</div>
+          <div style="font-size:12px;color:var(--text-tertiary);line-height:1.6">A clear <strong style="color:var(--text-secondary)">/32 score</strong> combining fundamentals, growth, and price action. Color-coded BUY/HOLD/SELL signal — see <em>Scores</em> &amp; <em>Signals</em> tabs.</div>
+        </div>
+        <div style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:14px">
+          <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:6px">💰 "What price should I pay?"</div>
+          <div style="font-size:12px;color:var(--text-tertiary);line-height:1.6"><strong style="color:var(--text-secondary)">Fair Price</strong> (Graham's formula) = max sensible price. <strong style="color:var(--text-secondary)">Entry Price</strong> (Brooks) = technical setup price — see <em>Fair &amp; Entry</em> tab.</div>
+        </div>
+        <div style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:14px">
+          <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:6px">📊 "How are my positions doing?"</div>
+          <div style="font-size:12px;color:var(--text-tertiary);line-height:1.6">Import Robinhood CSV → live P&amp;L, auto alerts on time stops &amp; earnings, AI guidance per position — see <em>Portfolio</em> tab.</div>
+        </div>
+        <div style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:14px">
+          <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:6px">🔭 "What new stocks should I look at?"</div>
+          <div style="font-size:12px;color:var(--text-tertiary);line-height:1.6">5 curated universes scan for breakouts, quality, value, options setups — see <em>Discover</em> tab.</div>
+        </div>
       </div>
 
-      <div style="background:#141620;border-left:3px solid #4ade80;padding:14px 18px;border-radius:0 8px 8px 0"><strong style="color:#fff">The 3 most important things this app helps you do:</strong>
-        <ol style="margin:8px 0 0 20px;font-size:12px;color:#94a3b8;line-height:1.8">
-          <li>Resist the urge to act on hype — scores tell you when fundamentals AND technicals align.</li>
-          <li>Catch problems early — Portfolio alerts surface issues before they become big losses.</li>
-          <li>Discover better opportunities than your watchlist — Discover scans surface quality stocks you'd never have found scrolling Twitter.</li>
+      <div style="font-size:14px;font-weight:700;color:var(--accent-info);margin:24px 0 10px">📋 Your first 10 minutes</div>
+      <ol style="margin:0 0 18px 22px;line-height:2;color:var(--text-secondary)">
+        <li><strong style="color:var(--text-primary)">Add API keys</strong> — click ⚙ API Keys in the top right. You need Anthropic (for AI), Finnhub (fundamentals), and Twelve Data (price history). All free tiers.</li>
+        <li><strong style="color:var(--text-primary)">Wait for default watchlist to load</strong> — 15 popular stocks start analyzing automatically (~2 min). Watch the green progress bar at top.</li>
+        <li><strong style="color:var(--text-primary)">Scan the table</strong> — green "BUY" badges + high scores = strongest candidates. Color-coded Fair/Entry columns tell you valuation + timing.</li>
+        <li><strong style="color:var(--text-primary)">Click any row</strong> to expand — see the full breakdown across Graham/Buffett/Lynch/Technical tabs.</li>
+        <li><strong style="color:var(--text-primary)">Click 🧠 Generate AI Summary</strong> on a stock that interests you — gets a thorough investment thesis with real web-searched catalysts (~10 sec).</li>
+        <li><strong style="color:var(--text-primary)">Add your real positions</strong> — Portfolio tab → 📂 Import CSV (Robinhood: Account → Statements → Export). See live P&amp;L immediately.</li>
+        <li><strong style="color:var(--text-primary)">Try a Discover scan</strong> — Discover tab → click 🔍 Scan on any category (e.g. "Long-term Quality"). ~7 min to surface new candidates.</li>
+      </ol>
+
+      <div style="font-size:14px;font-weight:700;color:var(--accent-hold);margin:24px 0 10px">📖 The frameworks in plain language</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin-bottom:18px">
+        <div style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:14px">
+          <div style="font-size:13px;font-weight:700;color:var(--accent-hold);margin-bottom:6px">🏦 Graham (Safety)</div>
+          <div style="font-size:11px;color:var(--text-tertiary);line-height:1.7">Is this stock <em>cheap</em>? Low P/E, low P/B, strong balance sheet, pays a dividend. Graham's defensive criteria filter out expensive and risky stocks.</div>
+        </div>
+        <div style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:14px">
+          <div style="font-size:13px;font-weight:700;color:var(--accent-ai);margin-bottom:6px">🎩 Buffett (Quality)</div>
+          <div style="font-size:11px;color:var(--text-tertiary);line-height:1.7">Is this a <em>great business</em>? High ROE, strong free cash flow, fat margins, predictable returns. Buffett buys quality at fair prices, not garbage at cheap prices.</div>
+        </div>
+        <div style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:14px">
+          <div style="font-size:13px;font-weight:700;color:var(--accent-buy);margin-bottom:6px">🔍 Lynch (Growth)</div>
+          <div style="font-size:11px;color:var(--text-tertiary);line-height:1.7">Is this <em>growing</em>? Reasonable price relative to growth (PEG &lt; 1), expanding revenue and earnings. Lynch wants growth without overpaying.</div>
+        </div>
+        <div style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:14px">
+          <div style="font-size:13px;font-weight:700;color:var(--accent-info);margin-bottom:6px">📈 Brooks (Technicals)</div>
+          <div style="font-size:11px;color:var(--text-tertiary);line-height:1.7">Is the <em>price action right</em>? Trend direction, EMA positions, breakouts, pullbacks. Even a great business is a bad trade if you buy at the wrong time.</div>
+        </div>
+      </div>
+
+      <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin:24px 0 10px">⏰ Suggested routine</div>
+      <div style="display:grid;gap:10px;margin-bottom:18px">
+        <div style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:14px"><div style="font-size:13px;font-weight:700;color:var(--accent-ai);margin-bottom:6px">📅 Daily (5 min)</div><div style="font-size:12px;color:var(--text-tertiary);line-height:1.7">1. Open Screener → glance at sorted scores. 2. Check Portfolio for new alerts (time stops, earnings warnings). 3. Act on anything urgent.</div></div>
+        <div style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:14px"><div style="font-size:13px;font-weight:700;color:var(--accent-info);margin-bottom:6px">📆 Weekly (15 min)</div><div style="font-size:12px;color:var(--text-tertiary);line-height:1.7">1. Click <strong>↻ Refresh all</strong> on Screener. 2. Sort by Total Score → spot anyone dropping from BUY to HOLD. 3. Run <strong>🧠 AI Summary all</strong> to keep theses fresh. 4. Click <strong>🧠 Review Portfolio</strong> to catch concentration risk early.</div></div>
+        <div style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:14px"><div style="font-size:13px;font-weight:700;color:var(--accent-hold);margin-bottom:6px">📊 Monthly (30 min)</div><div style="font-size:12px;color:var(--text-tertiary);line-height:1.7">1. Re-import Robinhood CSV. 2. Run one Discover scan (~7 min) — rotate categories. 3. Add interesting Discover results to watchlist. 4. Review per-position AI guidance, make trim/hold decisions deliberately.</div></div>
+        <div style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:14px"><div style="font-size:13px;font-weight:700;color:var(--accent-buy);margin-bottom:6px">🎯 Quarterly (1 hr)</div><div style="font-size:12px;color:var(--text-tertiary);line-height:1.7">1. Run all 5 Discover scans over a few days. 2. Compare portfolio to opportunities — anything to swap? 3. Tax loss harvesting check (Nov/Dec). 4. Rebalance if any one position is >20% of portfolio.</div></div>
+      </div>
+
+      <div style="background:var(--bg-surface);border-left:3px solid var(--accent-buy);padding:14px 18px;border-radius:0 8px 8px 0;margin-bottom:14px">
+        <strong style="color:var(--text-primary)">The 3 things this app helps you do well:</strong>
+        <ol style="margin:8px 0 0 20px;font-size:12px;color:var(--text-tertiary);line-height:1.8">
+          <li><strong style="color:var(--text-secondary)">Resist hype</strong> — Scores tell you when fundamentals AND technicals align. The chart can lie, the numbers can lie, but rarely at the same time.</li>
+          <li><strong style="color:var(--text-secondary)">Catch problems early</strong> — Portfolio alerts surface issues before they become big losses (options near expiry, score deterioration).</li>
+          <li><strong style="color:var(--text-secondary)">Find better opportunities</strong> — Discover scans surface quality stocks you'd never have found scrolling Twitter or Reddit.</li>
         </ol>
+      </div>
+
+      <div style="background:var(--bg-surface);border-left:3px solid var(--accent-hold);padding:14px 18px;border-radius:0 8px 8px 0">
+        <strong style="color:var(--text-primary)">Honest disclaimers:</strong>
+        <ul style="margin:8px 0 0 20px;font-size:12px;color:var(--text-tertiary);line-height:1.7">
+          <li>This is <em>not financial advice</em>. It's a research tool. You make every decision.</li>
+          <li>Scores are based on backward-looking data. Past metrics don't guarantee future returns.</li>
+          <li>The AI summary uses web search for current events, but can still get details wrong. Verify before acting.</li>
+          <li>Free API tiers limit how fast/often you can refresh. Plan around that.</li>
+          <li>For deeper info on any feature, click the relevant tab above.</li>
+        </ul>
       </div>
     </div>
 
-    <div style="border-top:1px solid #1e2133;padding-top:16px;margin-top:8px;font-size:11px;color:#374151;text-align:center">Not financial advice. For educational and research purposes only. Always do your own due diligence. Past performance does not guarantee future results.</div>
+    <div style="border-top:1px solid var(--border-default);padding-top:16px;margin-top:8px;font-size:11px;color:var(--text-faint);text-align:center">Not financial advice. For educational and research purposes only. Always do your own due diligence. Past performance does not guarantee future results.</div>
   </div>
 </div>
 </div><!-- end #tabScreener -->
@@ -2865,6 +3024,21 @@ function addDiscoveredToScreener(ticker){
   switchTab('screener');
   document.getElementById('ti').value = ticker;
   setTimeout(()=>go(), 100);
+}
+
+function showGuideSection(section){
+  // Hide all sections
+  document.querySelectorAll('.guide-section').forEach(el => el.style.display = 'none');
+  // Show selected
+  const target = document.getElementById('g-' + section);
+  if(target) target.style.display = 'block';
+  // Update active tab
+  document.querySelectorAll('.guide-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.section === section);
+  });
+  // Scroll guide content to top so user sees the new section from start
+  const content = document.getElementById('guideContent');
+  if(content) content.scrollTop = 0;
 }
 
 function toggleTheme(){
