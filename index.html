@@ -1706,8 +1706,8 @@ tbody tr { transition: background 0.15s ease; }
           <div style="font-size:12px;color:#94a3b8;line-height:1.7">Consecutive years ROE has been ≥15%. Streaks of 7+ years signal a structural moat — a one-year ROE spike could be luck, but a decade of high ROE is real competitive advantage. The single best historical predictor of future ROE.</div>
         </div>
         <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
-          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px">Insider Ownership &nbsp;<span style="color:#4a5568;font-weight:400;font-size:10px">FMP (when configured)</span></div>
-          <div style="font-size:12px;color:#94a3b8;line-height:1.7">Percent of shares held by management and directors. Lynch's "skin in the game" check. <strong style="color:#cbd5e1">Threshold:</strong> ≥5%. <em style="color:#64748b">Pitfall: very high insider ownership (&gt;50%) cuts both ways — founder-led companies can have great long-term thinking, but minority shareholders have little governance power if things go wrong.</em></div>
+          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px">Insider Ownership &nbsp;<span style="color:#f87171;font-weight:400;font-size:10px">⚠ unavailable on this build</span></div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7">Percent of shares held by management. Lynch's "skin in the game" check (≥5%). <em style="color:#64748b">Honest status: the Finnhub free tier doesn't expose this field, so it's hardcoded to 0 in the screener. The Lynch framework originally penalized every stock for failing this check (capping Lynch at 7/8); the criterion has been replaced with "Reasonable P/E (&lt; 25)" — a GARP check that's truer to Lynch's philosophy and uses data we have. If you ever wire up an insider-data source (some paid Finnhub tiers, or FMP), the original check can be restored.</em></div>
         </div>
         <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
           <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px">Inventory vs Sales Growth &nbsp;<span style="color:#4a5568;font-weight:400;font-size:10px">computed</span></div>
@@ -1842,7 +1842,7 @@ tbody tr { transition: background 0.15s ease; }
         <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:#34d399;margin-bottom:4px">Inventory vs Sales Growth</div><div style="font-size:11px;color:#64748b;line-height:1.6">If inventory grows faster than sales, the company is struggling to sell products — a warning sign Lynch watched closely as an early recession signal.</div></div>
         <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:#34d399;margin-bottom:4px">Cash/Share &gt; 0</div><div style="font-size:11px;color:#64748b;line-height:1.6">Company holds cash per share — financial cushion that reduces risk and funds growth without needing to dilute shareholders.</div></div>
         <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:#34d399;margin-bottom:4px">LT Debt/Equity &lt; 30%</div><div style="font-size:11px;color:#64748b;line-height:1.6">Long-term debt under 30% of equity. Lynch preferred companies that didn't need heavy debt to fuel their growth story.</div></div>
-        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:#34d399;margin-bottom:4px">Insider Ownership ≥ 5%</div><div style="font-size:11px;color:#64748b;line-height:1.6">Management owns 5%+ of the company. Skin in the game — executives lose real money if the stock drops. Aligns interests.</div></div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:#34d399;margin-bottom:4px">Reasonable P/E (&lt; 25)</div><div style="font-size:11px;color:#64748b;line-height:1.6">GARP: refuse to pay extreme multiples even for fast growers. Lynch wanted growth at a price that still made sense. P/E above 25 means the market has fully priced the optimism — limited room for multiple expansion.</div></div>
         <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:#34d399;margin-bottom:4px">Sales Growth &gt; 10%</div><div style="font-size:11px;color:#64748b;line-height:1.6">Top-line revenue growing 10%+ YoY. Earnings can be manipulated; revenue growth is harder to fake.</div></div>
         <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:#34d399;margin-bottom:4px">Lynch Category 2–4</div><div style="font-size:11px;color:#64748b;line-height:1.6">Stalwart (steady grower), Fast Grower, or Cyclical at the right point in cycle — Lynch's three favorite types to own.</div></div>
       </div>
@@ -3530,10 +3530,17 @@ async function fetchFinnhub(t){
     .then(r => { if(!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
     .catch(e => { console.warn(`Finnhub failed [${url.split('?')[0].split('/').pop()}]:`, e.message); return null; });
 
-  const [quote, profile, metric] = await Promise.all([
+  // Earnings calendar — next 90 days, used for options-strategy timing
+  const today = new Date();
+  const in90 = new Date(today.getTime() + 90*24*3600*1000);
+  const todayStr = today.toISOString().slice(0,10);
+  const in90Str  = in90.toISOString().slice(0,10);
+
+  const [quote, profile, metric, earnings] = await Promise.all([
     fget(`${B}/quote?symbol=${t}&${K}`),
     fget(`${B}/stock/profile2?symbol=${t}&${K}`),
     fget(`${B}/stock/metric?symbol=${t}&metric=all&${K}`),
+    fget(`${B}/calendar/earnings?from=${todayStr}&to=${in90Str}&symbol=${t}&${K}`),
   ]);
 
   // Only require quote — profile is empty for ETFs, metric may be sparse
@@ -3552,11 +3559,29 @@ async function fetchFinnhub(t){
     shareOutstanding: profile?.shareOutstanding || 0,
   };
 
-  return parseFinnhubResponse(t, quote, safeProfile, metric);
+  // Compute days to next earnings (null if none in window or fetch failed)
+  let nextEarningsDays = null;
+  let nextEarningsDate = null;
+  try {
+    const arr = earnings?.earningsCalendar || [];
+    if(arr.length){
+      // Find earliest future earnings date
+      const future = arr
+        .map(e => ({ date: e.date, ts: new Date(e.date + 'T00:00:00').getTime() }))
+        .filter(e => !isNaN(e.ts) && e.ts >= today.getTime() - 24*3600*1000)
+        .sort((a,b) => a.ts - b.ts);
+      if(future.length){
+        nextEarningsDate = future[0].date;
+        nextEarningsDays = Math.round((future[0].ts - today.getTime()) / (24*3600*1000));
+      }
+    }
+  } catch(e) { console.warn('Earnings parse failed for', t, e.message); }
+
+  return parseFinnhubResponse(t, quote, safeProfile, metric, { nextEarningsDays, nextEarningsDate });
 }
 
 // ── Finnhub response parser ──
-function parseFinnhubResponse(t, quote, profile, metricResp){
+function parseFinnhubResponse(t, quote, profile, metricResp, extras){
   const m = metricResp?.metric || {};
   const series = metricResp?.series || {};
 
@@ -3662,6 +3687,9 @@ function parseFinnhubResponse(t, quote, profile, metricResp){
     week52High: m['52WeekHigh'] || null,
     week52Low: m['52WeekLow'] || null,
     beta: m.beta || null,
+    // Earnings calendar (from /calendar/earnings endpoint — free tier)
+    nextEarningsDays: extras?.nextEarningsDays ?? null,
+    nextEarningsDate: extras?.nextEarningsDate ?? null,
   };
 }
 
@@ -3832,25 +3860,404 @@ function analyzeTechnicals(history){
 }
 
 // ── Pure-math score computation from FMP data + price history ──
+// ══════════════════════════════════════════════════════════
+// OPTIONS STRATEGY HELPERS
+// ══════════════════════════════════════════════════════════
+
+// Annualized realized volatility from closing prices (default 30 trading days)
+function computeRealizedVol(closes, days = 30){
+  if(!closes || closes.length < days + 1) return null;
+  const window = closes.slice(-(days + 1));
+  const rets = [];
+  for(let i = 1; i < window.length; i++){
+    if(window[i-1] > 0 && window[i] > 0) rets.push(Math.log(window[i] / window[i-1]));
+  }
+  if(rets.length < 2) return null;
+  const mean = rets.reduce((s,r) => s+r, 0) / rets.length;
+  const variance = rets.reduce((s,r) => s + (r-mean)**2, 0) / (rets.length - 1);
+  return Math.sqrt(variance) * Math.sqrt(252); // annualized
+}
+
+// Median of an array (used to find the stock's typical RV)
+function _median(arr){
+  if(!arr || !arr.length) return null;
+  const sorted = [...arr].sort((a,b) => a-b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid-1] + sorted[mid]) / 2;
+}
+
+// Compute rolling 30-day RV history over a lookback period.
+// Returns an array of RVs (one per ending day). Used to find the stock's typical vol baseline.
+function computeRollingRV(closes, windowDays = 30, lookbackDays = 180){
+  if(!closes || closes.length < windowDays + 10) return null;
+  const startIdx = Math.max(windowDays, closes.length - lookbackDays - windowDays);
+  const rvs = [];
+  for(let i = startIdx + windowDays; i < closes.length; i++){
+    const window = closes.slice(i - windowDays, i + 1);
+    const rets = [];
+    for(let j = 1; j < window.length; j++){
+      if(window[j-1] > 0 && window[j] > 0) rets.push(Math.log(window[j] / window[j-1]));
+    }
+    if(rets.length < 5) continue;
+    const mean = rets.reduce((s,r) => s+r, 0) / rets.length;
+    const variance = rets.reduce((s,r) => s + (r-mean)**2, 0) / (rets.length - 1);
+    rvs.push(Math.sqrt(variance) * Math.sqrt(252));
+  }
+  return rvs.length >= 10 ? rvs : null;
+}
+
+// Classify IV environment using stock-aware (relative) comparison when history exists,
+// or absolute thresholds as fallback. Returns { level, label, advice }.
+function classifyIVContext(currentRV, historicalRVs){
+  if(currentRV == null) return {
+    level: 'UNKNOWN',
+    label: 'IV context unavailable (insufficient price history)',
+    advice: 'Verify premium against bid/ask in your broker before trading.'
+  };
+  const pct = currentRV * 100;
+  const med = (historicalRVs && historicalRVs.length >= 10) ? _median(historicalRVs) : null;
+
+  if(med && med > 0){
+    // Stock-aware classification — relative to this stock's own typical RV
+    const ratio = currentRV / med;
+    const medPct = med * 100;
+    if(ratio < 0.7){
+      return {
+        level: 'LOW',
+        label: `RV ${pct.toFixed(0)}% — below this stock's typical ~${medPct.toFixed(0)}% (${(ratio*100).toFixed(0)}% of normal)`,
+        advice: pct < 20
+          ? 'IV likely cheap in absolute terms too. Long calls are fine.'
+          : 'IV subdued vs this stock\'s norm — premium reasonable for the name.',
+      };
+    }
+    if(ratio < 1.3){
+      return {
+        level: 'NORMAL',
+        label: `RV ${pct.toFixed(0)}% — in line with this stock's typical ~${medPct.toFixed(0)}%`,
+        advice: pct < 25
+          ? 'Premium should be cheap in absolute terms. Long calls fine.'
+          : pct < 50
+            ? 'Premium typical for the name. Long calls work; spreads optional for cost reduction.'
+            : 'High-vol stock — premium will be expensive in $ terms but normal for this name. Spreads cap cost.',
+      };
+    }
+    if(ratio < 2.0){
+      return {
+        level: 'ELEVATED',
+        label: `RV ${pct.toFixed(0)}% — elevated vs this stock's typical ~${medPct.toFixed(0)}% (${ratio.toFixed(1)}× normal)`,
+        advice: 'IV unusually high for this name. Consider bull call spreads to cap cost, or wait for IV to normalize.',
+      };
+    }
+    return {
+      level: 'EXTREME',
+      label: `RV ${pct.toFixed(0)}% — extreme vs this stock's typical ~${medPct.toFixed(0)}% (${ratio.toFixed(1)}× normal)`,
+      advice: 'IV crush risk — premium will likely collapse when vol normalizes. Spreads strongly preferred, or wait.',
+    };
+  }
+
+  // Absolute fallback (no stock history available — new IPOs, sparse data)
+  if(pct < 25) return { level:'LOW', label:`RV ~${pct.toFixed(0)}% — IV likely low (no stock baseline)`, advice:'Premium should be reasonable. Long calls are fine.' };
+  if(pct < 40) return { level:'NORMAL', label:`RV ~${pct.toFixed(0)}% — IV likely normal (no stock baseline)`, advice:'Typical premium environment. Long calls work; spreads optional.' };
+  if(pct < 60) return { level:'ELEVATED', label:`RV ~${pct.toFixed(0)}% — IV likely elevated (no stock baseline)`, advice:'Premium likely expensive. Consider bull call spreads to cap cost.' };
+  return         { level:'EXTREME', label:`RV ~${pct.toFixed(0)}% — IV likely extreme (no stock baseline)`, advice:'IV crush risk on directional bets. Spreads strongly preferred, or wait.' };
+}
+
+// Brenner-Subrahmanyam approximation: ATM premium ≈ 0.4 × S × σ × √T
+// Adjusted for moneyness with rough Gaussian decay. Works for calls and puts.
+function estimateCallPremium(strike, currentPrice, rvAnnual, monthsToExpiry, type = 'call'){
+  if(!strike || !currentPrice || !rvAnnual || !monthsToExpiry) return null;
+  const T = monthsToExpiry / 12;
+  const sigma = rvAnnual;
+  const atmPremium = 0.4 * currentPrice * sigma * Math.sqrt(T);
+
+  // Determine if option is ITM, ATM, or OTM
+  const isCall = type === 'call';
+  const intrinsic = isCall ? Math.max(0, currentPrice - strike) : Math.max(0, strike - currentPrice);
+  const isOTM = isCall ? (strike > currentPrice) : (strike < currentPrice);
+
+  if(!isOTM){
+    // ITM or ATM: intrinsic + reduced time value
+    return intrinsic + atmPremium * 0.6;
+  }
+  // OTM: decay based on strike distance vs vol-adjusted move
+  const moneyness = Math.abs(strike - currentPrice) / currentPrice;
+  const volMove = sigma * Math.sqrt(T);
+  if(volMove <= 0) return atmPremium * 0.3;
+  const z = moneyness / volMove;
+  const decay = Math.exp(-z * z / 2);
+  return Math.max(0.05, atmPremium * decay);
+}
+
+// Pick option strategy that fits the stock's framework signature
+function selectOptionStrategy(stock){
+  const { graham, buffett, lynch, technical, overallSignal, totalScore, currentPrice } = stock;
+
+  // SELL or downtrend: no recommendation
+  if(overallSignal === 'SELL' || technical?.trendDirection === 'downtrend'){
+    return {
+      strategy: 'NONE', strategyName: 'No options play',
+      dominantFramework: 'None',
+      reason: 'SELL signal or confirmed downtrend — avoid calls on weak setups. If you must trade, look at puts or stay flat.',
+      expiryMonths: 0,
+    };
+  }
+
+  // HOLD + sideways: cash-secured put at support
+  if(overallSignal === 'HOLD' && (technical?.trendDirection === 'sideways' || technical?.tradingRange)){
+    const supportLvl = technical?.supportLevel || currentPrice * 0.92;
+    return {
+      strategy: 'CASH_SECURED_PUT', strategyName: 'Cash-secured put',
+      dominantFramework: 'Range-bound',
+      reason: 'Sideways consolidation — sell a put at support to collect premium. If assigned, you own the stock at a discount; if not, keep the premium.',
+      expiryMonths: 1,
+      putTarget: supportLvl,
+    };
+  }
+
+  // Find dominant framework
+  const fwks = [
+    { name: 'Buffett', score: buffett?.score || 0 },
+    { name: 'Lynch', score: lynch?.score || 0 },
+    { name: 'Technical', score: technical?.score || 0 },
+    { name: 'Graham', score: graham?.score || 0 },
+  ].sort((a,b) => b.score - a.score);
+
+  const top = fwks[0];
+  const second = fwks[1];
+  // Dominant only if top is clearly ahead by 2+ points
+  const dominant = top.score - second.score >= 2 ? top.name : 'Mixed';
+
+  // Buffett-dominant + BUY: LEAPS
+  if(dominant === 'Buffett' && buffett.score >= 6 && overallSignal === 'BUY'){
+    return {
+      strategy: 'LEAPS', strategyName: '12-month LEAPS call',
+      dominantFramework: `Buffett (${buffett.score}/8)`,
+      reason: `Buffett dominates the score signal — durable moat, high quality. LEAPS let the long-term thesis compound across a full year. Lower theta decay per month.`,
+      expiryMonths: 12,
+    };
+  }
+
+  // Lynch-dominant + BUY: 6mo (capture 2 earnings cycles)
+  if(dominant === 'Lynch' && lynch.score >= 6 && overallSignal === 'BUY'){
+    return {
+      strategy: 'LONG_CALL_6MO', strategyName: '6-month long call',
+      dominantFramework: `Lynch (${lynch.score}/8)`,
+      reason: `Lynch dominates — earnings/growth momentum. 6mo expiry captures approximately 2 earnings reports, the catalysts most likely to move the stock.`,
+      expiryMonths: 6,
+    };
+  }
+
+  // Technical-dominant + uptrend + BUY: 3mo (ride the trend)
+  if(dominant === 'Technical' && technical.score >= 6 && technical.trendDirection === 'uptrend' && overallSignal === 'BUY'){
+    return {
+      strategy: 'LONG_CALL_3MO', strategyName: '3-month long call',
+      dominantFramework: `Technical (${technical.score}/8)`,
+      reason: `Technical dominates — strong trend already in progress. Don't pay for time you don't need; ride the trend leg with shorter-dated calls.`,
+      expiryMonths: 3,
+    };
+  }
+
+  // Mixed BUY: 6mo default
+  if(overallSignal === 'BUY'){
+    return {
+      strategy: 'LONG_CALL_6MO', strategyName: '6-month long call',
+      dominantFramework: dominant === 'Mixed' ? `Mixed signal (top: ${top.name} ${top.score}/8)` : `${dominant} (${top.score}/8)`,
+      reason: dominant === 'Mixed'
+        ? `Multiple frameworks contribute to the ${totalScore}/32 score — no single dominant pattern. 6mo default expiry balances time value and theta.`
+        : `${dominant}-leaning BUY signal. 6mo default expiry is the safe middle ground.`,
+      expiryMonths: 6,
+    };
+  }
+
+  // HOLD + uptrend: smaller play, shorter dated
+  if(overallSignal === 'HOLD' && technical?.trendDirection === 'uptrend'){
+    return {
+      strategy: 'LONG_CALL_3MO', strategyName: '3-month long call (small size)',
+      dominantFramework: `Technical uptrend on a HOLD (${totalScore}/32)`,
+      reason: `Below the BUY threshold but uptrend confirmed — short expiry only, small position size. Stock-only may be safer than options here.`,
+      expiryMonths: 3,
+    };
+  }
+
+  return {
+    strategy: 'NONE', strategyName: 'No options play',
+    dominantFramework: 'None',
+    reason: `Score ${totalScore}/32 + ${technical?.trendDirection || 'unknown trend'} — insufficient signal strength for an options trade.`,
+    expiryMonths: 0,
+  };
+}
+
+// Strike range guidance based on strategy + conviction level
+function getStrikeGuidance(currentPrice, strategy, conviction){
+  if(!currentPrice) return null;
+  const round5 = x => Math.round(x / 5) * 5 || Math.round(x); // round to $5 for >$25 stocks, else $1
+  const r = x => currentPrice >= 25 ? round5(x) : Math.round(x);
+  switch(strategy){
+    case 'LEAPS':
+    case 'LONG_CALL_6MO':
+      if(conviction === 'HIGH')   return { low: r(currentPrice * 1.03), high: r(currentPrice * 1.10), anchor: 'ATM to 10% OTM', note: 'High conviction — bias slightly OTM for leverage. Lower delta per contract but higher % return if target hits.' };
+      if(conviction === 'MEDIUM') return { low: r(currentPrice * 1.00), high: r(currentPrice * 1.05), anchor: 'ATM to 5% OTM', note: 'Balanced — ATM gives highest probability of profit; 5% OTM is the cheaper-with-decent-delta compromise.' };
+      return                      { low: r(currentPrice * 0.95), high: r(currentPrice * 1.00), anchor: 'ITM to ATM', note: 'Lower conviction — ITM strikes have higher delta and behave more like stock; you give up some leverage for safety.' };
+    case 'LONG_CALL_3MO':
+      if(conviction === 'HIGH')   return { low: r(currentPrice * 1.02), high: r(currentPrice * 1.05), anchor: 'ATM to 5% OTM', note: 'Short-dated needs high conviction strikes — stay close to the money so theta works for you.' };
+      return                      { low: r(currentPrice * 0.98), high: r(currentPrice * 1.02), anchor: 'ATM', note: 'Short-dated — stay at the money to maximize delta. Don\'t reach for OTM on 3-month calls.' };
+    case 'CASH_SECURED_PUT':
+      return                      { low: r(currentPrice * 0.90), high: r(currentPrice * 0.95), anchor: '5-10% below current', note: 'Strike at or below support — set this at a price you\'d be genuinely happy to own the stock at.' };
+    default:
+      return null;
+  }
+}
+
+// Position sizing as % of portfolio based on conviction
+function getPositionSizing(conviction){
+  if(conviction === 'HIGH')   return { min: 2.0, max: 3.0, label: '2–3% of portfolio', note: 'High conviction allows full sizing — but never more than 3% on a single options position. Options can go to zero.' };
+  if(conviction === 'MEDIUM') return { min: 1.0, max: 2.0, label: '1–2% of portfolio', note: 'Moderate conviction → moderate size. Treat like a single high-conviction equity trade.' };
+  if(conviction === 'LOW')    return { min: 0.5, max: 1.0, label: '0.5–1% of portfolio', note: 'Low conviction — minimal size or skip entirely. Stock-only is often the safer play here.' };
+  return                      { min: 0,   max: 0,   label: 'Skip', note: 'Insufficient conviction — no options position recommended.' };
+}
+
+// Build stock vs option payoff comparison anchored to a ~$2000 nominal trade size
+function buildStockVsOptionComparison(currentPrice, targetPrice, strike, premium){
+  if(!currentPrice || !targetPrice || !strike || !premium || premium <= 0) return null;
+  const nominalDollars = 2000;
+  const stockShares = Math.max(1, Math.floor(nominalDollars / currentPrice));
+  const stockCost = stockShares * currentPrice;
+  const stockReturnAtTarget = (targetPrice - currentPrice) * stockShares;
+  const stockReturnPct = (targetPrice - currentPrice) / currentPrice * 100;
+
+  const contractCost = premium * 100;
+  // Size option position to similar dollar exposure (rounded down, min 1 contract)
+  const optionContracts = Math.max(1, Math.floor(nominalDollars / contractCost));
+  const optionCost = optionContracts * contractCost;
+  // Payoff at target: intrinsic value − premium paid
+  const intrinsicAtTarget = Math.max(0, targetPrice - strike);
+  const optionValueAtTarget = intrinsicAtTarget * 100 * optionContracts;
+  const optionReturnAtTarget = optionValueAtTarget - optionCost;
+  const optionReturnPct = optionCost > 0 ? optionReturnAtTarget / optionCost * 100 : 0;
+  const leverage = stockReturnPct !== 0 ? optionReturnPct / stockReturnPct : 0;
+
+  return {
+    stockShares, stockCost, stockReturnAtTarget, stockReturnPct,
+    optionContracts, contractCost, optionCost,
+    optionReturnAtTarget, optionReturnPct, leverage,
+    strike, premium, targetPrice,
+  };
+}
+
+// Classify earnings timing based on days until next earnings
+function classifyEarningsTiming(daysToEarnings, expiryMonths){
+  if(daysToEarnings == null) return { state:'UNKNOWN', label:'Earnings date unavailable', advice:'Check your broker\'s earnings calendar before placing the trade.' };
+  if(daysToEarnings < 0)     return { state:'PASSED', label:`Last earnings ${Math.abs(daysToEarnings)} days ago`, advice:'IV has likely reset after the recent report — good entry window for directional bets.' };
+  if(daysToEarnings <= 7)    return { state:'IMMINENT', label:`Earnings in ${daysToEarnings} days — imminent`, advice:'IV is likely elevated heading into the report. AVOID short-dated calls (IV crush risk after). Either wait for the report or use spreads.' };
+  if(daysToEarnings <= 30)   return { state:'APPROACHING', label:`Earnings in ${daysToEarnings} days — approaching`, advice:'IV will rise into the report. If your expiry crosses earnings, you\'ll pay for that elevated IV. Time entry carefully.' };
+  const expiryDays = expiryMonths * 30;
+  if(daysToEarnings < expiryDays) return { state:'NORMAL', label:`Earnings in ${daysToEarnings} days (within trade window)`, advice:`Your ${expiryMonths}mo expiry crosses earnings — built-in catalyst, but accept IV crush risk.` };
+  return                            { state:'OUTSIDE', label:`Earnings in ${daysToEarnings} days (outside trade window)`, advice:'Trade window closes before earnings — no IV crush concern. Clean directional bet.' };
+}
+
+
 function computeStock(ticker, fmp, history){
   const price = fmp.fmpPrice;
   const technical = analyzeTechnicals(history);
   const isETF = fmp.sector === 'ETF/Fund' || ['SPY','QQQ','IWM','DIA','VTI','VOO','GLD','TLT','XLF','XLK','XLE','ARKK'].includes(ticker);
 
-  // ── ETF: skip fundamental scoring entirely ──
+  // ── ETF: skip fundamental scoring, but DO run options strategy (tech-driven) ──
   if(isETF){
     const techScore = technical.score || 0;
     const techSignal = techScore >= 6 ? 'BUY' : techScore >= 4 ? 'HOLD' : 'SELL';
+    // ETF-specific conviction (out of 8 tech score, not 32 total)
+    const etfConfidence = techScore >= 7 ? 'HIGH' : techScore >= 5 ? 'MEDIUM' : techScore >= 4 ? 'LOW' : 'AVOID';
+
+    // Options strategy for ETFs — Technical naturally dominates since other scores are 0
+    const grahamStub = {score:0, signal:'N/A — ETF'};
+    const buffettStub = {score:0, signal:'N/A — ETF'};
+    const lynchStub = {score:0, signal:'N/A — ETF'};
+    const closesForVolETF = history && history.length >= 31 ? history.map(h => h.close) : null;
+    const rvETF = computeRealizedVol(closesForVolETF, 30);
+    const historicalRVsETF = closesForVolETF ? computeRollingRV(closesForVolETF, 30, 180) : null;
+    const ivCtxETF = classifyIVContext(rvETF, historicalRVsETF);
+    const stratETF = selectOptionStrategy({
+      graham: grahamStub, buffett: buffettStub, lynch: lynchStub, technical,
+      overallSignal: techSignal, totalScore: techScore, currentPrice: price,
+    });
+    // Override dominant framework label — for ETFs it's purely technical
+    if(stratETF.strategy !== 'NONE') stratETF.dominantFramework = `Technical (${techScore}/8) — ETF`;
+
+    const strikeETF = stratETF.strategy !== 'NONE' ? getStrikeGuidance(price, stratETF.strategy, etfConfidence) : null;
+    const sizingETF = getPositionSizing(etfConfidence);
+    const expETF = new Date();
+    if(stratETF.expiryMonths > 0) expETF.setMonth(expETF.getMonth() + stratETF.expiryMonths);
+    const expiryDateETF = stratETF.expiryMonths > 0 ? expETF.toISOString().slice(0,10) : '';
+    const monthsETF = Math.max(3, stratETF.expiryMonths || 6);
+    const targetETF = Math.round(price * (1 + (techScore/100) * (monthsETF/6) * 4) * 100) / 100; // scale up since techScore is /8 not /32
+    const targetUpsideETF = Math.round(techScore * 4 * (monthsETF/6));
+
+    let pLow = null, pHigh = null, pMid = null, midStrikeETF = null;
+    if(strikeETF && stratETF.expiryMonths > 0 && rvETF){
+      midStrikeETF = (strikeETF.low + strikeETF.high) / 2;
+      const optType = stratETF.strategy === 'CASH_SECURED_PUT' ? 'put' : 'call';
+      if(optType === 'call'){
+        pLow  = estimateCallPremium(strikeETF.high, price, rvETF, stratETF.expiryMonths, 'call');
+        pHigh = estimateCallPremium(strikeETF.low,  price, rvETF, stratETF.expiryMonths, 'call');
+      } else {
+        pLow  = estimateCallPremium(strikeETF.low,  price, rvETF, stratETF.expiryMonths, 'put');
+        pHigh = estimateCallPremium(strikeETF.high, price, rvETF, stratETF.expiryMonths, 'put');
+      }
+      pMid = estimateCallPremium(midStrikeETF, price, rvETF, stratETF.expiryMonths, optType);
+    }
+    const isCallETF = ['LEAPS','LONG_CALL_6MO','LONG_CALL_3MO'].includes(stratETF.strategy);
+    const comparisonETF = isCallETF && midStrikeETF && pMid
+      ? buildStockVsOptionComparison(price, targetETF, midStrikeETF, pMid)
+      : null;
+
+    const exitRuleETF =
+      stratETF.strategy === 'LEAPS' ? 'Roll forward 3 months before expiry, OR exit at 100% gain. Don\'t let LEAPS expire.' :
+      stratETF.strategy === 'CASH_SECURED_PUT' ? 'Let expire worthless to keep premium, OR buy back at 50% profit.' :
+      'Exit at 100% gain OR 30 days before expiry, whichever comes first.';
+    const maxLossETF =
+      stratETF.strategy === 'CASH_SECURED_PUT' ? `Max loss = strike × 100 − premium. If assigned, you own the ETF at your strike.` :
+      'Max loss = premium paid (full amount). Options can go to zero.';
+
+    const optVerdictETF =
+      stratETF.strategy === 'NONE' ? 'SKIP' :
+      stratETF.strategy === 'CASH_SECURED_PUT' ? 'INCOME' :
+      (techSignal === 'BUY' && technical.trendDirection === 'uptrend') ? 'GO' :
+      'CAUTION';
+
     return {
       ticker, companyName: fmp.companyName || ticker, sector: 'ETF/Fund',
       currentPrice: price, priceIsLive: true, hasFMP: true, error: null, isETF: true,
-      graham: {score:0,signal:'N/A — ETF'},
-      buffett: {score:0,signal:'N/A — ETF'},
-      lynch: {score:0,signal:'N/A — ETF'},
+      graham: grahamStub, buffett: buffettStub, lynch: lynchStub,
       technical,
-      options: {verdict:'CAUTION', verdictReason:'ETF — fundamental scoring not applicable'},
+      options: {
+        verdict: optVerdictETF,
+        verdictReason: stratETF.reason + ' (ETF — fundamental frameworks N/A, strategy driven by technicals.)',
+        strategy: stratETF.strategy,
+        strategyName: stratETF.strategyName,
+        dominantFramework: stratETF.dominantFramework,
+        expiryMonths: stratETF.expiryMonths,
+        expiryDate: expiryDateETF,
+        expiry6mo: expiryDateETF,
+        strikeGuide: strikeETF,
+        midStrike: midStrikeETF,
+        conviction: etfConfidence,
+        sizing: sizingETF,
+        realizedVol30d: rvETF,
+        ivContext: ivCtxETF,
+        // ETFs don't report earnings — make that explicit
+        earningsTiming: { state:'N/A', label:'ETFs don\'t report earnings', advice:'No earnings event to time around — pure directional/technical bet.' },
+        earningsWarning: 'NO',
+        nextEarningsApprox: '',
+        premiumLow: pLow, premiumMid: pMid, premiumHigh: pHigh,
+        comparison: comparisonETF,
+        targetPrice6mo: targetETF,
+        targetPriceUpside: targetUpsideETF,
+        exitRule: exitRuleETF,
+        maxLossRule: maxLossETF,
+        positionSizeRule: sizingETF.label + ' — ' + sizingETF.note,
+      },
       fundamentalScore: 0, totalScore: techScore,
-      overallSignal: techSignal, confidence: techScore>=6?'MEDIUM':'LOW',
+      overallSignal: techSignal, confidence: etfConfidence,
       oneLiner: `ETF — Technical score ${techScore}/8. ${technical.trendDirection||'No trend data'}.`,
       analysis: null,
     };
@@ -3933,7 +4340,7 @@ function computeStock(ticker, fmp, history){
   const lynch = {
     peg: fmp.peg, epsGrowthYoy: fmp.epsGrowthYoy,
     inventoryGrowth: fmp.inventoryGrowth, cashPerShare: fmp.cashPerShare,
-    ltDebtEquityPct: fmp.ltDebtEquityPct, insiderOwnershipPct: fmp.insiderOwnershipPct,
+    ltDebtEquityPct: fmp.ltDebtEquityPct, pe: fmp.pe,
     salesGrowthYoy: fmp.salesGrowthYoy, lynchCategory,
     score: [
       fmp.peg > 0 && fmp.peg < 1,
@@ -3941,7 +4348,7 @@ function computeStock(ticker, fmp, history){
       fmp.inventoryGrowth < fmp.salesGrowthYoy,
       fmp.cashPerShare > 0,
       fmp.ltDebtEquityPct < 30,
-      fmp.insiderOwnershipPct >= 5,
+      fmp.pe > 0 && fmp.pe < 25,         // GARP: reasonable P/E (replaces unavailable insider check)
       fmp.salesGrowthYoy > 10,
       [2,3,4].includes(lynchCategory),
     ].filter(Boolean).length,
@@ -3956,32 +4363,112 @@ function computeStock(ticker, fmp, history){
   const overallSignal = totalScore >= 22 ? 'BUY' : totalScore >= 13 ? 'HOLD' : 'SELL';
   const confidence = totalScore >= 26 ? 'HIGH' : totalScore >= 20 ? 'MEDIUM' : totalScore >= 13 ? 'LOW' : 'AVOID';
 
-  // ── Options verdict ──
+  // ── Options strategy (new framework-aware logic) ──
+  // Compute realized volatility for IV proxy + rolling history for stock-aware classification
+  const closesForVol = history && history.length >= 31 ? history.map(h => h.close) : null;
+  const realizedVol30d = computeRealizedVol(closesForVol, 30);
+  const historicalRVs = closesForVol ? computeRollingRV(closesForVol, 30, 180) : null;
+  const ivCtx = classifyIVContext(realizedVol30d, historicalRVs);
+
+  // Build a partial stock context for strategy selection
+  const stockForStrategy = {
+    graham, buffett, lynch, technical,
+    overallSignal, totalScore, currentPrice: price,
+  };
+  const strat = selectOptionStrategy(stockForStrategy);
+
+  // Strike guidance + sizing based on conviction
+  const strikeGuide = strat.strategy !== 'NONE' ? getStrikeGuidance(price, strat.strategy, confidence) : null;
+  const sizing = getPositionSizing(confidence);
+
+  // Compute expiry date
+  const expDate = new Date();
+  if(strat.expiryMonths > 0) expDate.setMonth(expDate.getMonth() + strat.expiryMonths);
+  const expiryDate = strat.expiryMonths > 0 ? expDate.toISOString().slice(0,10) : '';
+
+  // Target price (6mo, same formula as before but expiry-aware)
+  const monthsForTarget = Math.max(3, strat.expiryMonths || 6);
+  const targetPrice = Math.round(price * (1 + (totalScore/100) * (monthsForTarget/6)) * 100) / 100;
+  const targetUpsidePct = Math.round(totalScore * (monthsForTarget/6));
+
+  // Premium estimate at the midpoint of the suggested strike range
+  let premiumLow = null, premiumHigh = null, premiumMid = null;
+  let midStrike = null;
+  if(strikeGuide && strat.expiryMonths > 0 && realizedVol30d){
+    midStrike = (strikeGuide.low + strikeGuide.high) / 2;
+    const optType = strat.strategy === 'CASH_SECURED_PUT' ? 'put' : 'call';
+    // For calls: low strike → high premium; for puts: high strike → high premium
+    if(optType === 'call'){
+      premiumLow  = estimateCallPremium(strikeGuide.high, price, realizedVol30d, strat.expiryMonths, 'call');
+      premiumHigh = estimateCallPremium(strikeGuide.low,  price, realizedVol30d, strat.expiryMonths, 'call');
+    } else {
+      premiumLow  = estimateCallPremium(strikeGuide.low,  price, realizedVol30d, strat.expiryMonths, 'put');
+      premiumHigh = estimateCallPremium(strikeGuide.high, price, realizedVol30d, strat.expiryMonths, 'put');
+    }
+    premiumMid  = estimateCallPremium(midStrike, price, realizedVol30d, strat.expiryMonths, optType);
+  }
+
+  // Stock vs option payoff comparison (only meaningful for long call strategies)
+  const isCallStrategy = ['LEAPS','LONG_CALL_6MO','LONG_CALL_3MO'].includes(strat.strategy);
+  const comparison = isCallStrategy && midStrike && premiumMid
+    ? buildStockVsOptionComparison(price, targetPrice, midStrike, premiumMid)
+    : null;
+
+  // Earnings timing — daysToEarnings comes from optional Finnhub fetch (fmp.nextEarningsDays may be null)
+  const daysToEarnings = (fmp.nextEarningsDays != null) ? fmp.nextEarningsDays : null;
+  const earningsTiming = classifyEarningsTiming(daysToEarnings, strat.expiryMonths);
+
+  // Verdict — derived from strategy + confidence
   const optVerdict =
-    overallSignal === 'BUY' && technical.trendDirection === 'uptrend' ? 'GO' :
-    overallSignal === 'SELL' || technical.trendDirection === 'downtrend' ? 'SKIP' :
+    strat.strategy === 'NONE' ? 'SKIP' :
+    strat.strategy === 'CASH_SECURED_PUT' ? 'INCOME' :
+    (overallSignal === 'BUY' && technical.trendDirection === 'uptrend') ? 'GO' :
     'CAUTION';
 
-  // Compute expiry ~6 months out
-  const expDate = new Date();
-  expDate.setMonth(expDate.getMonth() + 6);
-  const expiry6mo = expDate.toISOString().slice(0,10);
+  // Exit rules vary by strategy
+  const exitRule =
+    strat.strategy === 'LEAPS' ? 'Roll forward 3 months before expiry, OR exit at 100% gain. Don\'t let LEAPS expire — capture remaining time value.' :
+    strat.strategy === 'CASH_SECURED_PUT' ? 'Let expire worthless to keep premium, OR buy back at 50% profit to free up capital.' :
+    'Exit at 100% gain OR 30 days before expiry, whichever comes first.';
+
+  const maxLossRule =
+    strat.strategy === 'CASH_SECURED_PUT' ? `Max loss = strike × 100 − premium. If assigned, you own the stock at your strike. Worst case: stock collapses; you hold at the strike price.` :
+    'Max loss = premium paid (full amount). Options can go to zero.';
 
   const options = {
     verdict: optVerdict,
-    verdictReason: optVerdict === 'GO'
-      ? `BUY signal (${totalScore}/32) + uptrend confirmed`
-      : optVerdict === 'SKIP'
-      ? `Score ${totalScore}/32 or downtrend — avoid calls`
-      : `Mixed setup — use caution`,
-    earningsWarning: 'NO',   // Can't detect precisely from FMP alone
-    nextEarningsApprox: '',
-    expiry6mo,
-    targetPrice6mo: Math.round(price * (1 + (totalScore/100)) * 100) / 100,
-    targetPriceUpside: Math.round(totalScore),  // Rough: 1% per score point
-    exitRule: 'Exit at 100% gain OR 30 days before expiry, whichever comes first',
-    maxLossRule: 'Max loss = premium paid. Never risk more than 2-5% of portfolio on one trade',
-    positionSizeRule: '1 contract per $10,000 of portfolio — options can go to zero',
+    verdictReason: strat.reason,
+    // Strategy info
+    strategy: strat.strategy,
+    strategyName: strat.strategyName,
+    dominantFramework: strat.dominantFramework,
+    // Expiry
+    expiryMonths: strat.expiryMonths,
+    expiryDate,
+    expiry6mo: expiryDate, // kept for backward compat with AI prompt
+    // Strike range
+    strikeGuide,
+    midStrike,
+    // Conviction & sizing
+    conviction: confidence,
+    sizing,
+    // IV
+    realizedVol30d,
+    ivContext: ivCtx,
+    // Earnings
+    earningsTiming,
+    earningsWarning: (daysToEarnings != null && daysToEarnings >= 0 && daysToEarnings <= 30) ? 'YES' : 'NO',
+    nextEarningsApprox: daysToEarnings != null && daysToEarnings >= 0 ? `${daysToEarnings} days` : '',
+    // Premium estimates
+    premiumLow, premiumMid, premiumHigh,
+    // Stock vs option comparison
+    comparison,
+    // Target
+    targetPrice6mo: targetPrice,
+    targetPriceUpside: targetUpsidePct,
+    // Rules
+    exitRule, maxLossRule,
+    positionSizeRule: sizing.label + ' — ' + sizing.note,
   };
 
   // One-liner (template, not AI)
@@ -4602,7 +5089,7 @@ function buildExpandRow(s){
     mb('Inventory vs Sales Growth','—',false,true),
     mb('Cash/Share (> 0)',f(l?.cashPerShare,'$'),l?.cashPerShare>0),
     mb('LT Debt/Equity (< 30%)',f(l?.ltDebtEquityPct,'%'),l?.ltDebtEquityPct<30),
-    mb('Insider Ownership (≥ 5%)',f(l?.insiderOwnershipPct,'%'),l?.insiderOwnershipPct>=5),
+    mb('Reasonable P/E (< 25)',f(l?.pe,'x'),l?.pe>0 && l?.pe<25),
     mb('Sales Growth YoY (> 10%)',f(l?.salesGrowthYoy,'%'),l?.salesGrowthYoy>10),
     mb('Lynch Category',['','Slow','Stalwart','Fast','Cyclical','Turnaround','Asset Play'][l?.lynchCategory||0]||'—',[2,3,4].includes(l?.lynchCategory)),
   ].join('');
@@ -4723,29 +5210,136 @@ async function summarizeAll(){
 }
 // ── OPTIONS HTML BUILDER (used in buildExpandRow) ──
 function buildOptionsHTML(s){
-  const op=s.options, px=s.currentPrice||0;
+  const op = s.options, px = s.currentPrice || 0;
   if(!op) return '<p style="color:#4a5568;font-size:13px;padding:12px 0">No options data — re-analyze this stock.</p>';
-  const vc2=op.verdict==='GO'?'opt-go':op.verdict==='CAUTION'?'opt-caution':'opt-skip';
-  const vi=op.verdict==='GO'?'✅':op.verdict==='CAUTION'?'⚠️':'❌';
-  const earnWarn=op.earningsWarning==='YES'?`<div class="opt-warn">⚠️ <strong>Earnings Warning:</strong> Earnings expected ~${op.nextEarningsApprox||'soon'} within 6 weeks. IV typically spikes then collapses (IV crush). Consider waiting.</div>`:'';
-  return`<div class="opt-verdict ${vc2}"><div class="opt-verdict-title">${vi} ${op.verdict==='GO'?'Good setup for 6-month call':op.verdict==='CAUTION'?'Proceed with caution':'Skip — not a good options setup'}</div><div class="opt-verdict-sub">${op.verdictReason||''}</div></div>
-    ${earnWarn}
-    <div class="opt-cards">
-      <div class="opt-card"><div class="opt-card-title">Stock price</div><div class="opt-card-main">$${px.toFixed(2)}</div><div class="opt-card-sub">Current</div></div>
-      <div class="opt-card"><div class="opt-card-title">Target (6mo)</div><div class="opt-card-main" style="color:${(op.targetPriceUpside||0)>=0?'#4ade80':'#f87171'}">$${(op.targetPrice6mo||0).toFixed(0)}</div><div class="opt-card-sub">${(op.targetPriceUpside||0)>=0?'+':''}${(op.targetPriceUpside||0).toFixed(1)}% upside</div></div>
-      <div class="opt-card"><div class="opt-card-title">Expiry (6mo)</div><div class="opt-card-main" style="font-size:13px">${op.expiry6mo||'~6mo'}</div><div class="opt-card-sub">Suggested</div></div>
+
+  // ── Verdict banner ──
+  const vc2 = op.verdict==='GO' ? 'opt-go'
+           : op.verdict==='CAUTION' ? 'opt-caution'
+           : op.verdict==='INCOME' ? 'opt-caution'
+           : 'opt-skip';
+  const vi  = op.verdict==='GO' ? '✅'
+           : op.verdict==='CAUTION' ? '⚠️'
+           : op.verdict==='INCOME' ? '💰'
+           : '❌';
+  const verdictTitle =
+    op.strategy && op.strategy !== 'NONE' ? `${op.strategyName || 'Options play'}` :
+    op.verdict==='GO' ? 'Good setup for a call' :
+    op.verdict==='CAUTION' ? 'Proceed with caution' :
+    'Skip — not a good options setup';
+
+  // If strategy is NONE, show a minimal panel
+  if(op.strategy === 'NONE'){
+    return `<div class="opt-verdict ${vc2}">
+        <div class="opt-verdict-title">${vi} ${verdictTitle}</div>
+        <div class="opt-verdict-sub">${op.verdictReason || ''}</div>
+      </div>
+      <p style="font-size:12px;color:#94a3b8;margin-top:12px;line-height:1.6">
+        Options aren't the right play here based on the framework signals. Consider stock-only positions, waiting for a better setup, or skipping this ticker entirely.
+      </p>`;
+  }
+
+  const moneyFmt = v => v == null ? '—' : (v < 1 ? '$' + v.toFixed(2) : '$' + v.toFixed(2));
+  const moneyShort = v => v == null ? '—' : (v >= 1000 ? '$' + (v/1000).toFixed(1) + 'k' : '$' + v.toFixed(0));
+
+  // ── IV banner color ──
+  const ivColor = op.ivContext?.level === 'LOW' ? '#4ade80'
+                : op.ivContext?.level === 'NORMAL' ? '#60a5fa'
+                : op.ivContext?.level === 'ELEVATED' ? '#fbbf24'
+                : op.ivContext?.level === 'EXTREME' ? '#f87171'
+                : '#94a3b8';
+
+  // ── Earnings banner color ──
+  const earnColor = op.earningsTiming?.state === 'IMMINENT' ? '#f87171'
+                  : op.earningsTiming?.state === 'APPROACHING' ? '#fbbf24'
+                  : op.earningsTiming?.state === 'NORMAL' ? '#fbbf24'
+                  : op.earningsTiming?.state === 'PASSED' ? '#4ade80'
+                  : op.earningsTiming?.state === 'OUTSIDE' ? '#4ade80'
+                  : '#94a3b8';
+
+  // ── Build sections ──
+
+  // Section 1: Verdict + strategy + dominant framework
+  const verdictSection = `<div class="opt-verdict ${vc2}">
+    <div class="opt-verdict-title">${vi} ${verdictTitle}</div>
+    <div class="opt-verdict-sub" style="margin-bottom:6px">${op.verdictReason || ''}</div>
+    <div style="font-size:11px;color:#94a3b8"><b>Dominant framework:</b> ${op.dominantFramework || 'Unknown'}</div>
+  </div>`;
+
+  // Section 2: Key details (3 cards: Conviction, Expiry, IV)
+  const convictionColor = op.conviction === 'HIGH' ? '#4ade80' : op.conviction === 'MEDIUM' ? '#fbbf24' : '#f87171';
+  const detailsSection = `<div class="opt-cards" style="margin-bottom:14px">
+    <div class="opt-card">
+      <div class="opt-card-title">Conviction</div>
+      <div class="opt-card-main" style="color:${convictionColor}">${op.conviction || '—'}</div>
+      <div class="opt-card-sub">${op.sizing?.label || 'Skip'}</div>
     </div>
-    <div class="opt-rules" style="margin-top:14px">
-      <div style="font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Strike approach</div>
-      <div class="opt-rule"><span style="color:#cbd5e1;line-height:1.6">If the verdict above is <b>GO</b>, look at <b>at-the-money to ~10% out-of-the-money</b> 6-month calls in your broker. ATM = higher probability, more expensive. Further OTM = cheaper, needs a bigger move. Pick based on conviction and how much premium you're willing to risk.</span></div>
+    <div class="opt-card">
+      <div class="opt-card-title">Expiry</div>
+      <div class="opt-card-main" style="font-size:14px">${op.expiryMonths > 0 ? op.expiryMonths + 'mo' : '—'}</div>
+      <div class="opt-card-sub">${op.expiryDate || '—'}</div>
     </div>
-    <div class="opt-rules">
-      <div style="font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Trade Rules</div>
-      <div class="opt-rule"><span class="opt-rule-num">1</span><span><b style="color:#e2e8f0">Exit:</b> ${op.exitRule||'Exit at 100% gain OR 30 days before expiry, whichever comes first'}</span></div>
-      <div class="opt-rule"><span class="opt-rule-num">2</span><span><b style="color:#e2e8f0">Max loss:</b> ${op.maxLossRule||'Max loss = premium paid. Never risk more than 2-5% of portfolio'}</span></div>
-      <div class="opt-rule"><span class="opt-rule-num">3</span><span><b style="color:#e2e8f0">Position size:</b> ${op.positionSizeRule||'1 contract per $10,000 of portfolio — options can go to zero'}</span></div>
+    <div class="opt-card">
+      <div class="opt-card-title">IV context</div>
+      <div class="opt-card-main" style="font-size:13px;color:${ivColor}">${op.ivContext?.level || '—'}</div>
+      <div class="opt-card-sub">${op.realizedVol30d != null ? '~' + (op.realizedVol30d*100).toFixed(0) + '% RV' : 'No data'}</div>
     </div>
-    <p style="font-size:11px;color:#2d3748;margin-top:8px">Not financial advice. Options can lose 100% of premium. Look up actual bid/ask in your broker before placing the trade.</p>`;
+  </div>`;
+
+  // Section 3: Strike + premium estimate
+  const strikeSection = op.strikeGuide ? `<div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:12px 14px;margin-bottom:10px">
+    <div style="font-size:11px;font-weight:700;color:#60a5fa;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">🎯 Strike Range</div>
+    <div style="font-size:14px;color:#e2e8f0;margin-bottom:4px"><b>$${op.strikeGuide.low}–$${op.strikeGuide.high}</b> <span style="color:#94a3b8;font-size:12px;font-weight:400">(${op.strikeGuide.anchor})</span></div>
+    <div style="font-size:11px;color:#94a3b8;line-height:1.6;margin-bottom:8px">${op.strikeGuide.note}</div>
+    ${op.premiumMid != null ? `<div style="font-size:12px;color:#cbd5e1;border-top:1px solid #1e2133;padding-top:8px;margin-top:8px"><b>Estimated premium:</b> ${moneyFmt(op.premiumLow)}–${moneyFmt(op.premiumHigh)} per contract <span style="font-size:10px;color:#64748b">(rough, from realized-vol proxy)</span></div>` : '<div style="font-size:11px;color:#64748b;font-style:italic">Premium estimate unavailable — verify in your broker.</div>'}
+  </div>` : '';
+
+  // Section 4: IV advice + Earnings timing
+  const ivAdviceSection = `<div style="background:#141620;border-left:3px solid ${ivColor};padding:10px 14px;border-radius:0 6px 6px 0;margin-bottom:8px;font-size:12px;line-height:1.6">
+    <b style="color:${ivColor}">📊 ${op.ivContext?.label || 'IV: unavailable'}</b><br><span style="color:#94a3b8">${op.ivContext?.advice || ''}</span>
+  </div>`;
+
+  const earnSection = `<div style="background:#141620;border-left:3px solid ${earnColor};padding:10px 14px;border-radius:0 6px 6px 0;margin-bottom:14px;font-size:12px;line-height:1.6">
+    <b style="color:${earnColor}">📅 ${op.earningsTiming?.label || 'Earnings: unknown'}</b><br><span style="color:#94a3b8">${op.earningsTiming?.advice || ''}</span>
+  </div>`;
+
+  // Section 5: Stock vs Option comparison
+  const c = op.comparison;
+  const comparisonSection = c ? `<div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:12px 14px;margin-bottom:10px">
+    <div style="font-size:11px;font-weight:700;color:#60a5fa;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">⚖️ Stock vs Option — payoff at $${c.targetPrice.toFixed(0)} target</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
+      <div style="background:#0a0c12;border:1px solid #1e2133;border-radius:6px;padding:10px">
+        <div style="font-size:11px;color:#94a3b8;margin-bottom:2px">🏢 Stock — ${c.stockShares} shares</div>
+        <div style="font-size:13px;color:#e2e8f0;font-weight:600">Risk: ${moneyShort(c.stockCost)}</div>
+        <div style="font-size:13px;color:${c.stockReturnAtTarget>=0?'#4ade80':'#f87171'};font-weight:600">+${moneyShort(c.stockReturnAtTarget)} <span style="font-size:11px;font-weight:400">(${c.stockReturnPct.toFixed(0)}%)</span></div>
+      </div>
+      <div style="background:#0a0c12;border:1px solid #1e2133;border-radius:6px;padding:10px">
+        <div style="font-size:11px;color:#94a3b8;margin-bottom:2px">🎯 Option — ${c.optionContracts}× $${c.strike.toFixed(0)} call</div>
+        <div style="font-size:13px;color:#e2e8f0;font-weight:600">Risk: ${moneyShort(c.optionCost)}</div>
+        <div style="font-size:13px;color:${c.optionReturnAtTarget>=0?'#4ade80':'#f87171'};font-weight:600">+${moneyShort(c.optionReturnAtTarget)} <span style="font-size:11px;font-weight:400">(${c.optionReturnPct.toFixed(0)}%)</span></div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#94a3b8;line-height:1.6;padding-top:6px;border-top:1px solid #1e2133">
+      <b style="color:#cbd5e1">Trade-off:</b> Option gives <b style="color:${c.leverage>0?'#4ade80':'#f87171'}">${c.leverage.toFixed(1)}×</b> the return on capital if the target hits — but loses <b style="color:#f87171">100%</b> of the premium if it doesn't hit before expiry. Stock takes longer to make less, but a temporary drawdown isn't a wipeout.
+    </div>
+  </div>` : '';
+
+  // Section 6: Trade rules
+  const rulesSection = `<div class="opt-rules">
+    <div style="font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">📋 Trade Rules</div>
+    <div class="opt-rule"><span class="opt-rule-num">1</span><span><b style="color:#e2e8f0">Sizing:</b> ${op.sizing?.note || 'Size carefully'}</span></div>
+    <div class="opt-rule"><span class="opt-rule-num">2</span><span><b style="color:#e2e8f0">Exit:</b> ${op.exitRule || 'Exit at 100% gain or 30 days before expiry'}</span></div>
+    <div class="opt-rule"><span class="opt-rule-num">3</span><span><b style="color:#e2e8f0">Max loss:</b> ${op.maxLossRule || 'Premium paid'}</span></div>
+  </div>`;
+
+  return `${verdictSection}
+    ${detailsSection}
+    ${strikeSection}
+    ${ivAdviceSection}
+    ${earnSection}
+    ${comparisonSection}
+    ${rulesSection}
+    <p style="font-size:11px;color:#2d3748;margin-top:10px">Premium estimates use a realized-volatility proxy and are approximate. <b style="color:#94a3b8">Always verify actual bid/ask in your broker before placing the trade.</b> Not financial advice. Options can lose 100% of premium.</p>`;
 }
 
 // Show warning if opened as file:// (CORS blocked)
