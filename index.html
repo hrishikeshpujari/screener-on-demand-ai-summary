@@ -1081,8 +1081,8 @@ tbody tr { transition: background 0.15s ease; }
 
   /* Hide less-important table columns on mobile — keep ticker, price, total, signal */
   table { min-width: 0; font-size: 12px; width: 100%; }
-  /* New cols: 1=caret 2=ticker 3=company 4=price 5=fair 6=entry 7=total 8=fund 9=tech 10=pe 11=roe 12=gm 13=eps 14=trend 15=signal 16=updated 17=actions */
-  /* On mobile, hide: 3=company, 8=fund, 9=tech, 10=pe, 11=roe, 12=gm, 13=eps, 14=trend, 16=updated */
+  /* New cols: 1=caret 2=ticker 3=company 4=price 5=fair 6=entry 7=total 8=fund 9=tech 10=pe 11=roe 12=gm 13=eps 14=trend 15=signal 16=options 17=updated 18=actions */
+  /* On mobile, hide: 3=company, 8=fund, 9=tech, 10=pe, 11=roe, 12=gm, 13=eps, 14=trend, 17=updated. Keep Options visible. */
   thead th:nth-child(3),
   thead th:nth-child(8),
   thead th:nth-child(9),
@@ -1091,7 +1091,7 @@ tbody tr { transition: background 0.15s ease; }
   thead th:nth-child(12),
   thead th:nth-child(13),
   thead th:nth-child(14),
-  thead th:nth-child(16),
+  thead th:nth-child(17),
   tbody tr:not(.expand-row) td:nth-child(3),
   tbody tr:not(.expand-row) td:nth-child(8),
   tbody tr:not(.expand-row) td:nth-child(9),
@@ -1100,7 +1100,7 @@ tbody tr { transition: background 0.15s ease; }
   tbody tr:not(.expand-row) td:nth-child(12),
   tbody tr:not(.expand-row) td:nth-child(13),
   tbody tr:not(.expand-row) td:nth-child(14),
-  tbody tr:not(.expand-row) td:nth-child(16) { display: none; }
+  tbody tr:not(.expand-row) td:nth-child(17) { display: none; }
   thead th, tbody td { padding: 10px 8px; font-size: 12px; }
   .tkr { font-size: 14px; }
   .score-cell { padding: 3px 8px; font-size: 12px; }
@@ -1552,6 +1552,7 @@ tbody tr { transition: background 0.15s ease; }
       <th onclick="sortBy('epsGrowth')" style="cursor:pointer;user-select:none">EPS Growth <span id="si-epsGrowth">↕</span></th>
       <th>Trend</th>
       <th onclick="sortBy('signal')" style="cursor:pointer;user-select:none">Signal <span id="si-signal">↕</span></th>
+      <th onclick="sortBy('options')" style="cursor:pointer;user-select:none" title="Options strategy + conviction">Options <span id="si-options">↕</span></th>
       <th style="font-size:10px;color:#374151">Updated</th><th></th>
     </tr></thead>
     <tbody id="tbody"></tbody>
@@ -2995,6 +2996,15 @@ function getSortVal(s, col){
     case 'grossMargin':  return s.buffett?.grossMargin||0;
     case 'epsGrowth':    return s.lynch?.epsGrowthYoy||0;
     case 'signal':       return ['BUY','HOLD','SELL'].indexOf(s.overallSignal);
+    case 'options':      {
+      // Sort: ranks options panel attractiveness — BUY strategies with HIGH conviction first.
+      // Order high to low: LEAPS-HIGH, 6mo-HIGH, 3mo-HIGH, then MEDIUM, then LOW, then CSP/CC, then NONE.
+      const op = s.options;
+      if(!op || op.strategy === 'NONE' || !op.strategy) return -10;
+      const stratRank = {'LEAPS':3, 'LONG_CALL_6MO':2.5, 'LONG_CALL_3MO':2, 'CASH_SECURED_PUT':1, 'COVERED_CALL':1}[op.strategy] || 0;
+      const convRank = {'HIGH':3, 'MEDIUM':2, 'LOW':1, 'AVOID':0}[op.conviction] || 0;
+      return stratRank * 10 + convRank;
+    }
     default:             return 0;
   }
 }
@@ -4911,7 +4921,7 @@ function renderTable(){
 
     // If filters wiped out all done rows and there are no loading rows either, show a friendly empty-state row
     if(sorted.length === 0){
-      tbody.innerHTML = `<tr><td colspan="17" style="text-align:center;padding:28px 12px;color:var(--text-muted);font-size:13px">
+      tbody.innerHTML = `<tr><td colspan="18" style="text-align:center;padding:28px 12px;color:var(--text-muted);font-size:13px">
         No stocks match the current filters.
         &nbsp;<span style="color:var(--accent-info);cursor:pointer;text-decoration:underline;font-weight:600" onclick="resetFilters()">Clear filters</span>
       </td></tr>`;
@@ -4919,8 +4929,8 @@ function renderTable(){
     }
 
     tbody.innerHTML=sorted.map(s=>{
-      if(s.status==='loading')return`<tr><td class="tkr"><span class="spin"></span>${s.ticker}</td><td colspan="17" style="color:#555;font-style:italic">${s.step||'Loading…'}</td></tr>`;
-      if(s.status==='error')return`<tr><td class="tkr">${s.ticker}</td><td colspan="14" style="color:#f87171;font-size:11px">${s.error||'Error'}</td><td></td><td><button class="rmv" onclick="rm(${s.id},event)">✕</button></td></tr>`;
+      if(s.status==='loading')return`<tr><td class="tkr"><span class="spin"></span>${s.ticker}</td><td colspan="18" style="color:#555;font-style:italic">${s.step||'Loading…'}</td></tr>`;
+      if(s.status==='error')return`<tr><td class="tkr">${s.ticker}</td><td colspan="15" style="color:#f87171;font-size:11px">${s.error||'Error'}</td><td></td><td><button class="rmv" onclick="rm(${s.id},event)">✕</button></td></tr>`;
       const ts=s.totalScore??0,fs=s.fundamentalScore??0,ta=s.technical?.score??0,tc=sc(ts,32);
       const td=s.technical?.trendDirection||'';
       const trcls=td==='uptrend'?'tup':td==='downtrend'?'tdn':'tsd';
@@ -4940,7 +4950,7 @@ function renderTable(){
       // Updated — show time only to save space
       const updTime = s.updatedAt ? s.updatedAt.split(', ')[1]||s.updatedAt : '—';
       let expandHtml = '';
-      if(isExpanded){ try{ expandHtml = buildExpandRow(s); }catch(e){ console.error('buildExpandRow error:', e); expandHtml = `<tr class="expand-row"><td colspan="17"><div class="expand-inner" style="color:#f87171">Error rendering detail: ${e.message}</div></td></tr>`; } }
+      if(isExpanded){ try{ expandHtml = buildExpandRow(s); }catch(e){ console.error('buildExpandRow error:', e); expandHtml = `<tr class="expand-row"><td colspan="18"><div class="expand-inner" style="color:#f87171">Error rendering detail: ${e.message}</div></td></tr>`; } }
       // Pick score-cell color class based on tier
       const totCls = s.overallSignal==='BUY' ? 'score-buy' : s.overallSignal==='HOLD' ? 'score-hold' : s.overallSignal==='SELL' ? 'score-sell' : 'score-neutral';
       const fundCls = fs >= 16 ? 'score-buy' : fs >= 9 ? 'score-hold' : 'score-sell';
@@ -4966,6 +4976,24 @@ function renderTable(){
         entryHtml = `<span style="color:${entryColor};font-weight:600" title="${entryLabel}">$${s.entryPrice.toFixed(0)}</span>`;
       }
 
+      // Options cell — strategy abbreviation + conviction color
+      const op = s.options;
+      const stratAbbr = {
+        'LEAPS':'LEAPS', 'LONG_CALL_6MO':'6mo Call', 'LONG_CALL_3MO':'3mo Call',
+        'CASH_SECURED_PUT':'CSP', 'COVERED_CALL':'CC', 'NONE':'—'
+      };
+      const optLabel = op?.strategy ? (stratAbbr[op.strategy] || op.strategy) : '—';
+      const isNoneOpt = !op || op.strategy === 'NONE' || op.strategy === undefined;
+      const optCls = isNoneOpt ? 'neutral'
+                   : op.conviction === 'HIGH' ? 'buy'
+                   : op.conviction === 'MEDIUM' ? 'hold'
+                   : 'sell';
+      const optConvText = isNoneOpt ? '' : ` · ${op.conviction || ''}`;
+      const optTitle = isNoneOpt
+        ? (op?.verdictReason || 'No options play recommended')
+        : `${op.strategyName||''} · ${op.conviction||''} conviction · ${op.dominantFramework||''}`;
+      const optHtml = `<span class="badge ${optCls}" style="font-size:10px;white-space:nowrap" title="${(optTitle||'').replace(/"/g,'&quot;')}">${optLabel}${optConvText}</span>`;
+
       return`<tr onclick="toggleDP(${s.id})" class="${isExpanded?'row-expanded':''}">
         <td style="width:24px;padding:10px 4px;color:var(--text-faint);font-size:11px;text-align:center"><span class="caret ${isExpanded?'open':''}">▶</span></td>
         <td class="tkr">${s.ticker}</td>
@@ -4982,13 +5010,14 @@ function renderTable(){
         <td style="font-size:13px">${epsHtml}</td>
         <td>${trendHtml}</td>
         <td><span class="badge ${vc(s.overallSignal)}">${s.overallSignal||'—'}</span></td>
+        <td>${optHtml}</td>
         <td class="updated">${updTime}</td>
         <td style="white-space:nowrap"><button class="rldbtn" onclick="reload(${s.id},event)" title="Re-analyze">↻</button> <button class="rmv" onclick="rm(${s.id},event)">✕</button></td>
       </tr>${expandHtml}`;
     }).join('');
   } catch(e) {
     console.error('renderTable error:', e);
-    tbody.innerHTML = `<tr><td colspan="17" style="color:#f87171;padding:20px">Render error: ${e.message}. Try clearing all stocks.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="18" style="color:#f87171;padding:20px">Render error: ${e.message}. Try clearing all stocks.</td></tr>`;
   }
 }
 
