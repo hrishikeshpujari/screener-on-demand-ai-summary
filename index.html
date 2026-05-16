@@ -3962,30 +3962,31 @@ function classifyIVContext(currentRV, historicalRVs){
   return         { level:'EXTREME', label:`RV ~${pct.toFixed(0)}% — IV likely extreme (no stock baseline)`, advice:'IV crush risk on directional bets. Spreads strongly preferred, or wait.' };
 }
 
-// Brenner-Subrahmanyam approximation: ATM premium ≈ 0.4 × S × σ × √T
-// Adjusted for moneyness with rough Gaussian decay. Works for calls and puts.
+// Cumulative standard normal CDF — Abramowitz & Stegun approximation (~1e-7 accuracy)
+function _normCDF(x){
+  const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741, a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
+  const sign = x < 0 ? -1 : 1;
+  const ax = Math.abs(x) / Math.SQRT2;
+  const t = 1.0 / (1.0 + p * ax);
+  const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-ax * ax);
+  return 0.5 * (1.0 + sign * y);
+}
+
+// Black-Scholes call/put price with r=0 (good enough for short-dated options at low rates).
+// Note: uses realized vol as IV proxy. Real market premiums typically run 5-15% above this
+// due to the volatility risk premium and bid-ask spread.
 function estimateCallPremium(strike, currentPrice, rvAnnual, monthsToExpiry, type = 'call'){
   if(!strike || !currentPrice || !rvAnnual || !monthsToExpiry) return null;
   const T = monthsToExpiry / 12;
   const sigma = rvAnnual;
-  const atmPremium = 0.4 * currentPrice * sigma * Math.sqrt(T);
-
-  // Determine if option is ITM, ATM, or OTM
-  const isCall = type === 'call';
-  const intrinsic = isCall ? Math.max(0, currentPrice - strike) : Math.max(0, strike - currentPrice);
-  const isOTM = isCall ? (strike > currentPrice) : (strike < currentPrice);
-
-  if(!isOTM){
-    // ITM or ATM: intrinsic + reduced time value
-    return intrinsic + atmPremium * 0.6;
-  }
-  // OTM: decay based on strike distance vs vol-adjusted move
-  const moneyness = Math.abs(strike - currentPrice) / currentPrice;
-  const volMove = sigma * Math.sqrt(T);
-  if(volMove <= 0) return atmPremium * 0.3;
-  const z = moneyness / volMove;
-  const decay = Math.exp(-z * z / 2);
-  return Math.max(0.05, atmPremium * decay);
+  const sqrtT = Math.sqrt(T);
+  if(sigma * sqrtT <= 0) return Math.max(0, type === 'call' ? currentPrice - strike : strike - currentPrice);
+  const d1 = (Math.log(currentPrice / strike) + (sigma * sigma / 2) * T) / (sigma * sqrtT);
+  const d2 = d1 - sigma * sqrtT;
+  const price = (type === 'call')
+    ? currentPrice * _normCDF(d1) - strike * _normCDF(d2)
+    : strike * _normCDF(-d2) - currentPrice * _normCDF(-d1);
+  return Math.max(0.05, price);
 }
 
 // Pick option strategy that fits the stock's framework signature
