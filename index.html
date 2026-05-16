@@ -172,17 +172,6 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
 .opt-card-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#4a5568;margin-bottom:5px}
 .opt-card-main{font-size:17px;font-weight:700;color:#fff;margin-bottom:2px}
 .opt-card-sub{font-size:11px;color:#4a5568;line-height:1.5}
-.opt-strikes{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px}
-.opt-strike{background:#141620;border:1px solid #2d3044;border-radius:8px;padding:10px 12px}
-.opt-strike-lbl{font-size:10px;color:#4a5568;margin-bottom:4px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:5px}
-.opt-strike-price{font-size:16px;font-weight:700;margin-bottom:3px}
-.opt-strike-detail{font-size:11px;color:#4a5568;line-height:1.7}
-.conservative .opt-strike-price{color:#4ade80}
-.moderate .opt-strike-price{color:#fbbf24}
-.aggressive .opt-strike-price{color:#f87171}
-.lbadge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px}
-.lbadge.live{background:#0d2b1a;color:#4ade80;border:1px solid #166534}
-.lbadge.est{background:#1e2133;color:#666;border:1px solid #2d3044}
 .opt-warn,.opt-err{background:#150d00;border:1px solid #7c3600;border-radius:8px;padding:10px 12px;font-size:12px;color:#fb923c;line-height:1.6;margin-bottom:10px}
 .opt-rules{background:#0c0e14;border:1px solid #1e2133;border-radius:8px;padding:12px 14px;margin-bottom:8px}
 .opt-rule{display:flex;gap:8px;margin-bottom:5px;font-size:12px;color:#4a5568;line-height:1.5;align-items:flex-start}
@@ -341,7 +330,7 @@ h1 { color: var(--text-primary); font-size: 24px; }
 .sub { color: var(--text-muted); font-size: 13px; }
 
 /* Surfaces */
-.keybox, .tbl-wrap, .pos-card, .setup-card, .opt-card, .opt-strike, .opt-rule, .modal, .chat-box, .mbox, .liner, .an-block, .port-stat, .port-chat {
+.keybox, .tbl-wrap, .pos-card, .setup-card, .opt-card, .opt-rule, .modal, .chat-box, .mbox, .liner, .an-block, .port-stat, .port-chat {
   background: var(--bg-surface);
   border-color: var(--border-default);
 }
@@ -1429,38 +1418,6 @@ tbody tr { transition: background 0.15s ease; }
     <div class="setup-section">
       <div class="setup-section-title"><span class="setup-optional">○ Optional</span></div>
 
-      <div class="setup-card" id="sc3">
-        <div class="setup-card-top">
-          <div class="setup-card-icon">🎯</div>
-          <div class="setup-card-info">
-            <div class="setup-card-name">MarketData.app Token</div>
-            <div class="setup-card-desc">Live options chain — real bid/ask, IV, delta, theta, breakeven for 6-month call options. Without it, options tab shows AI-estimated strikes only.</div>
-            <a class="setup-card-link" href="https://marketdata.app" target="_blank">Free at marketdata.app — 100 calls/day ↗</a>
-          </div>
-          <div class="setup-card-status missing" id="ss3">Not set</div>
-        </div>
-        <div class="setup-input-row">
-          <input class="setup-input" type="password" id="sk3" placeholder="WFRJZzFL…" autocomplete="off"/>
-          <button class="setup-save" onclick="setupSave(3)">Save</button>
-        </div>
-      </div>
-
-      <div class="setup-card" id="sc4">
-        <div class="setup-card-top">
-          <div class="setup-card-icon">☁️</div>
-          <div class="setup-card-info">
-            <div class="setup-card-name">Cloudflare Worker URL</div>
-            <div class="setup-card-desc">CORS proxy that lets live options work when hosted on GitHub Pages or Netlify. Without it, options only work on localhost. Deploy takes ~5 minutes.</div>
-            <a class="setup-card-link" href="https://dash.cloudflare.com" target="_blank">Free at dash.cloudflare.com — 100k req/day ↗</a>
-          </div>
-          <div class="setup-card-status missing" id="ss4">Not set</div>
-        </div>
-        <div class="setup-input-row">
-          <input class="setup-input" type="text" id="sk4" placeholder="https://my-proxy.myname.workers.dev" autocomplete="off"/>
-          <button class="setup-save" onclick="setupSave(4)">Save</button>
-        </div>
-      </div>
-
       <div class="setup-card" id="scRobinhood">
         <div class="setup-card-top">
           <div class="setup-card-icon">🟢</div>
@@ -1600,7 +1557,7 @@ tbody tr { transition: background 0.15s ease; }
     <tbody id="tbody"></tbody>
   </table>
 </div>
-<p class="note"><span class="ltag">●LIVE price</span> via Finnhub &nbsp;·&nbsp; <span class="ltag">●LIVE fundamentals</span> direct from Finnhub API &nbsp;·&nbsp; <span class="ltag">●LIVE options</span> direct from MarketData.app &nbsp;·&nbsp; Not financial advice.</p>
+<p class="note"><span class="ltag">●LIVE price</span> via Finnhub &nbsp;·&nbsp; <span class="ltag">●LIVE fundamentals</span> direct from Finnhub API &nbsp;·&nbsp; Not financial advice.</p>
 
 <!-- ── GUIDE ── -->
 <div style="margin-top:24px">
@@ -1615,6 +1572,7 @@ tbody tr { transition: background 0.15s ease; }
       <button class="guide-tab active" data-section="workflow" onclick="showGuideSection('workflow')">🚀 Start Here</button>
       <button class="guide-tab" data-section="scores" onclick="showGuideSection('scores')">📊 Scores</button>
       <button class="guide-tab" data-section="signals" onclick="showGuideSection('signals')">🚦 Signals</button>
+      <button class="guide-tab" data-section="fundamentals" onclick="showGuideSection('fundamentals')">📚 Fundamentals</button>
       <button class="guide-tab" data-section="fairentry" onclick="showGuideSection('fairentry')">💰 Fair &amp; Entry</button>
       <button class="guide-tab" data-section="portfolio" onclick="showGuideSection('portfolio')">💼 Portfolio</button>
       <button class="guide-tab" data-section="discover" onclick="showGuideSection('discover')">🔭 Discover</button>
@@ -1648,6 +1606,124 @@ tbody tr { transition: background 0.15s ease; }
         <div style="background:#310d0d;border:1px solid #991b1b;border-radius:8px;padding:16px"><div style="font-size:14px;font-weight:700;color:#f87171;margin-bottom:8px">🚫 SELL — 0–12 / 32</div><div style="font-size:12px;color:#fca5a5;line-height:1.7">Fails most criteria. Review your thesis if you own it. Don't initiate new positions. Re-analyze in 1–2 quarters to check for improvement.</div></div>
       </div>
       <div style="background:#141620;border-left:3px solid #fbbf24;padding:12px 16px;border-radius:0 8px 8px 0"><strong style="color:#fff">Confidence levels:</strong> <span style="color:#4ade80">★★★ High (26+)</span> = strong conviction across all frameworks. <span style="color:#fbbf24">★★ Medium (20–25)</span> = good but mixed signals. <span style="color:#f87171">★ Low / Avoid (&lt;20)</span> = weak evidence, treat the signal skeptically.</div>
+    </div>
+
+    <!-- FUNDAMENTALS -->
+    <div id="g-fundamentals" class="guide-section" style="display:none;margin-bottom:32px">
+      <div style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:12px">📚 Fundamentals — what each number actually means</div>
+      <p style="margin-bottom:14px">Reference for every metric the screener pulls. Each card shows the <strong>field name</strong> (so you can cross-check Finnhub directly), the <strong>formula</strong>, the <strong>threshold the screener uses</strong>, and a <em>pitfall</em> — when the number lies or needs context.</p>
+
+      <!-- Valuation Multiples -->
+      <div style="font-size:13px;font-weight:700;color:#60a5fa;margin:18px 0 10px;text-transform:uppercase;letter-spacing:.5px">📊 Valuation Multiples</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:8px">
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px">P/E Ratio &nbsp;<span style="color:#4a5568;font-weight:400;font-size:10px">Finnhub <code>peTTM</code></span></div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7">Price ÷ trailing 12-month EPS. What the market pays per dollar of earnings. <strong style="color:#cbd5e1">Threshold:</strong> &lt;15 green · &lt;25 yellow · ≥25 red. <em style="color:#64748b">Pitfall: Finnhub's <code>peTTM</code> is slightly smoothed (some one-time items excluded), so it can disagree with TradingView/Yahoo's strict GAAP P/E by 2-3x on stocks with recent one-time charges. For transition-year stocks, cross-check forward P/E on StockAnalysis.com.</em></div>
+        </div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px">P/B Ratio &nbsp;<span style="color:#4a5568;font-weight:400;font-size:10px">Finnhub <code>pb</code></span></div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7">Market cap ÷ book value of equity. How much you pay per dollar of net assets on the balance sheet. <strong style="color:#cbd5e1">Threshold:</strong> &lt;1.5 (Graham value) · &lt;3 (acceptable) · &gt;5 (premium). <em style="color:#64748b">Pitfall: less useful for asset-light businesses — software companies routinely trade at 10×+ P/B because book value doesn't capture brand or IP value.</em></div>
+        </div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px">PEG Ratio &nbsp;<span style="color:#4a5568;font-weight:400;font-size:10px">Finnhub <code>pegTTM</code></span></div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7">P/E ÷ expected EPS growth rate. A 30× P/E company growing 30% has PEG = 1.0 — same value-per-growth as a 10× P/E growing 10%. <strong style="color:#cbd5e1">Threshold:</strong> &lt;1 (Lynch bargain) · 1–2 (reasonable) · &gt;2 (expensive). <em style="color:#64748b">Pitfall: depends entirely on analyst growth estimate. For low-coverage stocks, comes back null. Garbage in, garbage out on speculative growth assumptions.</em></div>
+        </div>
+      </div>
+
+      <!-- Profitability -->
+      <div style="font-size:13px;font-weight:700;color:#60a5fa;margin:18px 0 10px;text-transform:uppercase;letter-spacing:.5px">💪 Profitability</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:8px">
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px">Gross Margin &nbsp;<span style="color:#4a5568;font-weight:400;font-size:10px">Finnhub <code>grossMarginTTM</code></span></div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7">(Revenue − Cost of Goods Sold) ÷ Revenue. The pricing power signal — high gross margin means the company can charge well above its production cost. <strong style="color:#cbd5e1">Threshold:</strong> ≥40% (Buffett moat) · 25–40% (decent) · &lt;25% (commodity-like). Software businesses hit 70%+, retailers struggle to maintain 30%.</div>
+        </div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px">Net Margin &nbsp;<span style="color:#4a5568;font-weight:400;font-size:10px">Finnhub <code>netProfitMarginTTM</code></span></div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7">Net Income ÷ Revenue. Final profit per dollar of sales after everything — costs, interest, taxes, the works. <strong style="color:#cbd5e1">Threshold:</strong> &gt;5% (Graham minimum) · &gt;10% (healthy) · &gt;20% (exceptional). <em style="color:#64748b">Pitfall: sensitive to one-time items same as P/E. A big writedown or restructuring crushes net margin temporarily without changing the underlying business.</em></div>
+        </div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px">ROE — Return on Equity &nbsp;<span style="color:#4a5568;font-weight:400;font-size:10px">Finnhub <code>roeTTM</code></span></div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7">Net Income ÷ Shareholders' Equity. How efficiently the business turns shareholder money into profit. Buffett's favorite single metric. <strong style="color:#cbd5e1">Threshold:</strong> ≥15% (good) · ≥20% (excellent). <em style="color:#64748b">Pitfall: can be inflated by heavy debt — debt reduces the equity denominator and lifts ROE without any improvement in business quality. Always check alongside debt/equity.</em></div>
+        </div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px">ROIC — Return on Invested Capital &nbsp;<span style="color:#4a5568;font-weight:400;font-size:10px">computed</span></div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7">Operating profit ÷ (Debt + Equity). Better than ROE for debt-heavy companies because it accounts for all the capital, not just shareholders' slice. <strong style="color:#cbd5e1">Threshold:</strong> ≥12% (excellent). When ROIC and ROE are both high <em>and</em> close to each other, the moat is real and debt-free.</div>
+        </div>
+      </div>
+
+      <!-- Growth -->
+      <div style="font-size:13px;font-weight:700;color:#60a5fa;margin:18px 0 10px;text-transform:uppercase;letter-spacing:.5px">📈 Growth</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:8px">
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px">Revenue Growth &nbsp;<span style="color:#4a5568;font-weight:400;font-size:10px">Finnhub <code>revenueGrowth5Y</code> · <code>revenueGrowthTTMYoy</code></span></div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7">Compound annual growth in sales over 5 years, and latest 12 months vs prior 12 months. Top-line growth is harder to fake than earnings — revenue recognition has some accounting wiggle room, but bottom-line manipulation has much more. <strong style="color:#cbd5e1">Threshold:</strong> &gt;10% YoY (Lynch fast grower) · &gt;0 (Graham minimum just for direction).</div>
+        </div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px">EPS Growth &nbsp;<span style="color:#4a5568;font-weight:400;font-size:10px">Finnhub <code>epsGrowth5Y</code> · <code>epsGrowthTTMYoy</code></span></div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7">Earnings per share growth over 5 years (CAGR) and year-over-year. The 5-year smooths cyclicality; YoY captures momentum. <strong style="color:#cbd5e1">Threshold:</strong> &gt;10% YoY (Lynch). <em style="color:#64748b">Pitfall: EPS growth can be juiced by buybacks — fewer shares mean higher EPS without any business improvement. Cross-check with revenue growth: if EPS grows 15% but revenue is flat, it's financial engineering, not business growth.</em></div>
+        </div>
+      </div>
+
+      <!-- Financial Health -->
+      <div style="font-size:13px;font-weight:700;color:#60a5fa;margin:18px 0 10px;text-transform:uppercase;letter-spacing:.5px">🏦 Financial Health</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:8px">
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px">Current Ratio &nbsp;<span style="color:#4a5568;font-weight:400;font-size:10px">Finnhub <code>currentRatioQuarterly</code></span></div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7">Current Assets ÷ Current Liabilities. Can the company pay its near-term bills without raising emergency cash? <strong style="color:#cbd5e1">Threshold:</strong> ≥2 (Graham conservative) · ≥1.5 (acceptable) · &lt;1 (red flag — short-term obligations exceed liquid assets).</div>
+        </div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px">Debt / Equity &nbsp;<span style="color:#4a5568;font-weight:400;font-size:10px">Finnhub <code>totalDebt/totalEquityQuarterly</code></span></div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7">Total debt ÷ shareholders' equity. How leveraged is the balance sheet. <strong style="color:#cbd5e1">Threshold:</strong> ≤0.5 (Graham low debt) · ≤1.0 (manageable) · &gt;2 (highly leveraged). <em style="color:#64748b">Pitfall: financials and utilities normally run higher — context by sector matters. A bank at 5× is normal; a software company at 5× is alarming.</em></div>
+        </div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px">Long-Term Debt / Equity &nbsp;<span style="color:#4a5568;font-weight:400;font-size:10px">Finnhub <code>longTermDebt/equityQuarterly</code></span></div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7">Strips out short-term operating debt to focus on structural leverage — bonds, term loans, long-dated obligations. Lynch wanted &lt;30% — companies that don't depend on debt to fuel growth. <strong style="color:#cbd5e1">Threshold:</strong> &lt;30% (Lynch).</div>
+        </div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px">Free Cash Flow (FCF) &nbsp;<span style="color:#4a5568;font-weight:400;font-size:10px">Finnhub series</span></div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7">Operating Cash Flow − Capital Expenditures. The actual cash left over after the business reinvests in itself. Buffett's reality check: "Earnings without FCF are accounting fiction." Positive and growing FCF underpins dividends, buybacks, and debt paydown. <em style="color:#64748b">Negative FCF in a growth company isn't always bad — it can mean heavy capex for future expansion. Negative FCF in a mature company is a red flag.</em></div>
+        </div>
+      </div>
+
+      <!-- Cash Returns -->
+      <div style="font-size:13px;font-weight:700;color:#60a5fa;margin:18px 0 10px;text-transform:uppercase;letter-spacing:.5px">💰 Cash Returns to Shareholders</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:8px">
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px">Dividend Yield &nbsp;<span style="color:#4a5568;font-weight:400;font-size:10px">Finnhub <code>currentDividendYieldTTM</code></span></div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7">Annual dividend per share ÷ current share price. Returns 0 for companies that don't pay dividends. <em style="color:#64748b">Pitfall: a very high yield (&gt;6%) is often a "yield trap" — the market expects the dividend to be cut and is pricing the stock low in anticipation. Cross-check with payout ratio (dividend ÷ EPS) — anything &gt;80% is fragile.</em></div>
+        </div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px">Cash per Share &nbsp;<span style="color:#4a5568;font-weight:400;font-size:10px">Finnhub <code>cashPerSharePerShareQuarterly</code></span></div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7">Net cash on the balance sheet ÷ shares outstanding. Lynch liked companies with cash reserves — they can survive downturns and fund growth without diluting shareholders. A company trading near its cash-per-share value has a floor.</div>
+        </div>
+      </div>
+
+      <!-- Quality Signals -->
+      <div style="font-size:13px;font-weight:700;color:#60a5fa;margin:18px 0 10px;text-transform:uppercase;letter-spacing:.5px">🎯 Quality &amp; Conviction Signals</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:8px">
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px">ROE Consistency (years) &nbsp;<span style="color:#4a5568;font-weight:400;font-size:10px">computed from <code>series.annual.roe</code></span></div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7">Consecutive years ROE has been ≥15%. Streaks of 7+ years signal a structural moat — a one-year ROE spike could be luck, but a decade of high ROE is real competitive advantage. The single best historical predictor of future ROE.</div>
+        </div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px">Insider Ownership &nbsp;<span style="color:#4a5568;font-weight:400;font-size:10px">FMP (when configured)</span></div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7">Percent of shares held by management and directors. Lynch's "skin in the game" check. <strong style="color:#cbd5e1">Threshold:</strong> ≥5%. <em style="color:#64748b">Pitfall: very high insider ownership (&gt;50%) cuts both ways — founder-led companies can have great long-term thinking, but minority shareholders have little governance power if things go wrong.</em></div>
+        </div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px">Inventory vs Sales Growth &nbsp;<span style="color:#4a5568;font-weight:400;font-size:10px">computed</span></div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7">If inventory consistently grows faster than sales, the company is producing more than it's selling — an early sign of slowing demand. Lynch watched this as a recession indicator before the macro data caught up. Inverse signal: inventory shrinking while sales grow = lean operations.</div>
+        </div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px">Moat Rating (0–5) &nbsp;<span style="color:#4a5568;font-weight:400;font-size:10px">screener-computed</span></div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7">Synthetic score from gross margin + ROIC + revenue growth consistency. Not a standard accounting metric — the screener's synthesis of what makes Buffett comfortable. <strong style="color:#cbd5e1">Threshold:</strong> 3+ = meaningful competitive advantage exists.</div>
+        </div>
+        <div style="background:#141620;border:1px solid #1e2133;border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px">Management Score (0–10) &nbsp;<span style="color:#4a5568;font-weight:400;font-size:10px">screener-computed</span></div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7">Synthetic score from ROE + ROIC + FCF margin. Captures capital-allocation skill across multiple dimensions. The combination matters more than any single component — high ROE alone could be debt-fueled; ROIC alone could mask poor cash quality. <strong style="color:#cbd5e1">Threshold:</strong> ≥7.</div>
+        </div>
+      </div>
+
+      <div style="background:#141620;border-left:3px solid #60a5fa;padding:12px 16px;border-radius:0 8px 8px 0;margin-top:18px"><strong style="color:#fff">Cross-checking suggestion:</strong> When a number in the screener looks weird (extreme high, extreme low, or doesn't match your intuition), the fastest sanity-check is to open the ticker on <a href="https://stockanalysis.com" target="_blank" style="color:#60a5fa">StockAnalysis.com</a> → Statistics tab. They show trailing, forward, and ex-NRI versions side-by-side so you can see exactly when the screener's number is being distorted by one-time accounting items.</div>
     </div>
 
     <!-- FAIR & ENTRY -->
@@ -2156,7 +2232,7 @@ tbody tr { transition: background 0.15s ease; }
 
 <script>
 
-const KEYS=['ant','finnhub','twelvedata','md','worker'];
+const KEYS=['ant','finnhub','twelvedata'];
 const KS=KEYS.map(k=>'viss_key_'+k);
 const SS='viss_v8_stocks';
 
@@ -2172,7 +2248,7 @@ function saveDefaultTickers(list){
   localStorage.setItem('viss_watchlist', JSON.stringify(list));
 }
 
-let keys=['','','','',''], stocks=[], activeDP=null, refreshing=false;
+let keys=['','',''], stocks=[], activeDP=null, refreshing=false;
 let busyOp=null; // 'refresh' | 'discover-breakout' | etc — lock to prevent Twelve Data conflicts
 
 function showProgress(text){
@@ -2213,12 +2289,12 @@ function showSetup(){
   setupRefreshUI();
 }
 function setupRefreshUI(){
-  for(let i=0;i<5;i++){
+  for(let i=0;i<KEYS.length;i++){
     const has = !!keys[i];
     const card = document.getElementById('sc'+i);
     const status = document.getElementById('ss'+i);
     if(card){ card.classList.toggle('done', has); }
-    if(status){ status.textContent = has ? '✓ Set' : (i<3?'Required':'Optional'); status.className = 'setup-card-status '+(has?'ok':'missing'); }
+    if(status){ status.textContent = has ? '✓ Set' : 'Required'; status.className = 'setup-card-status '+(has?'ok':'missing'); }
   }
   const allRequired = keys[0] && keys[1] && keys[2];
   const btn = document.getElementById('setupStartBtn');
@@ -2259,7 +2335,7 @@ function loadKeys(){
     const stored = localStorage.getItem(KS[i]);
     keys[i] = (stored && stored.trim()) ? stored.trim() : '';
   });
-  console.log('Keys loaded — ant:', keys[0]?'✓':'✗', 'finnhub:', keys[1]?'✓':'✗', 'twelvedata:', keys[2]?'✓':'✗', 'md:', keys[3]?'✓':'✗', 'worker:', keys[4]?'✓':'✗');
+  console.log('Keys loaded — ant:', keys[0]?'✓':'✗', 'finnhub:', keys[1]?'✓':'✗', 'twelvedata:', keys[2]?'✓':'✗');
 
   const setupDone = localStorage.getItem('viss_setup_done');
   const hasRequiredKeys = keys[0] && keys[1] && keys[2];
@@ -3421,19 +3497,6 @@ async function run(id,t){
     setStep(id,'Computing scores…');
     const result = computeStock(t, fin, priceHistory);
 
-    if(keys[3] && result && !result.error){
-      setStep(id,'Fetching live options…');
-      if(keys[4]){
-        result.liveOptions = await fetchOptionsViaWorker(t, result.currentPrice)
-          .catch(e=>{console.warn('Options:',e.message);return {error:e.message};});
-      } else if(!restricted){
-        result.liveOptions = await fetchOptionsDirect(t, result.currentPrice)
-          .catch(e=>{console.warn('Options:',e.message);return {error:e.message};});
-      } else {
-        result.liveOptions = {error:'localhost-required'};
-      }
-    }
-
     finalize(id, t, result, restricted);
   }catch(e){
     const idx=stocks.findIndex(s=>s.id===id);
@@ -3904,11 +3967,6 @@ function computeStock(ticker, fmp, history){
   expDate.setMonth(expDate.getMonth() + 6);
   const expiry6mo = expDate.toISOString().slice(0,10);
 
-  // Conservative strike = ATM (rounded to nearest $5)
-  const strikeConservative = Math.round(price / 5) * 5;
-  const strikeModerate     = Math.round(price * 1.05 / 5) * 5;
-  const strikeAggressive   = Math.round(price * 1.10 / 5) * 5;
-
   const options = {
     verdict: optVerdict,
     verdictReason: optVerdict === 'GO'
@@ -3916,14 +3974,9 @@ function computeStock(ticker, fmp, history){
       : optVerdict === 'SKIP'
       ? `Score ${totalScore}/32 or downtrend — avoid calls`
       : `Mixed setup — use caution`,
-    ivContext: 'See live options data for actual IV',
     earningsWarning: 'NO',   // Can't detect precisely from FMP alone
     nextEarningsApprox: '',
     expiry6mo,
-    strikeConservative, strikeModerate, strikeAggressive,
-    conservativeDesc: `ATM — highest probability, most expensive`,
-    moderateDesc: `~5% OTM — balanced risk/reward`,
-    aggressiveDesc: `~10% OTM — cheap but needs big move`,
     targetPrice6mo: Math.round(price * (1 + (totalScore/100)) * 100) / 100,
     targetPriceUpside: Math.round(totalScore),  // Rough: 1% per score point
     exitRule: 'Exit at 100% gain OR 30 days before expiry, whichever comes first',
@@ -4212,60 +4265,6 @@ function parseJSON(txt){
   throw new Error('Incomplete JSON — could not salvage any fields');
 }
 
-// ── Options via Cloudflare Worker proxy ──
-async function fetchOptionsViaWorker(ticker, stockPrice){
-  if(!keys[3]||!keys[4]||!stockPrice) return null;
-  // Normalize worker URL — ensure https://, strip trailing slash
-  let workerBase = keys[4].trim().replace(/\/+$/, '');
-  if(!workerBase.startsWith('http')) workerBase = 'https://' + workerBase;
-  const mdUrl = `https://api.marketdata.app/v1/options/chain/${ticker}/?dte=180&side=call&strike_limit=20&token=${keys[3]}`;
-  const proxyUrl = `${workerBase}?url=${encodeURIComponent(mdUrl)}`;
-  console.log('Options proxy URL:', proxyUrl);
-  const res = await fetch(proxyUrl);
-  if(!res.ok){
-    const b = await res.text().catch(()=>'');
-    // If the worker returns HTML it likely isn't deployed — give actionable message
-    const isHtml = b.trim().startsWith('<');
-    throw new Error(isHtml
-      ? `Worker not found at ${workerBase} — please (re)deploy worker.js to Cloudflare Workers`
-      : `Worker HTTP ${res.status}: ${b.slice(0,150)}`);
-  }
-  return parseOptionsResponse(await res.json(), stockPrice);
-}
-
-// ── Options direct browser fetch (localhost) ──
-async function fetchOptionsDirect(ticker,stockPrice){
-  if(!keys[3]||!stockPrice)return null;
-  const url=`https://api.marketdata.app/v1/options/chain/${ticker}/?dte=180&side=call&strike_limit=20&token=${keys[3]}`;
-  const res=await fetch(url);
-  if(!res.ok){const b=await res.text().catch(()=>'');throw new Error(`HTTP ${res.status}: ${b.slice(0,150)}`);}
-  return parseOptionsResponse(await res.json(),stockPrice);
-}
-
-// ── Shared options parser ──
-function parseOptionsResponse(chain,stockPrice){
-  if(chain.s==='error')throw new Error(chain.errmsg||'MarketData error');
-  if(chain.s==='no_data')throw new Error('No options data for this ticker');
-  if(chain.s!=='ok'||!chain.strike?.length)throw new Error(`Unexpected response: s="${chain.s}"`);
-  const ref=(chain.underlyingPrice?.[0])||stockPrice;
-  const all=chain.strike.map((_,i)=>({
-    strike:chain.strike[i],bid:chain.bid?.[i]??null,ask:chain.ask?.[i]??null,
-    mid:chain.mid?.[i]??null,last:chain.last?.[i]??null,iv:chain.iv?.[i]??null,
-    delta:chain.delta?.[i]??null,theta:chain.theta?.[i]??null,vega:chain.vega?.[i]??null,
-    volume:chain.volume?.[i]??null,openInterest:chain.openInterest?.[i]??null,
-    optionSymbol:chain.optionSymbol?.[i]??null,dte:chain.dte?.[i]??null,
-  }));
-  const pool=all.filter(c=>c.strike>=ref*0.85&&c.strike<=ref*1.15);
-  const src=pool.length?pool:all;
-  if(!src.length)throw new Error('No contracts near current price');
-  const cls=(px)=>src.reduce((b,c)=>Math.abs(c.strike-px)<Math.abs(b.strike-px)?c:b,src[0]);
-  const ivs=src.map(c=>c.iv).filter(v=>v>0);
-  const expiry=chain.expiration?.[0]?new Date(chain.expiration[0]*1000).toISOString().slice(0,10):'~6mo';
-  return{expiry,avgIV:ivs.length?ivs.reduce((s,v)=>s+v,0)/ivs.length:null,
-    atm:cls(ref),otm5:cls(ref*1.05),otm10:cls(ref*1.10),refPrice:ref,
-    fetchedAt:new Date().toLocaleTimeString(),contractCount:src.length};
-}
-
 async function reload(id,e){
   e.stopPropagation();
   const s=stocks.find(x=>x.id===id);if(!s)return;
@@ -4438,8 +4437,6 @@ function renderTable(){
       const td=s.technical?.trendDirection||'';
       const trcls=td==='uptrend'?'tup':td==='downtrend'?'tdn':'tsd';
       const pxHtml=s.currentPrice?`$${s.currentPrice.toFixed(2)}<span style="font-size:9px;margin-left:3px;color:${s.priceIsLive?'#4ade80':'#555'}">${s.priceIsLive?'●':'~'}</span>`:'—';
-      const lo=s.liveOptions;
-      const optBadge=lo&&!lo.error?'<span style="color:#4ade80;font-size:9px;margin-left:3px" title="Live options">●opts</span>':lo?.error?'<span style="color:#f87171;font-size:9px;margin-left:3px" title="'+lo.error+'">⚠</span>':'';
       const isExpanded = activeDP === s.id;
       // Fundamental quick metrics — show N/A for ETFs
       const isETFrow = s.isETF || s.sector === 'ETF/Fund';
@@ -4498,7 +4495,7 @@ function renderTable(){
         <td>${trendHtml}</td>
         <td><span class="badge ${vc(s.overallSignal)}">${s.overallSignal||'—'}</span></td>
         <td class="updated">${updTime}</td>
-        <td style="white-space:nowrap">${optBadge}<button class="rldbtn" onclick="reload(${s.id},event)" title="Re-analyze">↻</button> <button class="rmv" onclick="rm(${s.id},event)">✕</button></td>
+        <td style="white-space:nowrap"><button class="rldbtn" onclick="reload(${s.id},event)" title="Re-analyze">↻</button> <button class="rmv" onclick="rm(${s.id},event)">✕</button></td>
       </tr>${expandHtml}`;
     }).join('');
   } catch(e) {
@@ -4555,7 +4552,7 @@ function updateAnalysisOnly(stockId){
 }
 
 function buildExpandRow(s){
-  const g=s.graham, b=s.buffett, l=s.lynch, ta=s.technical, lo=s.liveOptions;
+  const g=s.graham, b=s.buffett, l=s.lynch, ta=s.technical;
   const ts=s.totalScore??0, tc=sc(ts,32);
   const pxTag=s.priceIsLive?'<span style="color:#4ade80;font-size:11px"> ●LIVE</span>':'';
 
@@ -4565,7 +4562,6 @@ function buildExpandRow(s){
     `<span class="pill" style="color:${sc(b?.score,8)}">${b?.signal||'—'} Buffett ${b?.score??0}/8</span>`,
     `<span class="pill" style="color:${sc(l?.score,8)}">${l?.signal||'—'} Lynch ${l?.score??0}/8</span>`,
     `<span class="pill" style="color:${sc(ta?.score,8)}">${ta?.signal||'—'} Technical ${ta?.score??0}/8</span>`,
-    lo&&!lo.error?`<span class="pill" style="color:#4ade80;border-color:#166534">●Live options</span>`:lo?.error?`<span class="pill" style="color:#f87171">⚠ Options unavailable</span>`:'',
   ].filter(Boolean).join('');
 
   // AI analysis section
@@ -4727,34 +4723,21 @@ async function summarizeAll(){
 }
 // ── OPTIONS HTML BUILDER (used in buildExpandRow) ──
 function buildOptionsHTML(s){
-  const op=s.options, lo=s.liveOptions, px=s.currentPrice||0;
+  const op=s.options, px=s.currentPrice||0;
   if(!op) return '<p style="color:#4a5568;font-size:13px;padding:12px 0">No options data — re-analyze this stock.</p>';
   const vc2=op.verdict==='GO'?'opt-go':op.verdict==='CAUTION'?'opt-caution':'opt-skip';
   const vi=op.verdict==='GO'?'✅':op.verdict==='CAUTION'?'⚠️':'❌';
-  const errBanner=lo?.error?`<div class="opt-err">⚠️ <strong>Live options unavailable:</strong> ${lo.error}<br><span style="font-size:11px;color:#4a5568">Check your MarketData.app key and Cloudflare Worker URL.</span></div>`:'';
-  const liveBadge=lo&&!lo.error?`<span class="lbadge live">●LIVE · ${lo.fetchedAt} · ${lo.contractCount} contracts · ${lo.expiry}</span>`:`<span class="lbadge est">Estimated</span>`;
   const earnWarn=op.earningsWarning==='YES'?`<div class="opt-warn">⚠️ <strong>Earnings Warning:</strong> Earnings expected ~${op.nextEarningsApprox||'soon'} within 6 weeks. IV typically spikes then collapses (IV crush). Consider waiting.</div>`:'';
-  const scard=(cls,lbl,aiStrike,lc)=>{
-    const isLive=lc&&!lo?.error, strike=isLive?lc.strike:aiStrike;
-    const lb=isLive?`<span class="lbadge live">●LIVE</span>`:`<span class="lbadge est">Est.</span>`;
-    const detail=isLive?`<b>Bid:</b> ${lc.bid!=null?'$'+lc.bid.toFixed(2):'—'} &nbsp; <b>Ask:</b> ${lc.ask!=null?'$'+lc.ask.toFixed(2):'—'}<br><b>IV:</b> ${lc.iv!=null?(lc.iv*100).toFixed(1)+'%':'—'} &nbsp; <b>Delta:</b> ${lc.delta!=null?lc.delta.toFixed(2):'—'}<br><b>Breakeven:</b> ${lc.mid!=null?'$'+(strike+lc.mid).toFixed(2):'—'}`:`Add MarketData.app key for live bid/ask, IV & Greeks`;
-    return`<div class="opt-strike ${cls}"><div class="opt-strike-lbl">${lbl} ${lb}</div><div class="opt-strike-price">${strike?'$'+Number(strike).toFixed(0):'—'} strike</div><div class="opt-strike-detail">${detail}</div></div>`;
-  };
-  return`${errBanner}
-    <div class="opt-verdict ${vc2}"><div class="opt-verdict-title">${vi} ${op.verdict==='GO'?'Good setup for 6-month call':op.verdict==='CAUTION'?'Proceed with caution':'Skip — not a good options setup'}</div><div class="opt-verdict-sub">${op.verdictReason||''}</div></div>
+  return`<div class="opt-verdict ${vc2}"><div class="opt-verdict-title">${vi} ${op.verdict==='GO'?'Good setup for 6-month call':op.verdict==='CAUTION'?'Proceed with caution':'Skip — not a good options setup'}</div><div class="opt-verdict-sub">${op.verdictReason||''}</div></div>
     ${earnWarn}
-    <div style="margin-bottom:10px">${liveBadge}</div>
     <div class="opt-cards">
       <div class="opt-card"><div class="opt-card-title">Stock price</div><div class="opt-card-main">$${px.toFixed(2)}</div><div class="opt-card-sub">Current</div></div>
       <div class="opt-card"><div class="opt-card-title">Target (6mo)</div><div class="opt-card-main" style="color:${(op.targetPriceUpside||0)>=0?'#4ade80':'#f87171'}">$${(op.targetPrice6mo||0).toFixed(0)}</div><div class="opt-card-sub">${(op.targetPriceUpside||0)>=0?'+':''}${(op.targetPriceUpside||0).toFixed(1)}% upside</div></div>
-      <div class="opt-card"><div class="opt-card-title">Expiry (6mo)</div><div class="opt-card-main" style="font-size:13px">${lo&&!lo.error?lo.expiry:op.expiry6mo||'~Oct 2026'}</div><div class="opt-card-sub">Suggested</div></div>
-      <div class="opt-card"><div class="opt-card-title">Avg IV</div><div class="opt-card-main">${lo&&!lo.error&&lo.avgIV?`${(lo.avgIV*100).toFixed(0)}%`:'—'}</div><div class="opt-card-sub">${op.ivContext||''}</div></div>
+      <div class="opt-card"><div class="opt-card-title">Expiry (6mo)</div><div class="opt-card-main" style="font-size:13px">${op.expiry6mo||'~6mo'}</div><div class="opt-card-sub">Suggested</div></div>
     </div>
-    <div class="slbl" style="margin:0 0 8px">Strike selection — 6-month calls</div>
-    <div class="opt-strikes">
-      ${scard('conservative','Conservative (ATM)',op.strikeConservative,lo?.atm)}
-      ${scard('moderate','Moderate (~5% OTM)',op.strikeModerate,lo?.otm5)}
-      ${scard('aggressive','Aggressive (~10% OTM)',op.strikeAggressive,lo?.otm10)}
+    <div class="opt-rules" style="margin-top:14px">
+      <div style="font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Strike approach</div>
+      <div class="opt-rule"><span style="color:#cbd5e1;line-height:1.6">If the verdict above is <b>GO</b>, look at <b>at-the-money to ~10% out-of-the-money</b> 6-month calls in your broker. ATM = higher probability, more expensive. Further OTM = cheaper, needs a bigger move. Pick based on conviction and how much premium you're willing to risk.</span></div>
     </div>
     <div class="opt-rules">
       <div style="font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Trade Rules</div>
@@ -4762,7 +4745,7 @@ function buildOptionsHTML(s){
       <div class="opt-rule"><span class="opt-rule-num">2</span><span><b style="color:#e2e8f0">Max loss:</b> ${op.maxLossRule||'Max loss = premium paid. Never risk more than 2-5% of portfolio'}</span></div>
       <div class="opt-rule"><span class="opt-rule-num">3</span><span><b style="color:#e2e8f0">Position size:</b> ${op.positionSizeRule||'1 contract per $10,000 of portfolio — options can go to zero'}</span></div>
     </div>
-    <p style="font-size:11px;color:#2d3748;margin-top:8px">Not financial advice. Options can lose 100% of premium.</p>`;
+    <p style="font-size:11px;color:#2d3748;margin-top:8px">Not financial advice. Options can lose 100% of premium. Look up actual bid/ask in your broker before placing the trade.</p>`;
 }
 
 // Show warning if opened as file:// (CORS blocked)
