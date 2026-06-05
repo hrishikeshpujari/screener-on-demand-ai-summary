@@ -161,6 +161,8 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
 .slbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin:16px 0 8px}
 .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:6px}
 .mbox{background:var(--surface-deep);border-radius:8px;padding:10px 12px;border:1px solid var(--border-default)}
+.mbox.mbox-pass{background:var(--accent-buy-bg);border-color:var(--accent-buy-border)}
+.mbox.mbox-fail{background:var(--accent-sell-bg);border-color:var(--accent-sell-border)}
 .ml{font-size:11px;color:var(--text-faint);margin-bottom:3px}
 .mv{font-size:13px;font-weight:700}
 .liner{font-size:13px;color:var(--text-tertiary);line-height:1.7;padding:12px 14px;background:var(--surface-deep);border-radius:8px;border:1px solid var(--border-default);margin-bottom:10px}
@@ -1389,15 +1391,15 @@ tbody tr { transition: background 0.15s ease; }
   --text-primary:#1b1b1f; --text-secondary:#46464f; --text-tertiary:#5c5e66;
   --text-muted:#74767e; --text-faint:#aeb0bb;
   --border-default:#c4c6d0; --border-strong:#74767e; --border-focus:#4f5b92;
-  --accent-buy:#1c6b3a; --c-green:#1c6b3a;
-  --accent-sell:#ba1a1a; --c-red:#ba1a1a;
-  --accent-hold:#7a5900; --c-amber:#7a5900;
-  --accent-info:#4f5b92; --c-blue:#4f5b92; --c-indigo:#4f46e5;
+  --accent-buy:#15803d; --c-green:#15803d;
+  --accent-sell:#b91c1c; --c-red:#b91c1c;
+  --accent-hold:#a16207; --c-amber:#a16207;
+  --accent-info:#3b4fd4; --c-blue:#2563eb; --c-indigo:#4f46e5;
   --md-btn-hover:#4338ca; --md-grad-2:#7c3aed;
-  --accent-ai:#6b4fa1; --c-purple:#6b4fa1;
-  --accent-buy-bg:rgba(28,107,58,.1); --accent-buy-border:rgba(28,107,58,.35);
-  --accent-hold-bg:rgba(122,89,0,.1); --accent-hold-border:rgba(122,89,0,.35);
-  --accent-sell-bg:rgba(186,26,26,.1); --accent-sell-border:rgba(186,26,26,.35);
+  --accent-ai:#6d28d9; --c-purple:#6d28d9;
+  --accent-buy-bg:#dcfce7; --accent-buy-border:#86efac;
+  --accent-hold-bg:#fef3c7; --accent-hold-border:#fcd34d;
+  --accent-sell-bg:#fee2e2; --accent-sell-border:#fca5a5;
   --md-primary:#4f5b92; --md-on-primary:#ffffff; --md-primary-container:#dde1ff; --md-on-primary-container:#0a1b4f;
   --md-tertiary:#6b4fa1; --md-on-tertiary:#ffffff;
   --md-elev-1:0 1px 2px rgba(0,0,0,.1),0 1px 3px 1px rgba(0,0,0,.06);
@@ -5340,7 +5342,7 @@ function buildExpandRow(s){
   let analysisHtml = buildAnalysisHtml(s);
 
   // Metric box helper
-  const mb=(lbl,val,pass,neu=false)=>`<div class="mbox"><div class="ml">${lbl}</div><div class="mv ${neu?'neut':val==='—'?'neut':pass?'pass':'fail'}">${val}</div></div>`;
+  const mb=(lbl,val,pass,neu=false)=>{const st=(neu||val==='—')?'neut':(pass?'pass':'fail');return `<div class="mbox mbox-${st}"><div class="ml">${lbl}</div><div class="mv ${st}">${val}</div></div>`;};
   const f=(v,sfx='',dp=1)=>v!==null&&v!==undefined&&!isNaN(v)?parseFloat(v).toFixed(dp)+sfx:'—';
 
   // Graham metrics
