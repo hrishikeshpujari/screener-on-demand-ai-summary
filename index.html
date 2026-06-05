@@ -4995,98 +4995,154 @@ async function callAnthropic(prompt, useSearch=false, retries=3, options={}){
 }
 
 // ════════════════════════════════════════════════════════════
-//  BEST SETUP — rank all analyzed stocks, AI explains the top pick
-//  Ranking is pure-math & transparent; AI only explains the #1.
+//  BEST SETUP — two lenses, ranked across all analyzed stocks:
+//    • Long-term value (Graham/Buffett quality + margin of safety)
+//    • 6–12 month setup (Al Brooks timing + entry + options conviction)
+//  Ranking is pure-math & transparent; AI explains both top picks
+//  with the FULL per-stock data (fundamentals, technicals, fair price…).
 // ════════════════════════════════════════════════════════════
-function rankSetups(){
-  const cands = stocks.filter(s => s.status==='done' && !s.error && s.overallSignal && s.overallSignal!=='SELL' && s.totalScore!=null);
-  return cands.map(s => {
-    const isETF = s.isETF || s.sector==='ETF/Fund';
-    const fund = (s.fundamentalScore||0)/24;          // business quality (Graham+Buffett+Lynch)
-    const tech = (s.technical?.score||0)/8;            // Al Brooks timing/confirmation
-    const tdir = s.technical?.trendDirection;
-    const uptrend = tdir==='uptrend' ? 1 : tdir==='sideways' ? 0.5 : 0;
-    // Margin of safety — discount to Graham fair value (capped at 100%)
-    const disc = (s.fairPrice>0 && s.currentPrice>0) ? Math.max(0, Math.min(1,(s.fairPrice-s.currentPrice)/s.fairPrice)) : 0;
-    // Entry quality — price at/below the pullback/support entry zone (fades out as price runs >8% above entry)
-    const atEntry = (s.entryPrice>0 && s.currentPrice>0)
-      ? (s.currentPrice<=s.entryPrice ? 1 : Math.max(0, 1-((s.currentPrice-s.entryPrice)/s.entryPrice)/0.08)) : 0;
-    const signalMult = s.overallSignal==='BUY' ? 1 : 0.55; // HOLD candidates discounted, SELL already excluded
-    const score = isETF
-      ? (0.55*tech + 0.25*uptrend + 0.20*atEntry) * signalMult * 100        // ETFs: technical/trend/entry only
-      : (0.30*fund + 0.22*tech + 0.13*uptrend + 0.18*disc + 0.17*atEntry) * signalMult * 100;
-    const reasons = [];
-    if(!isETF && fund>=0.6) reasons.push(`fundamentals ${s.fundamentalScore}/24`);
-    if(tech>=0.6) reasons.push(`technicals ${s.technical.score}/8`);
-    if(uptrend===1) reasons.push('uptrend');
-    if(disc>=0.08) reasons.push(`~${Math.round(disc*100)}% below fair`);
-    if(atEntry>=0.8) reasons.push('at entry zone');
-    if(s.options?.conviction==='HIGH') reasons.push('high options conviction');
-    if(!reasons.length) reasons.push(`${s.totalScore}/32 overall`);
-    return { s, score: Math.round(score), reasons, isETF };
-  }).sort((a,b)=>b.score-a.score);
+function _scoreStock(s, mode){
+  const isETF = s.isETF || s.sector==='ETF/Fund';
+  const fund=(s.fundamentalScore||0)/24, tech=(s.technical?.score||0)/8;
+  const tdir=s.technical?.trendDirection;
+  const uptrend=tdir==='uptrend'?1:tdir==='sideways'?0.5:0;
+  const notDown=tdir==='downtrend'?0:1;
+  const disc=(s.fairPrice>0&&s.currentPrice>0)?Math.max(0,Math.min(1,(s.fairPrice-s.currentPrice)/s.fairPrice)):0;
+  const atEntry=(s.entryPrice>0&&s.currentPrice>0)?(s.currentPrice<=s.entryPrice?1:Math.max(0,1-((s.currentPrice-s.entryPrice)/s.entryPrice)/0.08)):0;
+  const conv={HIGH:1,MEDIUM:0.6,LOW:0.3}[s.options?.conviction]||0;
+  const strat=s.options?.strategy;
+  const horizonFit=(strat==='LEAPS'||strat==='LONG_CALL_6MO')?1:(strat==='LONG_CALL_3MO')?0.5:0;
+  if(mode==='long'){
+    if(isETF) return null; // index/sector ETFs have no fundamentals to value — excluded from the value lens
+    const signalMult=s.overallSignal==='BUY'?1:0.7;
+    return (0.50*fund + 0.40*disc + 0.10*notDown) * signalMult * 100;
+  }
+  // 6–12 month tactical / options lens
+  const signalMult=s.overallSignal==='BUY'?1:0.6;
+  return isETF
+    ? (0.45*tech + 0.25*uptrend + 0.20*atEntry + 0.10*horizonFit) * signalMult * 100
+    : (0.28*tech + 0.18*uptrend + 0.18*atEntry + 0.16*conv + 0.10*fund + 0.10*horizonFit) * signalMult * 100;
+}
+function _setupReasons(s, mode){
+  const r=[], t=s.technical||{};
+  const disc=(s.fairPrice>0&&s.currentPrice>0)?Math.round((s.fairPrice-s.currentPrice)/s.fairPrice*100):0;
+  const atEntry=(s.entryPrice>0&&s.currentPrice>0)&&s.currentPrice<=s.entryPrice;
+  if(mode==='long'){
+    if((s.fundamentalScore||0)>=14) r.push(`fundamentals ${s.fundamentalScore}/24`);
+    if((s.buffett?.score||0)>=6) r.push('Buffett moat'); else if((s.graham?.score||0)>=5) r.push('Graham value');
+    if(disc>=8) r.push(`~${disc}% below fair`);
+    if((s.lynch?.score||0)>=5) r.push('Lynch growth');
+  } else {
+    if((t.score||0)>=6) r.push(`technicals ${t.score}/8`);
+    if(t.trendDirection==='uptrend') r.push('uptrend');
+    if(atEntry) r.push('at entry zone');
+    if(s.options?.conviction==='HIGH') r.push('high conviction');
+    if(s.options?.strategyName && s.options.strategy!=='NONE') r.push(s.options.strategyName);
+  }
+  if(!r.length) r.push(`${s.totalScore}/32 overall`);
+  return r;
+}
+function rankSetups(mode){
+  return stocks
+    .filter(s=>s.status==='done'&&!s.error&&s.overallSignal&&s.overallSignal!=='SELL'&&s.totalScore!=null)
+    .map(s=>({s, score:_scoreStock(s,mode)}))
+    .filter(x=>x.score!=null)
+    .map(x=>({s:x.s, score:Math.round(x.score), reasons:_setupReasons(x.s,mode)}))
+    .sort((a,b)=>b.score-a.score);
+}
+// Compact-but-complete data block so the AI "sees" everything for a pick
+function _stockDataBlock(s){
+  const f=v=>v==null?'n/a':(typeof v==='number'?(Math.abs(v)>=100?v.toFixed(0):v.toFixed(1)):v);
+  const disc=(s.fairPrice>0&&s.currentPrice>0)?Math.round((s.fairPrice-s.currentPrice)/s.fairPrice*100):null;
+  const g=s.graham||{},b=s.buffett||{},l=s.lynch||{},t=s.technical||{},o=s.options||{};
+  const iv=typeof o.ivContext==='string'?o.ivContext:(o.ivContext?.label||'n/a');
+  return `${s.ticker} (${s.companyName||''}) — $${f(s.currentPrice)}, signal ${s.overallSignal}, total ${s.totalScore}/32
+  Graham fair value $${s.fairPrice?f(s.fairPrice):'n/a'}${disc!=null?` (${disc>=0?disc+'% BELOW':Math.abs(disc)+'% above'} fair)`:''} · Entry zone $${s.entryPrice?f(s.entryPrice):'n/a'}
+  Graham ${g.score}/8: P/E ${f(g.pe)}, P/B ${f(g.pb)}, CurrentRatio ${f(g.currentRatio)}, D/E ${f(g.debtToEquity)}, EPSgrowth10y ${f(g.epsGrowth10yr)}%, Div ${f(g.dividendYield)}%, RevGrowth5y ${f(g.revenueGrowth5yr)}%, NetMargin ${f(g.netMargin)}%
+  Buffett ${b.score}/8: ROE ${f(b.roe)}%, GrossMargin ${f(b.grossMargin)}%, ROIC ${f(b.roic)}%, FCF $${f(b.fcfMillions)}M, DebtPayoff ${f(b.debtPayoffYrs)}y, moat ${f(b.moatRating)}/5
+  Lynch ${l.score}/8: PEG ${f(l.peg)}, EPSgrYoY ${f(l.epsGrowthYoy)}%, SalesGrYoY ${f(l.salesGrowthYoy)}%
+  Technical ${t.score}/8: ${t.trendDirection}, EMA20 $${f(t.ema20)} / EMA50 $${f(t.ema50)} / EMA200 $${f(t.ema200)}, support $${f(t.supportLevel)}, resistance $${f(t.resistanceLevel)}. ${t.summary||''}
+  Options: ${o.strategyName||'n/a'} (${o.conviction||'n/a'} conviction)${o.targetPriceUpside?`, ~${o.targetPriceUpside}% target upside`:''}${o.earningsWarning==='YES'?', earnings <30d':''}, IV ${iv}`;
 }
 
 async function showBestSetup(){
-  const banner = document.getElementById('bestSetup');
+  const banner=document.getElementById('bestSetup');
   if(!banner) return;
-  const ranked = rankSetups();
+  const longR=rankSetups('long'), swingR=rankSetups('swing');
   banner.style.display='block';
   banner.scrollIntoView({behavior:'smooth', block:'nearest'});
-  if(!ranked.length){
-    banner.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-      <span style="font-size:13px;color:var(--text-muted)">No BUY/HOLD candidates to rank yet — analyze some stocks first (SELL-signal stocks are excluded from setups).</span>
+  if(!longR.length && !swingR.length){
+    banner.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <span style="font-size:13px;color:var(--text-muted)">No BUY/HOLD candidates to rank yet — analyze some stocks first (SELL-signal stocks are excluded).</span>
       <button onclick="document.getElementById('bestSetup').style.display='none'" style="background:none;border:1px solid var(--border-strong);color:var(--text-muted);border-radius:6px;padding:3px 10px;font-size:12px;cursor:pointer;font-family:inherit">✕</button></div>`;
     return;
   }
-  const top = ranked[0];
-  const runners = ranked.slice(1,3);
-  const chip = (t) => `<span style="display:inline-block;padding:3px 9px;border-radius:999px;background:var(--accent-buy-bg);border:1px solid var(--accent-buy-border);color:var(--accent-buy);font-size:11px;font-weight:600;margin:2px 4px 2px 0">${t}</span>`;
-  banner.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+  const chip=(t,kind)=>{const c=kind==='long'?'buy':'blue';const bg=kind==='long'?'var(--accent-buy-bg)':'rgba(96,165,250,.12)';const bd=kind==='long'?'var(--accent-buy-border)':'var(--c-blue)';const col=kind==='long'?'var(--accent-buy)':'var(--c-blue)';return `<span style="display:inline-block;padding:3px 9px;border-radius:999px;background:${bg};border:1px solid ${bd};color:${col};font-size:11px;font-weight:600;margin:2px 4px 2px 0">${t}</span>`;};
+  const card=(rk,kind,icon,title)=>{
+    if(!rk.length) return `<div style="flex:1;min-width:240px;background:var(--surface-deep);border:1px solid var(--border-default);border-radius:10px;padding:12px 14px"><div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:6px">${icon} ${title}</div><div style="font-size:12px;color:var(--text-faint)">No candidate (needs ${kind==='long'?'fundamental data — ETFs excluded':'a valid setup'}).</div></div>`;
+    const top=rk[0];
+    const accent=kind==='long'?'var(--accent-buy)':'var(--c-blue)';
+    const bord=kind==='long'?'var(--accent-buy-border)':'var(--c-blue)';
+    return `<div style="flex:1;min-width:240px;background:var(--surface-deep);border:1px solid ${bord};border-radius:10px;padding:12px 14px">
+      <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:6px">${icon} ${title}</div>
+      <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+        <span style="font-size:19px;font-weight:800;color:${accent}">${top.s.ticker}</span>
+        <span style="font-size:12px;color:var(--text-muted)">${top.s.companyName||''}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px">${top.s.totalScore}/32 · ${top.s.overallSignal} · setup score ${top.score}</div>
+      <div>${top.reasons.map(r=>chip(r,kind)).join('')}</div>
+    </div>`;
+  };
+  const runners=(rk)=>rk.slice(1,3).map(r=>`<strong style="color:var(--text-secondary)">${r.s.ticker}</strong> (${r.s.totalScore}/32, ${r.score})`).join(' · ');
+  banner.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <span style="font-size:15px;font-weight:800;color:var(--text-primary)">🎯 Best Setup</span>
-        <span style="font-size:11px;color:var(--text-muted)">ranked across ${ranked.length} candidate${ranked.length>1?'s':''} in your list · research idea, not advice</span>
+        <span style="font-size:15px;font-weight:800;color:var(--text-primary)">🎯 Best Setups</span>
+        <span style="font-size:11px;color:var(--text-muted)">two lenses, ranked across your list · research ideas, not advice</span>
       </div>
       <button onclick="document.getElementById('bestSetup').style.display='none'" style="background:none;border:1px solid var(--border-strong);color:var(--text-muted);border-radius:6px;padding:3px 10px;font-size:12px;cursor:pointer;font-family:inherit">✕ Close</button>
     </div>
-    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:6px">
-      <span style="font-size:22px;font-weight:800;color:var(--accent-buy)">${top.s.ticker}</span>
-      <span style="font-size:13px;color:var(--text-muted)">${top.s.companyName||''}</span>
-      <span style="font-size:12px;color:var(--text-tertiary)">· ${top.s.totalScore}/32 · ${top.s.overallSignal} · setup score ${top.score}</span>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+      ${card(longR,'long','📈','Long-term value')}
+      ${card(swingR,'swing','🎯','6–12 month setup')}
     </div>
-    <div style="margin-bottom:10px">${top.reasons.map(chip).join('')}</div>
-    <div id="bestSetupAI" style="font-size:13px;line-height:1.7;color:var(--text-secondary);background:var(--surface-deep);border:1px solid var(--border-default);border-radius:8px;padding:12px 14px;min-height:40px"><span style="color:var(--text-muted)">🧠 Analyzing why this is the best setup…</span></div>
-    ${runners.length?`<div style="margin-top:10px;font-size:12px;color:var(--text-muted)">Runner-ups: ${runners.map(r=>`<strong style="color:var(--text-secondary)">${r.s.ticker}</strong> (${r.s.totalScore}/32, setup ${r.score})`).join(' · ')}</div>`:''}
-    <div style="margin-top:8px;font-size:11px;color:var(--text-faint)">Ranked by fundamentals + technical confirmation + valuation discount + entry timing. Best of <em>your list</em> — not the market. Not financial advice.</div>
+    <div id="bestSetupAI" style="font-size:13px;line-height:1.7;color:var(--text-secondary);background:var(--surface-deep);border:1px solid var(--border-default);border-radius:8px;padding:12px 14px;min-height:40px;white-space:pre-wrap"><span style="color:var(--text-muted)">🧠 Analyzing both setups with full fundamentals + technicals…</span></div>
+    <div style="margin-top:10px;font-size:12px;color:var(--text-muted)">
+      ${longR.length>1?`<div>📈 Value runner-ups: ${runners(longR)}</div>`:''}
+      ${swingR.length>1?`<div>🎯 Setup runner-ups: ${runners(swingR)}</div>`:''}
+    </div>
+    <div style="margin-top:8px;font-size:11px;color:var(--text-faint)">Long-term = quality + margin of safety (Graham/Buffett); 6–12mo = technical timing + entry + options conviction (Al Brooks). Best of <em>your list</em> — not the market. Not financial advice.</div>
   `;
 
-  const aiEl = document.getElementById('bestSetupAI');
-  if(!keys[0]){
-    aiEl.innerHTML = `<span style="color:var(--text-muted)">Add an Anthropic key (⚙ API Keys) for the AI rationale — the ranking above is pure-math and works without it.</span>`;
-    return;
-  }
-  const t = top.s;
-  const listCtx = ranked.slice(0,5).map(r=>`${r.s.ticker}: ${r.s.totalScore}/32 (F${r.s.fundamentalScore||0} T${r.s.technical?.score||0}), ${r.s.overallSignal}, trend ${r.s.technical?.trendDirection}, setup-score ${r.score}`).join('\n');
-  const prompt = `You are a disciplined value-investing analyst. From a watchlist, a transparent pure-math model ranked these stocks by "setup quality" (fundamentals + technical confirmation + valuation discount + entry timing):
+  const aiEl=document.getElementById('bestSetupAI');
+  if(!keys[0]){ aiEl.innerHTML=`<span style="color:var(--text-muted)">Add an Anthropic key (⚙ API Keys) for the AI rationale — the rankings above are pure-math and work without it.</span>`; return; }
 
-${listCtx}
+  const longTop=longR[0], swingTop=swingR[0];
+  const longCtx=longR.slice(0,4).map(r=>`${r.s.ticker}: ${r.s.totalScore}/32, fund ${r.s.fundamentalScore||0}/24, ${r.s.overallSignal}, setup-score ${r.score}`).join('\n');
+  const swingCtx=swingR.slice(0,4).map(r=>`${r.s.ticker}: tech ${r.s.technical?.score||0}/8, ${r.s.technical?.trendDirection}, ${r.s.options?.strategyName||'no play'}/${r.s.options?.conviction||'-'}, setup-score ${r.score}`).join('\n');
+  const prompt=`You are a disciplined value-investing analyst. A transparent math model split a watchlist into two lenses and ranked each:
 
-Top-ranked setup: ${t.ticker} (${t.companyName||''}).
-${t.ticker} data:
-- Price $${t.currentPrice?.toFixed(2)} · Graham fair value $${t.fairPrice?t.fairPrice.toFixed(0):'n/a'} · Entry zone $${t.entryPrice?t.entryPrice.toFixed(2):'n/a'}
-- Total ${t.totalScore}/32 (Graham ${t.graham?.score}/8, Buffett ${t.buffett?.score}/8, Lynch ${t.lynch?.score}/8, Technical ${t.technical?.score}/8)
-- Signal ${t.overallSignal} · Trend ${t.technical?.trendDirection} · ${t.technical?.summary||''}
-- Options: ${t.options?.strategyName||'n/a'} (${t.options?.conviction||'n/a'} conviction)${t.options?.earningsWarning==='YES'?' · earnings within 30d':''}
+=== LONG-TERM VALUE (own-it-for-years — Graham/Buffett quality + Graham margin of safety) ===
+Ranking: 
+${longCtx||'(no candidates)'}
+${longTop?`\nTOP PICK FULL DATA:\n${_stockDataBlock(longTop.s)}`:''}
 
-In 3-4 sentences, explain why this ranks as the best setup right now versus the others, framed through Graham/Buffett/Lynch value + Al Brooks timing. Then give ONE key risk or what would invalidate the setup. Be honest — if it's merely the best of a weak or concentrated list, say so plainly. Do NOT give a buy recommendation. No preamble, no disclaimer.`;
+=== 6–12 MONTH SETUP (directional/options swing — Al Brooks timing + entry + the options play) ===
+Ranking:
+${swingCtx||'(no candidates)'}
+${swingTop?`\nTOP PICK FULL DATA:\n${_stockDataBlock(swingTop.s)}`:''}
+
+Write exactly two short labeled sections using the full data above:
+"LONG-TERM: " — 2-3 sentences on why ${longTop?longTop.s.ticker:'the top pick'} is the best long-term value (specific to its fundamentals + discount to fair value vs the others), then ONE key risk.
+"6–12 MONTH: " — 2-3 sentences on why ${swingTop?swingTop.s.ticker:'the top pick'} is the best tactical setup over the next 6-12 months (specific to its trend/entry/EMAs and the options play), then ONE risk or what would invalidate it.
+Cite the actual numbers (P/E, ROE, margin of safety %, EMA levels, conviction). Be honest — if the same name tops both, say so; if a pick is merely the best of a weak or concentrated list, say so plainly. No buy recommendations, no preamble, no closing disclaimer.`;
 
   try {
-    aiEl.textContent = '';
-    await callAnthropic(prompt, false, 3, { onChunk: (full)=>{ const el=document.getElementById('bestSetupAI'); if(el) el.textContent = full; } });
+    aiEl.textContent='';
+    await callAnthropic(prompt, false, 3, { onChunk:(full)=>{ const el=document.getElementById('bestSetupAI'); if(el) el.textContent=full; } });
   } catch(e){
     const el=document.getElementById('bestSetupAI');
-    if(el) el.innerHTML = `<span style="color:var(--c-red)">AI explanation failed: ${e.message}. The math ranking above still stands.</span>`;
+    if(el) el.innerHTML=`<span style="color:var(--c-red)">AI explanation failed: ${e.message}. The rankings above still stand.</span>`;
   }
 }
 
