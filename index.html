@@ -124,7 +124,7 @@ h1{font-size:22px;font-weight:700;color:var(--text-primary);margin-bottom:4px;le
 .btn-ai-all:hover{opacity:.9;transform:translateY(-1px)}
 .btn-ai-all:disabled{opacity:.4;cursor:not-allowed}
 /* ── TABLE ── */
-.tbl-wrap{overflow-x:auto;margin-bottom:16px}
+.tbl-wrap{overflow-x:auto;margin-bottom:16px;container-type:inline-size}
 table{width:100%;border-collapse:collapse;font-size:13px;min-width:900px}
 thead th{background:#141720;color:var(--text-muted);font-weight:600;padding:10px 12px;text-align:left;border-bottom:2px solid var(--border-default);white-space:nowrap;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
 tbody tr{border-bottom:1px solid #1a1d2a;cursor:pointer;transition:background .12s}
@@ -163,6 +163,12 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
 .mbox{background:var(--surface-deep);border-radius:8px;padding:10px 12px;border:1px solid var(--border-default)}
 .mbox.mbox-pass{background:var(--accent-buy-bg);border-color:var(--accent-buy-border)}
 .mbox.mbox-fail{background:var(--accent-sell-bg);border-color:var(--accent-sell-border)}
+.mbox.mbox-neut{background:var(--bg-surface-2);border-color:var(--border-strong)}
+/* Material dark: clear green/red so pass/fail reads obviously (pastel tokens look murky at low opacity on near-black) */
+[data-design="material"][data-theme="dark"] .mbox.mbox-pass{background:rgba(34,197,94,.16);border-color:rgba(34,197,94,.55)}
+[data-design="material"][data-theme="dark"] .mbox.mbox-fail{background:rgba(239,68,68,.16);border-color:rgba(239,68,68,.55)}
+[data-design="material"][data-theme="dark"] .mbox-pass .mv{color:#5ee08a}
+[data-design="material"][data-theme="dark"] .mbox-fail .mv{color:#ff7a70}
 .ml{font-size:11px;color:var(--text-faint);margin-bottom:3px}
 .mv{font-size:13px;font-weight:700}
 .liner{font-size:13px;color:var(--text-tertiary);line-height:1.7;padding:12px 14px;background:var(--surface-deep);border-radius:8px;border:1px solid var(--border-default);margin-bottom:10px}
@@ -474,6 +480,14 @@ td.updated { font-size: 10px; color: var(--text-faint); }
     opacity: 1;
     padding: 20px 24px 24px;
   }
+}
+/* Pin the expanded detail to the VISIBLE table width (not the full scrollable width),
+   so it fits the screen and stays in view when the table scrolls horizontally. */
+.expand-inner {
+  position: sticky;
+  left: 0;
+  width: 100cqw;
+  box-sizing: border-box;
 }
 /* Caret rotation on expand */
 .caret { display: inline-block; transition: transform 0.25s ease; }
