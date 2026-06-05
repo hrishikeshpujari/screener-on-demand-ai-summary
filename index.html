@@ -578,6 +578,48 @@ tbody tr { transition: background 0.15s ease; }
 .disc-card-row .tech { color: var(--accent-info); font-weight: 600; font-variant-numeric: tabular-nums; }
 .disc-card-row .reason { color: var(--accent-ai); flex-basis: 100%; margin-top: 4px; }
 
+/* ── Discover redesign: controls, filter bar, unified grid, richer cards ── */
+.disc-controls{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+.disc-ctrl-label{font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:8px}
+.disc-ctrl-hint{font-weight:400;color:var(--text-muted)}
+.disc-theme-row{display:flex;flex-wrap:wrap;gap:8px}
+.disc-theme-btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:var(--surface-card);border:1px solid var(--border-strong);border-radius:10px;padding:8px 12px;cursor:pointer;font-family:inherit;color:var(--text-secondary);transition:all .15s;min-width:118px}
+.disc-theme-btn:hover{border-color:var(--border-focus);color:var(--text-primary);transform:translateY(-1px)}
+.disc-theme-btn.done{border-color:var(--accent-buy-border)}
+.disc-theme-btn.scanning{border-color:var(--accent-ai);cursor:wait}
+.disc-theme-btn:disabled{cursor:wait;opacity:.85}
+.disc-tb-title{font-size:12px;font-weight:700;white-space:nowrap}
+.disc-tb-sub{font-size:10px;color:var(--text-muted)}
+.disc-theme-btn.done .disc-tb-sub{color:var(--accent-buy)}
+.disc-theme-btn.scanning .disc-tb-sub{color:var(--accent-ai)}
+.disc-custom{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.disc-custom-input{flex:1;min-width:200px;background:var(--bg-input);border:1px solid var(--border-default);border-radius:8px;padding:8px 12px;color:var(--text-primary);font-family:inherit;font-size:13px}
+.disc-custom-btn{background:linear-gradient(135deg,var(--c-indigo),var(--c-purple));border:none;border-radius:8px;color:#fff;font-weight:700;font-size:13px;padding:8px 16px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.disc-custom-btn:disabled{opacity:.4;cursor:not-allowed}
+.disc-filter-bar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:10px;padding:10px 14px;margin-bottom:12px}
+.disc-fb-count{font-size:12px;font-weight:700;color:var(--text-secondary)}
+.disc-fb-group{display:flex;align-items:center;gap:6px}
+.disc-fb-group label{font-size:11px;color:var(--text-muted);font-weight:600}
+.disc-fb-group select{background:var(--bg-input);border:1px solid var(--border-default);border-radius:6px;color:var(--text-secondary);font-family:inherit;font-size:12px;padding:4px 8px;cursor:pointer}
+.disc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:10px}
+.disc-empty{text-align:center;padding:40px 20px;color:var(--text-muted);font-size:13px;background:var(--bg-surface);border:1px dashed var(--border-strong);border-radius:12px}
+.disc-cap{font-size:9px;font-weight:700;color:var(--text-muted);border:1px solid var(--border-strong);border-radius:4px;padding:1px 5px;vertical-align:middle;letter-spacing:.3px}
+.disc-card-metrics{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px;margin-bottom:6px}
+.disc-card-metrics .px{color:var(--text-secondary);font-weight:600;font-variant-numeric:tabular-nums}
+.disc-card-metrics .score{font-weight:700;font-variant-numeric:tabular-nums}
+.disc-card-metrics .score.pass{color:var(--accent-buy)}
+.disc-card-metrics .score.tsd{color:var(--accent-hold)}
+.disc-card-metrics .score.fail{color:var(--c-red)}
+.disc-card-metrics .fund{color:var(--text-tertiary);font-weight:600}
+.disc-card-metrics .tech{color:var(--accent-info);font-weight:600}
+.disc-gap{font-weight:600}
+.disc-gap.pos{color:var(--c-green)}
+.disc-gap.neg{color:var(--c-red)}
+.disc-gap.neu{color:var(--text-muted)}
+.disc-card-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+.disc-tag{font-size:9.5px;color:var(--text-tertiary);background:var(--bg-surface-2);border:1px solid var(--border-default);border-radius:999px;padding:1px 7px}
+.disc-card-reason{font-size:11px;color:var(--accent-ai);line-height:1.5}
+
 /* ══════════════════════════════════════════════════════════
    PORTFOLIO POLISH (continued)
    ══════════════════════════════════════════════════════════ */
@@ -2349,7 +2391,7 @@ tbody tr { transition: background 0.15s ease; }
 <div id="tabDiscover" style="display:none">
   <div style="margin-bottom:18px">
     <h2 style="font-size:18px;font-weight:700;color:var(--text-primary);margin-bottom:6px">🔭 Discover Stocks</h2>
-    <p style="font-size:12px;color:var(--text-muted);line-height:1.7">Curated universes scanned for breakouts, quality, value, and options setups. Results cached 24h. Click any stock to add it to the screener.</p>
+    <p style="font-size:12px;color:var(--text-muted);line-height:1.7">AI-sourced discovery proposes under-followed names (including small-caps) for a theme, then validates each against the live screener. Curated universes scan fixed large-cap lists. All matches land in one ranked, filterable grid — tap any card to add it to the screener.</p>
   </div>
 
   <div id="discoverCategories" style="display:flex;flex-direction:column;gap:14px"></div>
@@ -3279,7 +3321,41 @@ const DISCOVER_UNIVERSES = {
   }
 };
 
-let discoverResults = {}; // category -> {results, scannedAt}
+let discoverResults = {}; // category/theme -> {results, scannedAt, source, themeTitle}
+
+// AI-sourced discovery themes — Claude proposes tickers (incl. small/mid-caps), screener validates
+const AI_THEMES = {
+  smallQuality: { icon:'💎', title:'Small-cap quality', prompt:'small- and mid-cap US companies (roughly $300M–$10B market cap) with durable competitive moats, high returns on capital, healthy balance sheets, and reasonable valuations — under-followed quality compounders, NOT mega-caps' },
+  moaty: { icon:'🏰', title:'Moaty under $10B', prompt:'US companies under ~$10B market cap with strong, widening competitive moats (brand, network effects, switching costs, low-cost advantage), consistent revenue growth, and high gross margins' },
+  garp: { icon:'🌱', title:'GARP (Lynch)', prompt:'growth-at-a-reasonable-price stocks in the Peter Lynch style — PEG roughly under 1.2, solid and consistent earnings growth, understandable businesses, ideally under-followed mid-caps' },
+  deepValue: { icon:'🪙', title:'Deep value', prompt:'fundamentally cheap US stocks at low P/E and P/B with positive free cash flow and manageable debt — Graham-style bargains, across all market caps' },
+};
+
+// Unified results view state
+let discFilter = { theme:'all', signal:'all', cap:'all', sort:'score' };
+
+function capTier(mc){ // marketCap in $millions
+  if(mc==null || !isFinite(mc) || mc<=0) return null;
+  if(mc < 2000) return 'Small';
+  if(mc < 10000) return 'Mid';
+  return 'Large';
+}
+function themeMeta(key){
+  if(DISCOVER_UNIVERSES[key]) return { icon:DISCOVER_UNIVERSES[key].icon, title:DISCOVER_UNIVERSES[key].title };
+  if(AI_THEMES[key]) return { icon:AI_THEMES[key].icon, title:AI_THEMES[key].title };
+  const r = discoverResults[key];
+  return { icon:'🔭', title:(r&&r.themeTitle)||key };
+}
+// Build a rich match object from a fully-computed stock
+function discoverMatchObj(s, reason){
+  return {
+    ticker:s.ticker, companyName:s.companyName, price:s.currentPrice,
+    totalScore:s.totalScore, fundScore:s.fundamentalScore, techScore:s.technical?.score||0,
+    signal:s.overallSignal, fairPrice:s.fairPrice, marketCap:s.marketCap,
+    trend:s.technical?.trendDirection, reason: reason || s.oneLiner || '',
+  };
+}
+
 
 function loadDiscoverResults(){
   try {
@@ -3304,68 +3380,187 @@ function saveDiscoverResults(){
   localStorage.setItem('viss_discover', JSON.stringify(discoverResults));
 }
 
+// ── AI-sourced discovery: Claude proposes tickers, the screener validates them ──
+async function aiDiscover(themeKey, customQuery){
+  if(!keys[0]){ alert('Need an Anthropic API key for AI discovery (⚙ API Keys).'); return; }
+  if(!keys[1] || !keys[2]){ alert('Need Finnhub + Twelve Data keys to validate suggestions.'); return; }
+  if(busyOp){
+    if(confirm(`Already running: ${busyOp}.\n\nForce-cancel and start fresh?`)){
+      busyOp=null;
+      Object.keys(discoverResults).forEach(k=>{ if(discoverResults[k]?.scanning){ discoverResults[k].scanning=null; discoverResults[k].interrupted=true; }});
+      saveDiscoverResults();
+    } else return;
+  }
+  const theme = AI_THEMES[themeKey];
+  const themeDesc = theme ? theme.prompt : (customQuery||'').trim();
+  const themeTitle = theme ? theme.title : (customQuery||'Custom').trim().slice(0,40);
+  if(!themeDesc){ alert('Describe what to look for.'); return; }
+
+  busyOp = `discover-${themeKey}`;
+  discoverResults[themeKey] = { scanning:'AI sourcing…', results:[], scannedAt:Date.now(), source:'ai', themeTitle };
+  saveDiscoverResults(); renderDiscover();
+  showProgress('🔭 AI sourcing candidates…');
+
+  let cand = [];
+  try {
+    const today = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long'});
+    const prompt = `Today is ${today}. Suggest 20 US-listed stock tickers (NYSE/Nasdaq) that fit this theme:\n"${themeDesc}"\n\nFavor under-followed small- and mid-cap names over mega-caps. Only real, currently-listed US tickers. Avoid OTC/pink-sheet names. Return ONLY valid JSON, no preamble:\n{"tickers":[{"ticker":"XYZ","reason":"<max 8 words why it fits>"}]}`;
+    const raw = await callAnthropic(prompt, true, 3, {}); // web search ON for current names
+    const parsed = parseJSON(raw);
+    cand = (parsed.tickers||[]).filter(x=>x && x.ticker).slice(0,22);
+  } catch(e){
+    busyOp=null; hideProgress();
+    discoverResults[themeKey] = { results:[], scannedAt:Date.now(), scanning:null, source:'ai', themeTitle, error:'AI sourcing failed: '+e.message };
+    saveDiscoverResults(); renderDiscover(); return;
+  }
+  if(!cand.length){
+    busyOp=null; hideProgress();
+    discoverResults[themeKey] = { results:[], scannedAt:Date.now(), scanning:null, source:'ai', themeTitle, error:'AI returned no usable tickers — try rephrasing.' };
+    saveDiscoverResults(); renderDiscover(); return;
+  }
+
+  const matches = [];
+  let skipped = 0;
+  try {
+    for(let i=0;i<cand.length;i++){
+      if(busyOp !== `discover-${themeKey}`) break;
+      const t = String(cand[i].ticker).toUpperCase().trim().replace(/[^A-Z.\-]/g,'');
+      if(!t){ continue; }
+      const aiReason = cand[i].reason || '';
+      discoverResults[themeKey].scanning = `${i+1}/${cand.length} · ${t}`;
+      saveDiscoverResults();
+      showProgress(`🔭 Validating ${t} (${i+1}/${cand.length}) · ${matches.length} kept`);
+      renderDiscover();
+      try {
+        const existing = stocks.find(s=>s.ticker===t && s.status==='done');
+        let sd, calledApi=false;
+        if(existing){ sd = existing; }
+        else {
+          const fh = await fetchFinnhub(t); if(!fh){ skipped++; continue; }
+          const hist = await fetchPriceHistory(t); if(!hist || hist.length<50){ skipped++; continue; }
+          sd = computeStock(t, fh, hist); calledApi=true;
+        }
+        if(sd && sd.totalScore!=null && sd.overallSignal!=='SELL'){
+          matches.push(discoverMatchObj(sd, aiReason));
+        } else { skipped++; }
+        if(calledApi && i<cand.length-1) await new Promise(r=>setTimeout(r,8000)); // Twelve Data 8/min pacing
+      } catch(e){ skipped++; console.warn('AI discover validate failed', t, e.message); }
+    }
+  } finally { busyOp=null; hideProgress(); }
+
+  matches.sort((a,b)=>(b.totalScore||0)-(a.totalScore||0));
+  discoverResults[themeKey] = { results:matches.slice(0,20), scannedAt:Date.now(), scanning:null, source:'ai', themeTitle, skipped };
+  saveDiscoverResults(); renderDiscover();
+}
+
+
+function _themeBtn(key, isAI){
+  const r = discoverResults[key];
+  const meta = isAI ? AI_THEMES[key] : DISCOVER_UNIVERSES[key];
+  if(!meta) return '';
+  const scanning = r && r.scanning;
+  const interrupted = r && r.interrupted && !scanning;
+  const count = (r && r.results && r.results.length) || 0;
+  const err = r && r.error;
+  let sub = '';
+  if(scanning) sub = `⏳ ${scanning}`;
+  else if(err) sub = '⚠ failed — retry';
+  else if(interrupted) sub = `⚠ ${count} · re-run`;
+  else if(count) sub = `✓ ${count} found`;
+  else sub = isAI ? 'tap to discover' : `scan ${meta.tickers.length}`;
+  const cls = scanning ? 'disc-theme-btn scanning' : (count||interrupted) ? 'disc-theme-btn done' : 'disc-theme-btn';
+  const onclick = isAI ? `aiDiscover('${key}')` : `scanDiscover('${key}')`;
+  const tip = (meta.desc || meta.prompt || '').replace(/"/g,'&quot;');
+  return `<button class="${cls}" onclick="${onclick}" ${scanning?'disabled':''} title="${tip}">
+    <span class="disc-tb-title">${meta.icon} ${meta.title}</span>
+    <span class="disc-tb-sub">${sub}</span>
+  </button>`;
+}
+function setDiscFilter(field, value){ discFilter[field]=value; renderDiscover(); }
+
 function renderDiscover(){
   loadDiscoverResults();
   const el = document.getElementById('discoverCategories');
   if(!el) return;
-  el.innerHTML = Object.entries(DISCOVER_UNIVERSES).map(([key, cat]) => {
-    const result = discoverResults[key];
-    const stale = result && (Date.now() - result.scannedAt) > 86400000;
-    const found = result?.results?.length || 0;
-    const ageStr = result ? new Date(result.scannedAt).toLocaleString() : '';
-    const matches = result?.results || [];
-    const scanning = result?.scanning;
-    const interrupted = result?.interrupted && !scanning;
+  const prevCustom = (document.getElementById('discCustom') && document.getElementById('discCustom').value) || '';
 
-    let statusBadge;
-    if(scanning){
-      statusBadge = `<div class="disc-meta-status scanning">⏳ Scanning…</div><div class="disc-meta-time">${ageStr}</div>`;
-    } else if(interrupted){
-      statusBadge = `<div class="disc-meta-status interrupted">⚠ Interrupted · ${found} found</div><div class="disc-meta-time">Click Resume below</div>`;
-    } else if(result){
-      statusBadge = `<div class="disc-meta-status ${stale?'stale':'ok'}">${stale?'⏰ Stale':'✓'} ${found} match${found===1?'':'es'}</div><div class="disc-meta-time">${ageStr}</div>`;
-    } else {
-      statusBadge = '<div class="disc-meta-status empty">Not scanned yet</div>';
-    }
+  // ── aggregate all results into one deduped list (merge theme tags) ──
+  const byTicker = {};
+  Object.entries(discoverResults).forEach(([key,r])=>{
+    ((r && r.results) || []).forEach(m=>{
+      if(!m || !m.ticker) return;
+      if(!byTicker[m.ticker]) byTicker[m.ticker] = Object.assign({}, m, {themes:[key]});
+      else if(!byTicker[m.ticker].themes.includes(key)) byTicker[m.ticker].themes.push(key);
+    });
+  });
+  let rows = Object.values(byTicker);
+  const totalFound = rows.length;
+  if(discFilter.theme!=='all') rows = rows.filter(m=>m.themes.includes(discFilter.theme));
+  if(discFilter.signal!=='all') rows = rows.filter(m=>m.signal===discFilter.signal);
+  if(discFilter.cap!=='all') rows = rows.filter(m=>capTier(m.marketCap)===discFilter.cap);
+  const gapOf = m => (m.fairPrice>0 && m.price>0) ? ((m.fairPrice-m.price)/m.fairPrice) : -Infinity;
+  if(discFilter.sort==='value') rows.sort((a,b)=>gapOf(b)-gapOf(a));
+  else if(discFilter.sort==='tech') rows.sort((a,b)=>(b.techScore||0)-(a.techScore||0));
+  else if(discFilter.sort==='fund') rows.sort((a,b)=>(b.fundScore||0)-(a.fundScore||0));
+  else rows.sort((a,b)=>(b.totalScore||0)-(a.totalScore||0));
 
-    const btnLabel = scanning ? `⏳ ${scanning}` : interrupted ? '↻ Resume' : (result?'↻ Rescan':'🔍 Scan');
-    const btnCls = scanning ? '' : interrupted ? 'resume' : (result ? 'rescan' : '');
-    const sectionCls = scanning ? 'scanning' : interrupted ? 'interrupted' : '';
+  const resultKeys = Object.keys(discoverResults).filter(k=>discoverResults[k] && discoverResults[k].results && discoverResults[k].results.length);
+  const anyScanning = Object.values(discoverResults).some(r=>r && r.scanning);
+  const sel = (v,cur)=>v===cur?'selected':'';
+  const themeOpts = `<option value="all">All themes</option>` + resultKeys.map(k=>`<option value="${k}" ${sel(k,discFilter.theme)}>${themeMeta(k).icon} ${themeMeta(k).title}</option>`).join('');
 
-    return `<div class="disc-section ${sectionCls}">
-      <div class="disc-header ${matches.length||scanning?'with-results':''}">
-        <div class="disc-icon">${cat.icon}</div>
-        <div class="disc-info">
-          <div class="disc-title">${cat.title}</div>
-          <div class="disc-desc">${cat.desc}</div>
-        </div>
-        <div class="disc-meta">${statusBadge}</div>
-        <button class="disc-btn ${btnCls}" onclick="scanDiscover('${key}')" ${scanning?'disabled':''}>
-          ${btnLabel} (${cat.tickers.length})
-        </button>
+  el.innerHTML = `
+    <div class="disc-controls">
+      <div class="disc-ctrl-label">🤖 AI discovery <span class="disc-ctrl-hint">— surfaces under-followed names, incl. small-caps · validated live · ~3–4 min</span></div>
+      <div class="disc-theme-row">${Object.keys(AI_THEMES).map(k=>_themeBtn(k,true)).join('')}</div>
+      <div class="disc-custom">
+        <input id="discCustom" class="disc-custom-input" value="${prevCustom.replace(/"/g,'&quot;')}" placeholder="…or describe your own: e.g. profitable cybersecurity small-caps with a moat" />
+        <button class="disc-custom-btn" onclick="aiDiscover('aiCustom', document.getElementById('discCustom').value)" ${anyScanning?'disabled':''}>🔭 Discover</button>
       </div>
-      ${matches.length ? `<div class="disc-results">
-        ${matches.map(m => discoverCard(m, key)).join('')}
-      </div>` : ''}
-    </div>`;
-  }).join('');
+      <div class="disc-ctrl-label" style="margin-top:16px">📋 Curated universes <span class="disc-ctrl-hint">— fixed ~50-name large-cap lists · ~7 min each</span></div>
+      <div class="disc-theme-row">${Object.keys(DISCOVER_UNIVERSES).map(k=>_themeBtn(k,false)).join('')}</div>
+    </div>
+    ${totalFound ? `
+    <div class="disc-filter-bar">
+      <span class="disc-fb-count">${rows.length}${rows.length!==totalFound?` / ${totalFound}`:''} match${rows.length===1?'':'es'}</span>
+      <div class="disc-fb-group"><label>Theme</label><select onchange="setDiscFilter('theme',this.value)">${themeOpts}</select></div>
+      <div class="disc-fb-group"><label>Signal</label><select onchange="setDiscFilter('signal',this.value)"><option value="all">All</option><option value="BUY" ${sel('BUY',discFilter.signal)}>BUY</option><option value="HOLD" ${sel('HOLD',discFilter.signal)}>HOLD</option></select></div>
+      <div class="disc-fb-group"><label>Cap</label><select onchange="setDiscFilter('cap',this.value)"><option value="all">All</option><option value="Small" ${sel('Small',discFilter.cap)}>Small</option><option value="Mid" ${sel('Mid',discFilter.cap)}>Mid</option><option value="Large" ${sel('Large',discFilter.cap)}>Large</option></select></div>
+      <div class="disc-fb-group"><label>Sort</label><select onchange="setDiscFilter('sort',this.value)"><option value="score" ${sel('score',discFilter.sort)}>Total score</option><option value="value" ${sel('value',discFilter.sort)}>Margin of safety</option><option value="fund" ${sel('fund',discFilter.sort)}>Fundamentals</option><option value="tech" ${sel('tech',discFilter.sort)}>Technicals</option></select></div>
+    </div>
+    <div class="disc-grid">${rows.map(m=>discoverCard(m)).join('')}</div>
+    ${rows.length===0?`<div class="disc-empty">No matches for these filters.</div>`:''}
+    ` : `<div class="disc-empty">${anyScanning?'⏳ Scanning… matches will appear here as they are found.':'No discoveries yet — pick a theme above. AI discovery can surface small-cap quality names the curated lists miss.'}</div>`}
+  `;
 }
 
-function discoverCard(m, category){
+function discoverCard(m){
   const sigCls = m.signal==='BUY' ? 'buy' : m.signal==='HOLD' ? 'hold' : 'sell';
   const scoreCls = m.totalScore>=22 ? 'pass' : m.totalScore>=13 ? 'tsd' : 'fail';
+  const tier = capTier(m.marketCap);
+  const gap = (m.fairPrice>0 && m.price>0) ? Math.round((m.fairPrice-m.price)/m.fairPrice*100) : null;
+  let gapHtml='';
+  if(gap!=null){
+    if(gap>=8) gapHtml=`<span class="disc-gap pos">~${gap}% below fair</span>`;
+    else if(gap<=-8) gapHtml=`<span class="disc-gap neg">~${Math.abs(gap)}% above fair</span>`;
+    else gapHtml=`<span class="disc-gap neu">near fair</span>`;
+  }
+  const tags = (m.themes||[]).map(k=>{const tm=themeMeta(k);return `<span class="disc-tag">${tm.icon} ${tm.title}</span>`;}).join('');
   return `<div class="disc-card" onclick="addDiscoveredToScreener('${m.ticker}')">
     <div class="disc-card-top">
-      <div class="disc-card-tkr">${m.ticker}</div>
+      <div class="disc-card-tkr">${m.ticker}${tier?` <span class="disc-cap">${tier}</span>`:''}</div>
       <span class="badge ${sigCls}" style="font-size:10px;padding:2px 8px">${m.signal||'—'}</span>
     </div>
     <div class="disc-card-name">${m.companyName||''}</div>
-    <div class="disc-card-row">
+    <div class="disc-card-metrics">
       <span class="px">$${m.price?.toFixed(2)||'—'}</span>
       <span class="score ${scoreCls}">${m.totalScore}/32</span>
-      <span class="tech">Tech ${m.techScore}/8</span>
-      ${m.reason?`<span class="reason">${m.reason}</span>`:''}
+      ${m.fundScore!=null?`<span class="fund">F ${m.fundScore}/24</span>`:''}
+      <span class="tech">T ${m.techScore}/8</span>
+      ${gapHtml}
     </div>
+    ${tags?`<div class="disc-card-tags">${tags}</div>`:''}
+    ${m.reason?`<div class="disc-card-reason">${m.reason}</div>`:''}
   </div>`;
 }
 
@@ -3449,7 +3644,9 @@ async function scanDiscover(category){
 function filterDiscover(category, s){
   const base = {
     ticker: s.ticker, companyName: s.companyName, price: s.currentPrice,
-    totalScore: s.totalScore, techScore: s.technical?.score||0, signal: s.overallSignal,
+    totalScore: s.totalScore, fundScore: s.fundamentalScore, techScore: s.technical?.score||0,
+    signal: s.overallSignal, fairPrice: s.fairPrice, marketCap: s.marketCap,
+    trend: s.technical?.trendDirection,
   };
 
   switch(category){
@@ -4546,6 +4743,7 @@ function computeStock(ticker, fmp, history){
       fundamentalScore: 0, totalScore: techScore,
       overallSignal: techSignal, confidence: etfConfidence,
       oneLiner: `ETF — Technical score ${techScore}/8. ${technical.trendDirection||'No trend data'}.`,
+      marketCap: fmp.marketCap, fairPrice: null, entryPrice: null,
       analysis: null,
     };
   }
@@ -4811,6 +5009,7 @@ function computeStock(ticker, fmp, history){
     graham, buffett, lynch, technical, options,
     fundamentalScore, totalScore, overallSignal, confidence, oneLiner,
     fairPrice, entryPrice,  // ← NEW
+    marketCap: fmp.marketCap,  // millions, for cap tiers in Discover
     analysis: null,
   };
 }
