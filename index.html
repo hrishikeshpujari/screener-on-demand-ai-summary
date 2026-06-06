@@ -1730,6 +1730,7 @@ tbody tr { transition: background 0.15s ease; }
     <button class="design-toggle" onclick="toggleDesign()" id="designBtn" title="Switch design (Material / Classic)">✨ Material</button>
     <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle theme">🌙</button>
     <button class="theme-toggle" onclick="showSetup()">⚙ API Keys</button>
+    <button class="theme-toggle" id="syncBtn" onclick="openSyncModal()" title="Sync across devices">🔄 Sync</button>
   </div>
 </div>
 <p class="sub">Graham · Buffett · Lynch · Al Brooks &nbsp;·&nbsp; <span style="color:var(--c-green)">Pure-math scoring</span> · <span style="color:var(--c-purple)">🧠 AI on-demand</span> · <span style="color:var(--c-green);font-size:10px">●LIVE</span> via Finnhub + Twelve Data</p>
@@ -2399,6 +2400,17 @@ tbody tr { transition: background 0.15s ease; }
 
 </div><!-- end .screener-page -->
 
+<!-- ══ DEVICE SYNC MODAL ══ -->
+<div id="syncModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--surface-card);border:1px solid var(--border-strong);border-radius:14px;max-width:440px;width:100%;padding:20px 22px;max-height:85vh;overflow:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <span style="font-size:16px;font-weight:800;color:var(--text-primary)">🔄 Device Sync</span>
+      <button onclick="closeSyncModal()" style="background:none;border:1px solid var(--border-strong);color:var(--text-muted);border-radius:6px;padding:4px 10px;cursor:pointer;font-family:inherit">✕</button>
+    </div>
+    <div id="syncModalBody"></div>
+  </div>
+</div>
+
 <!-- ══ WATCHLIST MANAGER MODAL ══ -->
 <div class="modal-overlay" id="watchlistModal" style="display:none;align-items:center;justify-content:center">
   <div class="modal" style="max-width:480px;width:100%">
@@ -2525,6 +2537,7 @@ function getDefaultTickers(){
 }
 function saveDefaultTickers(list){
   localStorage.setItem('viss_watchlist', JSON.stringify(list));
+  if(typeof scheduleSyncPush==='function') scheduleSyncPush();
 }
 
 let keys=['','',''], stocks=[], activeDP=null, refreshing=false;
@@ -2639,6 +2652,7 @@ function loadPositions(){
 }
 function savePositions(){
   localStorage.setItem(PS, JSON.stringify(positions));
+  if(typeof scheduleSyncPush==='function') scheduleSyncPush();
 }
 
 // ── Tab switching ──
@@ -3378,6 +3392,7 @@ function clearStaleScanFlags(){
 }
 function saveDiscoverResults(){
   localStorage.setItem('viss_discover', JSON.stringify(discoverResults));
+  if(typeof scheduleSyncPush==='function') scheduleSyncPush();
 }
 
 // ── AI-sourced discovery: Claude proposes tickers, the screener validates them ──
@@ -3721,6 +3736,7 @@ function toggleTheme(){
   localStorage.setItem('viss_theme', next);
   const btn = document.getElementById('themeBtn');
   if(btn) btn.textContent = next === 'dark' ? '🌙' : '☀️';
+  if(typeof scheduleSyncPush==='function') scheduleSyncPush();
 }
 function loadTheme(){
   const saved = localStorage.getItem('viss_theme') || 'dark';
@@ -3738,6 +3754,7 @@ function toggleDesign(){
   const btn = document.getElementById('designBtn');
   if(btn) btn.textContent = next === 'material' ? '✨ Material' : '◻️ Classic';
   if(next === 'material') attachRipples();
+  if(typeof scheduleSyncPush==='function') scheduleSyncPush();
 }
 function loadDesign(){
   const saved = localStorage.getItem('viss_design') || 'material'; // default: material
@@ -3866,6 +3883,7 @@ function save(){
     localStorage.setItem(SS, JSON.stringify(data));
     localStorage.setItem(SS+'_savedAt', new Date().toLocaleString());
   }catch(e){}
+  if(typeof scheduleSyncPush==='function') scheduleSyncPush();
 }
 
 function getSavedAt(){
@@ -5075,10 +5093,10 @@ Output ONLY valid JSON, no text before or after:
 
 Write with depth, real numbers from the data above, and specificity. CRITICAL: For catalysts, sectorContext, and any reference to recent events/earnings, USE WEB SEARCH to find verified information. Do NOT make up dates or events. If web search returns nothing relevant, say so explicitly rather than fabricating.
 
-- thesis: 3-4 sentences. Core investment case grounded in the scores above.
-- bullCase: 2-3 sentences. Best case based on the data + verified recent positive developments (search the web).
+- thesis: 3-4 sentences. Core investment case grounded in the scores above. State plainly whether this is PROVEN durable quality (Buffett-style: already-high, stable returns on capital behind a defended moat, bought at a fair price) or EMERGING future quality (Lefebvre/GVD-style: a smaller company on track to become dominant) — and name the actual compounding engine.
+- bullCase: 2-3 sentences. The FORWARD-quality case, not just today's numbers: is the moat WIDENING or merely present? Is there reinvestment runway — can it redeploy earnings at high returns (high ROIC with room to reinvest), or is growth tapped out? Is the revenue/earnings growth durable and structural rather than a one-off? Search the web for evidence (market-share trend, capacity, management's capital-allocation record).
 - bearCase: 2-3 sentences. Concrete risks based on the data + verified recent concerns (search the web).
-- riskFactors: 2-3 sentences. Specific risks to monitor.
+- riskFactors: 2-3 sentences. Focus on QUALITY-TREND cracks — is quality quietly deteriorating? Check whether returns on capital are rolling over; whether a strong ROE is real operating performance or just leverage/buybacks (return on TANGIBLE capital is what matters, not headline ROE); whether growth is decelerating against its own history; margin compression; share dilution or rising debt. Name the earliest sign the thesis would break.
 - entryStrategy: 2-3 sentences. Based on the technical levels above, when and how to enter.
 - catalysts: 1-2 sentences. SEARCH THE WEB for actual upcoming earnings dates, product launches, or events. Cite the specific date/event found. If nothing found, say "No specific near-term catalysts identified — check ${s.ticker} IR page."
 - sectorContext: 1-2 sentences. SEARCH THE WEB for how peers in the same sector are currently performing. Reference real recent peer comparisons.`;
@@ -5332,7 +5350,7 @@ ${swingCtx||'(no candidates)'}
 ${swingTop?`\nTOP PICK FULL DATA:\n${_stockDataBlock(swingTop.s)}`:''}
 
 Write exactly two short labeled sections using the full data above:
-"LONG-TERM: " — 2-3 sentences on why ${longTop?longTop.s.ticker:'the top pick'} is the best long-term value (specific to its fundamentals + discount to fair value vs the others), then ONE key risk.
+"LONG-TERM: " — 2-3 sentences on why ${longTop?longTop.s.ticker:'the top pick'} is the best long-term value. Go beyond the static numbers: is this a compounding machine (high returns on capital with reinvestment runway, a moat that looks to be widening) bought at a fair discount, or just statistically cheap? Then ONE key risk — and prefer a QUALITY-TREND crack (returns rolling over, ROE that's really leverage not operations, growth decelerating, margins compressing) over a generic market risk.
 "6–12 MONTH: " — 2-3 sentences on why ${swingTop?swingTop.s.ticker:'the top pick'} is the best tactical setup over the next 6-12 months (specific to its trend/entry/EMAs and the options play), then ONE risk or what would invalidate it.
 Cite the actual numbers (P/E, ROE, margin of safety %, EMA levels, conviction). Be honest — if the same name tops both, say so; if a pick is merely the best of a weak or concentrated list, say so plainly. No buy recommendations, no preamble, no closing disclaimer.`;
 
@@ -6005,11 +6023,184 @@ if(location.protocol==='file:'){
   if(fw)fw.style.display='block';
 }
 
+// ════════════════════════════════════════════════════════════
+//  DEVICE SYNC via private GitHub Gist (single-user, newest-wins)
+//  Syncs watchlist, analyzed stocks, positions, discover, theme/design.
+//  Does NOT sync API keys (entered per device). Token is stored in
+//  this browser's localStorage only — never written into the file.
+// ════════════════════════════════════════════════════════════
+const SYNC_KEYS = [SS, PS, 'viss_watchlist', 'viss_discover', 'viss_theme', 'viss_design'];
+const GIST_FILE = 'viss-screener-sync.json';
+const GIST_DESC = 'VISS Screener device sync — auto-managed, do not edit by hand';
+let gistToken = localStorage.getItem('viss_gist_token') || '';
+let gistId = localStorage.getItem('viss_gist_id') || '';
+let syncPushTimer = null, syncBusy = false;
+
+function bumpSyncMtime(){ localStorage.setItem('viss_sync_mtime', String(Date.now())); }
+function collectSyncData(){
+  const data = {};
+  SYNC_KEYS.forEach(k=>{ const v = localStorage.getItem(k); if(v!=null) data[k]=v; });
+  let mt = parseInt(localStorage.getItem('viss_sync_mtime')||'0',10);
+  if(!mt){ mt = Date.now(); localStorage.setItem('viss_sync_mtime', String(mt)); }
+  return { v:1, lastModified:mt, data };
+}
+function applySyncData(blob){
+  if(!blob || !blob.data) return;
+  Object.entries(blob.data).forEach(([k,v])=>{ try{ localStorage.setItem(k, v); }catch(e){} });
+  localStorage.setItem('viss_sync_mtime', String(blob.lastModified || Date.now()));
+  try{ loadTheme(); }catch(e){}
+  try{ loadDesign(); }catch(e){}
+  try{ loadStocks(); }catch(e){}
+  try{ loadPositions(); }catch(e){}
+  try{ loadDiscoverResults(); }catch(e){}
+  try{ renderTable(); }catch(e){}
+  try{ const pt=document.getElementById('tabPortfolio'); if(pt && pt.style.display!=='none') renderPortfolio(); }catch(e){}
+  try{ const dt=document.getElementById('tabDiscover'); if(dt && dt.style.display!=='none') renderDiscover(); }catch(e){}
+}
+async function gistApi(method, path, body){
+  const res = await fetch('https://api.github.com'+path, {
+    method,
+    headers: Object.assign({
+      'Authorization':'Bearer '+gistToken,
+      'Accept':'application/vnd.github+json',
+      'X-GitHub-Api-Version':'2022-11-28'
+    }, body?{'Content-Type':'application/json'}:{}),
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if(!res.ok){
+    let t=''; try{ t=await res.text(); }catch(e){}
+    if(res.status===401) throw new Error('401 — token invalid or expired');
+    if(res.status===403) throw new Error('403 — token lacks Gist permission or rate-limited');
+    throw new Error('GitHub '+res.status+(t?(': '+t.slice(0,100)):''));
+  }
+  return res.json();
+}
+async function syncFindOrCreateGist(){
+  if(gistId){ try{ await gistApi('GET','/gists/'+gistId); return gistId; }catch(e){ if((''+e.message).indexOf('401')===0) throw e; } }
+  const list = await gistApi('GET','/gists?per_page=100');
+  const found = (list||[]).find(g=>g.files && g.files[GIST_FILE]);
+  if(found){ gistId=found.id; localStorage.setItem('viss_gist_id', gistId); return gistId; }
+  const created = await gistApi('POST','/gists',{ description:GIST_DESC, public:false, files:{ [GIST_FILE]:{ content: JSON.stringify(collectSyncData()) } } });
+  gistId = created.id; localStorage.setItem('viss_gist_id', gistId); return gistId;
+}
+async function syncPull(silent){
+  if(!gistToken || !gistId) return;
+  syncBusy=true; updateSyncBadge('syncing');
+  try {
+    const g = await gistApi('GET','/gists/'+gistId);
+    const f = g.files && g.files[GIST_FILE];
+    let content = f && f.content;
+    if(f && f.truncated && f.raw_url){ try{ content = await (await fetch(f.raw_url)).text(); }catch(e){} }
+    if(content){
+      const blob = JSON.parse(content);
+      const localMt = parseInt(localStorage.getItem('viss_sync_mtime')||'0',10);
+      if((blob.lastModified||0) > localMt){ applySyncData(blob); }
+    }
+    localStorage.setItem('viss_sync_last', new Date().toISOString());
+    updateSyncBadge('ok');
+  } catch(e){ updateSyncBadge('err'); if(!silent) alert('Sync pull failed: '+e.message); }
+  finally { syncBusy=false; }
+}
+async function syncPush(silent){
+  if(!gistToken || !gistId) return;
+  syncBusy=true; updateSyncBadge('syncing');
+  try {
+    const blob = collectSyncData();
+    await gistApi('PATCH','/gists/'+gistId,{ files:{ [GIST_FILE]:{ content: JSON.stringify(blob) } } });
+    localStorage.setItem('viss_sync_last', new Date().toISOString());
+    updateSyncBadge('ok');
+  } catch(e){ updateSyncBadge('err'); if(!silent) alert('Sync push failed: '+e.message); }
+  finally { syncBusy=false; }
+}
+function scheduleSyncPush(){
+  if(!gistToken || !gistId) return;
+  bumpSyncMtime();
+  clearTimeout(syncPushTimer);
+  syncPushTimer = setTimeout(()=>{ syncPush(true); }, 4000);
+}
+async function syncNow(){
+  if(!gistToken || !gistId){ openSyncModal(); return; }
+  setSyncStatus('Syncing…');
+  await syncPull(false);
+  await syncPush(false);
+  setSyncStatus('✓ Synced '+new Date().toLocaleTimeString());
+  renderSyncModal();
+}
+function updateSyncBadge(state){
+  const b = document.getElementById('syncBtn'); if(!b) return;
+  const last = localStorage.getItem('viss_sync_last');
+  if(state==='syncing'){ b.textContent='⏳ Sync…'; b.title='Syncing…'; }
+  else if(state==='ok'){ b.textContent='✓ Synced'; b.title='Last synced '+(last?new Date(last).toLocaleString():'just now'); }
+  else if(state==='err'){ b.textContent='⚠ Sync'; b.title='Sync error — tap to review'; }
+  else { b.textContent='🔄 Sync'; b.title='Sync across devices'; }
+}
+async function syncConnect(){
+  const inp=document.getElementById('syncTokenInput'); if(!inp) return;
+  const tok=inp.value.trim();
+  if(!tok){ setSyncStatus('Enter your GitHub token.'); return; }
+  gistToken=tok; localStorage.setItem('viss_gist_token', tok);
+  setSyncStatus('Connecting…'); updateSyncBadge('syncing');
+  try {
+    await syncFindOrCreateGist();
+    await syncPull(true);   // newest-wins: pull existing data if this is a 2nd device
+    await syncPush(true);   // seed / refresh remote with current state
+    setSyncStatus('✓ Connected and synced.');
+    updateSyncBadge('ok');
+    renderSyncModal();
+  } catch(e){
+    gistToken=''; localStorage.removeItem('viss_gist_token');
+    setSyncStatus('⚠ '+e.message);
+    updateSyncBadge('off');
+  }
+}
+function syncDisconnect(){
+  if(!confirm('Disconnect sync on this device? Your data stays here and in the gist — this device just stops syncing.')) return;
+  gistToken=''; gistId='';
+  ['viss_gist_token','viss_gist_id','viss_sync_mtime','viss_sync_last'].forEach(k=>localStorage.removeItem(k));
+  updateSyncBadge('off'); renderSyncModal();
+}
+function setSyncStatus(msg){ const el=document.getElementById('syncStatus'); if(el) el.textContent=msg||''; }
+function openSyncModal(){ renderSyncModal(); const m=document.getElementById('syncModal'); if(m) m.style.display='flex'; }
+function closeSyncModal(){ const m=document.getElementById('syncModal'); if(m) m.style.display='none'; }
+function renderSyncModal(){
+  const body=document.getElementById('syncModalBody'); if(!body) return;
+  const connected = !!(gistToken && gistId);
+  const last = localStorage.getItem('viss_sync_last');
+  if(connected){
+    body.innerHTML = `
+      <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:12px">✓ This device is syncing via a private GitHub gist.</p>
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.9;margin-bottom:14px">
+        Gist: <code style="color:var(--text-secondary)">${gistId.slice(0,12)}…</code><br>
+        Last synced: ${last?new Date(last).toLocaleString():'—'}<br>
+        Syncs watchlist, analyzed stocks, positions, discoveries, theme. <strong>API keys are not synced</strong> — enter them once per device.
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" onclick="syncNow()">🔄 Sync now</button>
+        <button class="btn-clr" onclick="syncDisconnect()">Disconnect</button>
+      </div>
+      <div id="syncStatus" style="font-size:12px;color:var(--text-muted);margin-top:10px"></div>`;
+  } else {
+    body.innerHTML = `
+      <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:10px">Sync your watchlist, positions, and discoveries across devices using a <strong>private GitHub gist</strong> — your data stays in your own GitHub account, not a third party.</p>
+      <ol style="font-size:12px;color:var(--text-muted);line-height:1.7;margin:0 0 12px 18px;padding:0">
+        <li>Create a <strong>fine-grained token</strong> at github.com/settings/tokens with <strong>Gist</strong> access (read &amp; write).</li>
+        <li>Paste it below — the app finds or creates your sync gist automatically.</li>
+        <li>On another device, paste the <em>same</em> token; it links to the same gist.</li>
+      </ol>
+      <input id="syncTokenInput" type="password" placeholder="github_pat_… (stored only on this device)" style="width:100%;box-sizing:border-box;background:var(--bg-input);border:1px solid var(--border-default);border-radius:8px;padding:10px 12px;color:var(--text-primary);font-family:inherit;font-size:13px;margin-bottom:10px" />
+      <div style="display:flex;gap:8px"><button class="btn" onclick="syncConnect()">Connect</button></div>
+      <div id="syncStatus" style="font-size:12px;color:var(--text-muted);margin-top:10px"></div>
+      <p style="font-size:11px;color:var(--text-faint);margin-top:12px;line-height:1.5">⚠ A token grants write access to your gists. Use a fine-grained token scoped to Gist only. It is stored in this browser and never written into the app file.</p>`;
+  }
+}
+
 loadTheme(); // apply saved theme before anything renders
 loadDesign(); // apply saved design (default: Material)
 loadKeys(); // handles routing to setup or screener, and calls loadStocks when ready
 clearStaleScanFlags(); // clean up any stuck scanning flags from previous interrupted runs
 loadPositions();
+updateSyncBadge(gistToken && gistId ? 'ok' : 'off');
+if(gistToken && gistId){ setTimeout(()=>syncPull(true), 400); } // auto pull-on-load
 
 // Show last saved timestamp in subtitle
 setTimeout(()=>{
