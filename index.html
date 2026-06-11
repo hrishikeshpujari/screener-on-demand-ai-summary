@@ -1303,6 +1303,11 @@ tbody tr { transition: background 0.15s ease; }
 }
 
 /* Reduce motion for accessibility */
+/* Keyboard accessibility — visible focus rings */
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, [onclick]:focus-visible {
+  outline: 2px solid var(--accent-info); outline-offset: 2px; border-radius: 6px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -1616,7 +1621,7 @@ tbody tr { transition: background 0.15s ease; }
 <body>
 
 <!-- file:// CORS warning — shown only when opened as a local file -->
-<div id="fileWarn" style="display:none;background:#150d00;border:1px solid #7c3600;border-radius:10px;padding:14px 18px;margin-bottom:16px;font-size:13px;color:#fb923c;line-height:1.8">
+<div id="fileWarn" style="display:none;background:var(--accent-hold-bg);border:1px solid var(--accent-hold-border);border-radius:10px;padding:14px 18px;margin-bottom:16px;font-size:13px;color:var(--accent-hold);line-height:1.8">
   <strong>⚠️ Cannot run from file://</strong> — browsers block API calls when a page is opened directly from your desktop.<br>
   You need to serve it over <code style="background:#1e1408;padding:1px 5px;border-radius:3px">http://localhost</code> instead. Pick one of these one-liners, run it in the folder containing this file, then open <strong>http://localhost:8080</strong>:
   <div style="margin-top:10px;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12px">
@@ -1761,6 +1766,7 @@ tbody tr { transition: background 0.15s ease; }
   <button class="btn-clr" onclick="clearAll()">Clear all</button>
 </div>
 <div id="bestSetup" style="display:none;background:var(--surface-card);border:1px solid var(--accent-buy-border);border-radius:12px;padding:16px 18px;margin-bottom:14px"></div>
+<div id="staleBanner" style="display:none;background:var(--accent-hold-bg);border:1px solid var(--accent-hold-border);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--accent-hold);line-height:1.6"></div>
 <div class="empty-msg" id="empty">No stocks yet — enter a ticker above.</div>
 <div class="filter-bar" id="filterBar" style="display:none">
   <input type="text" id="fltSearch" class="flt-search" oninput="applyFilters()" placeholder="🔍 Search ticker or company…" aria-label="Search stocks"/>
@@ -1820,7 +1826,7 @@ tbody tr { transition: background 0.15s ease; }
       <th onclick="sortBy('ticker')" style="cursor:pointer;user-select:none">Ticker <span id="si-ticker">↕</span></th>
       <th>Company</th>
       <th onclick="sortBy('price')" style="cursor:pointer;user-select:none">Price <span id="si-price">↕</span></th>
-      <th onclick="sortBy('fairPrice')" style="cursor:pointer;user-select:none" title="Graham's Growth Formula: EPS × (8.5 + 2g)">Fair <span id="si-fairPrice">↕</span></th>
+      <th onclick="sortBy('fairPrice')" style="cursor:pointer;user-select:none" title="Conservative Graham fair value: EPS × (7 + 1.5g), g = long-term EPS growth capped at 12%">Fair <span id="si-fairPrice">↕</span></th>
       <th onclick="sortBy('entryPrice')" style="cursor:pointer;user-select:none" title="Al Brooks: pullback to EMA50 or support">Entry <span id="si-entryPrice">↕</span></th>
       <th onclick="sortBy('totalScore')" style="cursor:pointer;user-select:none">Total /32 <span id="si-totalScore">↓</span></th>
       <th onclick="sortBy('fundScore')" style="cursor:pointer;user-select:none">Fund /24 <span id="si-fundScore">↕</span></th>
@@ -2015,8 +2021,8 @@ tbody tr { transition: background 0.15s ease; }
 
       <div style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:14px;margin-bottom:14px">
         <div style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:8px">Primary: Graham's Growth Formula</div>
-        <div style="font-family:ui-monospace,monospace;font-size:13px;color:var(--accent-info);background:var(--bg-input);padding:10px 14px;border-radius:6px;margin-bottom:10px">Value = EPS × (8.5 + 2g)</div>
-        <div style="font-size:12px;color:var(--text-tertiary);line-height:1.7">Where <strong style="color:var(--text-secondary)">g</strong> = expected annual growth rate (we cap at 15% to avoid unrealistic numbers on hot growth stocks). This is Graham's "foreshortened formula" for valuing growth stocks. The 8.5 represents the base multiplier for a company with zero growth — anything above that comes from earnings growth.</div>
+        <div style="font-family:ui-monospace,monospace;font-size:13px;color:var(--accent-info);background:var(--bg-input);padding:10px 14px;border-radius:6px;margin-bottom:10px">Value = EPS × (7 + 1.5g) — conservative Graham</div>
+        <div style="font-size:12px;color:var(--text-tertiary);line-height:1.7">Where <strong style="color:var(--text-secondary)">g</strong> = long-term <em>earnings</em> growth (10-yr EPS CAGR preferred, capped at 12%). This is a deliberately conservative tightening of Graham's original EPS × (8.5 + 2g) "foreshortened formula", which is widely considered too generous in modern markets — especially for fast growers, where the original can print fair values 50%+ above ours. Treat Fair as a rough margin-of-safety anchor, not a precise valuation.</div>
       </div>
 
       <div style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:14px;margin-bottom:14px">
@@ -2776,24 +2782,41 @@ function getScreenerData(ticker){
 }
 function getLivePrice(ticker){
   const s = getScreenerData(ticker);
-  if(s?.currentPrice) return s.currentPrice;
+  if(s?.currentPrice){
+    const ts = s.updatedAtTs || (s.updatedAt ? Date.parse(s.updatedAt) : NaN);
+    const fresh = ts && !isNaN(ts) && (Date.now()-ts) < 86400000;
+    if(fresh) return s.currentPrice;
+    // screener data stale — prefer a fresher fetched quote if we have one
+    if(priceCache[ticker] && priceCacheTs[ticker] && priceCacheTs[ticker] > (ts||0)) return priceCache[ticker];
+    return s.currentPrice;
+  }
   return priceCache[ticker] || null;
 }
 
-// Fetch prices from Finnhub for all portfolio tickers not in screener
+// Fetch prices from Finnhub for portfolio tickers that are missing OR stale (>24h old)
+const priceCacheTs = {};
 async function fetchMissingPrices(){
   if(!keys[1]) return; // need Finnhub key
   const tickers = [...new Set(positions.map(p=>p.ticker))];
-  const missing = tickers.filter(t => !getScreenerData(t) && !priceCache[t]);
-  if(!missing.length) return;
+  const need = tickers.filter(t => {
+    const sd = getScreenerData(t);
+    if(sd){
+      const ts = sd.updatedAtTs || (sd.updatedAt ? Date.parse(sd.updatedAt) : NaN);
+      const fresh = ts && !isNaN(ts) && (Date.now()-ts) < 86400000;
+      if(fresh) return false; // screener data is recent — use it
+    }
+    const cFresh = priceCache[t] && priceCacheTs[t] && (Date.now()-priceCacheTs[t]) < 1800000; // 30 min
+    return !cFresh;
+  });
+  if(!need.length) return;
 
   // Fetch in parallel (Finnhub 60/min limit — safe for small portfolios)
-  await Promise.all(missing.map(async ticker => {
+  await Promise.all(need.map(async ticker => {
     try {
       const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${keys[1]}`);
       const d = await r.json();
-      if(d.c && d.c > 0) priceCache[ticker] = d.c;
-    } catch(e) {}
+      if(d.c && d.c > 0){ priceCache[ticker] = d.c; priceCacheTs[ticker] = Date.now(); }
+    } catch(e) { console.warn('quote fetch failed', ticker, e.message); }
   }));
   renderPortfolio();
 }
@@ -3566,7 +3589,7 @@ function discoverCard(m){
       <div class="disc-card-tkr">${m.ticker}${tier?` <span class="disc-cap">${tier}</span>`:''}</div>
       <span class="badge ${sigCls}" style="font-size:10px;padding:2px 8px">${m.signal||'—'}</span>
     </div>
-    <div class="disc-card-name">${m.companyName||''}</div>
+    <div class="disc-card-name">${esc(m.companyName)}</div>
     <div class="disc-card-metrics">
       <span class="px">$${m.price?.toFixed(2)||'—'}</span>
       <span class="score ${scoreCls}">${m.totalScore}/32</span>
@@ -3575,7 +3598,7 @@ function discoverCard(m){
       ${gapHtml}
     </div>
     ${tags?`<div class="disc-card-tags">${tags}</div>`:''}
-    ${m.reason?`<div class="disc-card-reason">${m.reason}</div>`:''}
+    ${m.reason?`<div class="disc-card-reason">${esc(m.reason)}</div>`:''}
   </div>`;
 }
 
@@ -3882,7 +3905,7 @@ function save(){
     const data = stocks.filter(s=>s.status==='done');
     localStorage.setItem(SS, JSON.stringify(data));
     localStorage.setItem(SS+'_savedAt', new Date().toLocaleString());
-  }catch(e){}
+  }catch(e){ console.warn('save() failed — localStorage quota?', e.message); }
   if(typeof scheduleSyncPush==='function') scheduleSyncPush();
 }
 
@@ -4013,7 +4036,7 @@ function finalize(id, t, result, restricted){
     // Preserve existing AI summary if this is a refresh (don't wipe it)
     const existing = stocks[idx];
     const analysis = existing?.analysis || existing?._savedAnalysis || null;
-    stocks[idx]={id,status:'done',updatedAt:new Date().toLocaleString(),...result,analysis};
+    stocks[idx]={id,status:'done',updatedAt:new Date().toLocaleString(),updatedAtTs:Date.now(),...result,analysis};
   }
   save(); renderTable();
   document.getElementById('refBtn').disabled = stocks.filter(s=>s.status==='done').length===0;
@@ -4825,6 +4848,9 @@ function computeStock(ticker, fmp, history){
     roe: fmp.roe, roeConsistencyYrs, fcfMillions: fmp.fcfMillions,
     grossMargin: fmp.grossMargin, roic: fmp.roic, debtPayoffYrs: fmp.debtPayoffYrs,
     mgmtScore, moatRating,
+    roeHistory: (fmp.roeHistory||[]).slice(-8),
+    fcfToNI: (fmp.revenue>0 && fmp.netMargin>0 && fmp.fcfMillions!=null)
+      ? fmp.fcfMillions / (fmp.revenue * fmp.netMargin / 100) : null,
     score: [
       fmp.roe >= 15,
       roeConsistencyYrs >= 7,
@@ -4982,20 +5008,23 @@ function computeStock(ticker, fmp, history){
     : `Weak ${totalScore}/32 score — fails most framework criteria, avoid new positions.`;
 
   // ── FAIR PRICE & ENTRY PRICE (from books) ──
-  // Fair Price: Graham's Growth Formula (Intelligent Investor Ch. 11)
-  //   Value = EPS × (8.5 + 2g) where g = expected annual growth rate (capped at 15% to avoid wild numbers)
+  // Fair Price: conservative variant of Graham's Growth Formula (Intelligent Investor Ch. 11)
+  //   Original: V = EPS × (8.5 + 2g). Widely considered too generous in modern markets,
+  //   and g is meant to be long-term EARNINGS growth — not revenue growth.
+  //   We use V = EPS × (7 + 1.5g), preferring 10-yr EPS growth, fallback 5-yr revenue
+  //   growth, last resort YoY EPS (noisy); g capped at 12%. Max multiplier ≈ 25× vs 38.5×.
   // Fallback: Graham Number = √(22.5 × EPS × BVPS) — defensive investor formula
   let fairPrice = null;
   const eps = (fmp.pe && fmp.pe > 0) ? price / fmp.pe : null;
   const bvps = (fmp.pb && fmp.pb > 0) ? price / fmp.pb : null;
-  // Use most reliable growth rate — prefer 5yr if available, fallback to YoY (capped)
-  const growthRate = Math.max(0, Math.min(15,
-    fmp.revenueGrowth5yr != null ? fmp.revenueGrowth5yr : (fmp.epsGrowthYoy || 0)
-  ));
+  const gSrc = fmp.epsGrowth10yr != null ? fmp.epsGrowth10yr
+             : fmp.revenueGrowth5yr != null ? fmp.revenueGrowth5yr
+             : (fmp.epsGrowthYoy || 0);
+  const growthRate = Math.max(0, Math.min(12, gSrc));
 
   if(eps && eps > 0 && growthRate > 0){
-    // Graham's Growth Formula — primary
-    fairPrice = eps * (8.5 + 2 * growthRate);
+    // Conservative Graham Growth Formula — primary
+    fairPrice = eps * (7 + 1.5 * growthRate);
   } else if(eps && eps > 0 && bvps && bvps > 0){
     // Graham Number fallback — for non-growth stocks
     fairPrice = Math.sqrt(22.5 * eps * bvps);
@@ -5304,7 +5333,7 @@ async function showBestSetup(){
       <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:6px">${icon} ${title}</div>
       <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px">
         <span style="font-size:19px;font-weight:800;color:${accent}">${top.s.ticker}</span>
-        <span style="font-size:12px;color:var(--text-muted)">${top.s.companyName||''}</span>
+        <span style="font-size:12px;color:var(--text-muted)">${esc(top.s.companyName)}</span>
       </div>
       <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px">${top.s.totalScore}/32 · ${top.s.overallSignal} · setup score ${top.score}</div>
       <div>${top.reasons.map(r=>chip(r,kind)).join('')}</div>
@@ -5539,7 +5568,62 @@ function updateFilterResultsInfo(visibleDone, totalDone){
   }
 }
 
+// HTML-escape for strings from APIs / AI before innerHTML injection
+function esc(x){return String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+// Release the expanded panel's animation height cap once it finishes,
+// so very tall content (long AI summaries on mobile) is never clipped.
+document.addEventListener('animationend', e=>{
+  if(e.animationName==='expand-in') e.target.style.setProperty('max-height','none','important');
+});
+
+// ── Forward-quality chips for the Buffett tab (trajectory > level) ──
+function buffettQualityChips(b){
+  if(!b) return '';
+  const chips=[];
+  const h=(b.roeHistory||[]).filter(v=>isFinite(v));
+  if(h.length>=4){
+    const k=Math.floor(h.length/2);
+    const a=h.slice(0,k).reduce((x,y)=>x+y,0)/k, c=h.slice(k).reduce((x,y)=>x+y,0)/(h.length-k);
+    const d=c-a;
+    const dir=d>1.5?['▲ rising','var(--c-green)']:d<-1.5?['▼ falling','var(--c-red)']:['→ flat','var(--c-amber)'];
+    const path=h.slice(-3).map(v=>Math.round(v)).join('→');
+    chips.push(`<span style="color:${dir[1]}" title="First-half avg ${a.toFixed(1)}% vs recent ${c.toFixed(1)}% — rising returns suggest a widening moat; falling suggests erosion (annual ROE, Finnhub)">ROE trend ${path}% ${dir[0]}</span>`);
+  }
+  if(b.fcfToNI!=null && isFinite(b.fcfToNI)){
+    const pct=Math.round(Math.min(2.5,Math.max(0,b.fcfToNI))*100);
+    const c=b.fcfToNI>=0.9?'var(--c-green)':b.fcfToNI>=0.6?'var(--c-amber)':'var(--c-red)';
+    const note=b.fcfToNI<0.6?' — earnings-quality flag':'';
+    chips.push(`<span style="color:${c}" title="Free cash flow ÷ net income. Persistently low cash conversion is the classic accrual red flag — reported earnings not backed by cash">FCF backs ~${pct}% of net income${note}</span>`);
+  }
+  if(!chips.length) return '';
+  return `<div style="grid-column:1/-1;flex-basis:100%;display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;font-size:11.5px;font-weight:600">${chips.join('')}</div>`;
+}
+
+function dataAgeInfo(s){
+  if(!s) return null;
+  const ts = s.updatedAtTs || (s.updatedAt ? Date.parse(s.updatedAt) : NaN);
+  if(!ts || isNaN(ts)) return s.updatedAt ? {label:s.updatedAt.split(', ')[1]||s.updatedAt, color:'var(--text-faint)', ms:null} : null;
+  const ms = Date.now()-ts;
+  const h = ms/3600000;
+  let label, color;
+  if(h < 6){ label = new Date(ts).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}); color='var(--text-muted)'; }
+  else if(h < 48){ label = Math.round(h)+'h ago'; color = h<24 ? 'var(--text-muted)' : 'var(--c-amber)'; }
+  else { const d=Math.round(h/24); label = d+'d ago'; color = d>=7 ? 'var(--c-red)' : 'var(--c-amber)'; }
+  return {label, color, ms};
+}
+function renderStaleBanner(){
+  const el = document.getElementById('staleBanner'); if(!el) return;
+  const ages = stocks.filter(s=>s.status==='done').map(s=>dataAgeInfo(s)).filter(a=>a&&a.ms!=null).map(a=>a.ms);
+  if(!ages.length){ el.style.display='none'; return; }
+  const oldest = Math.max(...ages);
+  if(oldest < 86400000){ el.style.display='none'; return; }
+  const d = Math.floor(oldest/86400000), hh = Math.round(oldest/3600000);
+  el.style.display='block';
+  el.innerHTML = `⏰ Some data is <strong>${d>=1?d+' day'+(d>1?'s':''):hh+'h'} old</strong> — prices, scores, and signals may be outdated. <a href="javascript:void(0)" onclick="refreshAll()" style="color:var(--accent-info);font-weight:700">↻ Refresh all</a>`;
+}
 function renderTable(){
+  renderStaleBanner();
   const tbody=document.getElementById('tbody'),empty=document.getElementById('empty'),tw=document.getElementById('tw');
   const fb=document.getElementById('filterBar'),info=document.getElementById('fltResultsInfo');
   if(!stocks.length){
@@ -5592,8 +5676,9 @@ function renderTable(){
       const roeHtml = isETFrow ? na : (roe!=null? `<span style="color:${roe>=15?'var(--c-green)':roe>=8?'var(--c-amber)':'var(--c-red)'};font-weight:600">${roe.toFixed(1)}%</span>` : '<span style="color:var(--text-faint)">—</span>');
       const gmHtml  = isETFrow ? na : (gm!=null ? `<span style="color:${gm>=40?'var(--c-green)':gm>=20?'var(--c-amber)':'var(--c-red)'};font-weight:600">${gm.toFixed(0)}%</span>`   : '<span style="color:var(--text-faint)">—</span>');
       const epsHtml = isETFrow ? na : (epsGr!=null?`<span style="color:${epsGr>=10?'var(--c-green)':epsGr>=0?'var(--c-amber)':'var(--c-red)'};font-weight:600">${epsGr>=0?'+':''}${epsGr.toFixed(1)}%</span>` : '<span style="color:var(--text-faint)">—</span>');
-      // Updated — show time only to save space
-      const updTime = s.updatedAt ? s.updatedAt.split(', ')[1]||s.updatedAt : '—';
+      // Updated — relative age, colored when stale (old data shown as time-only was misleading)
+      const ai = dataAgeInfo(s);
+      const updTime = ai ? `<span style="color:${ai.color}" title="${s.updatedAt||''}">${ai.label}</span>` : '—';
       let expandHtml = '';
       if(isExpanded){ try{ expandHtml = buildExpandRow(s); }catch(e){ console.error('buildExpandRow error:', e); expandHtml = `<tr class="expand-row"><td colspan="18"><div class="expand-inner" style="color:var(--c-red)">Error rendering detail: ${e.message}</div></td></tr>`; } }
       // Pick score-cell color class based on tier
@@ -5642,7 +5727,7 @@ function renderTable(){
       return`<tr onclick="toggleDP(${s.id})" class="${isExpanded?'row-expanded':''}">
         <td style="width:24px;padding:10px 4px;color:var(--text-faint);font-size:11px;text-align:center"><span class="caret ${isExpanded?'open':''}">▶</span></td>
         <td class="tkr">${s.ticker}</td>
-        <td style="color:var(--text-tertiary);max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:13px">${s.companyName||'—'}</td>
+        <td style="color:var(--text-tertiary);max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:13px">${esc(s.companyName)||'—'}</td>
         <td style="font-size:14px;font-weight:600">${pxHtml}</td>
         <td style="font-size:13px">${fairHtml}</td>
         <td style="font-size:13px">${entryHtml}</td>
@@ -5753,9 +5838,9 @@ function buildExpandRow(s){
     mb('Gross Margin (≥ 40%)',f(b?.grossMargin,'%'),b?.grossMargin>=40),
     mb('ROIC (≥ 12%)',f(b?.roic,'%'),b?.roic>=12),
     mb('Debt Payoff (≤ 3yr)',f(b?.debtPayoffYrs,' yrs'),b?.debtPayoffYrs!=null&&b?.debtPayoffYrs<=3),
-    mb('Mgmt Score (≥ 7/10)',f(b?.mgmtScore,'/10',0),b?.mgmtScore>=7),
-    mb('Moat Rating (≥ 3/5)',f(b?.moatRating,'/5',0),b?.moatRating>=3),
-  ].join('');
+    mb('Mgmt Score (≥ 7/10, derived)',f(b?.mgmtScore,'/10',0),b?.mgmtScore>=7),
+    mb('Moat Rating (≥ 3/5, derived)',f(b?.moatRating,'/5',0),b?.moatRating>=3),
+  ].join('') + buffettQualityChips(b);
 
   // Lynch metrics
   const lcHtml=[
@@ -5795,7 +5880,7 @@ function buildExpandRow(s){
   return `<tr class="expand-row"><td colspan="${colCount}"><div class="expand-inner">
     <div class="expand-head">
       <span class="expand-tkr">${s.ticker}</span>
-      <span class="expand-nm">${s.companyName||''}</span>
+      <span class="expand-nm">${esc(s.companyName)}</span>
       <span class="expand-px">$${s.currentPrice?.toFixed(2)||'—'}${pxTag}</span>
       <span class="badge ${vc(s.overallSignal)}">${s.overallSignal||'—'}</span>
       <span style="font-size:24px;font-weight:800;color:${tc};margin-left:8px">${ts}/32</span>
