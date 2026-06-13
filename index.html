@@ -3,7 +3,12 @@
 <html lang="en" data-design="material">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0b0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- APK BUILD: serve via WebViewAssetLoader at https://appassets.androidplatform.net/assets/ -->
 <title>Value Investor Stock Screener</title>
 
 <style>
@@ -1108,7 +1113,11 @@ tbody tr { transition: background 0.15s ease; }
 @media (max-width: 720px) {
   body { padding: 12px 10px 40px; font-size: 13px; }
   h1 { font-size: 18px; letter-spacing: 0; }
-  .sub { font-size: 11px; line-height: 1.5; }
+  .sub { font-size: 11px; line-height: 1.6; }
+  /* "Data saved …" gets its own line instead of fusing into the tagline. */
+  .sub .sub-saved { display: block; margin-top: 3px; font-size: 10px; }
+  /* Header action buttons — keep the row tidy and tappable. */
+  .design-toggle, .theme-toggle { padding: 8px 10px; font-size: 12px; min-height: 38px; white-space: nowrap; }
 
   /* Prevent horizontal overflow on expanded row content */
   .expand-inner { max-width: 100%; overflow-x: hidden; word-break: break-word; overflow-wrap: anywhere; padding: 14px !important; }
@@ -1147,19 +1156,27 @@ tbody tr { transition: background 0.15s ease; }
   .mv { font-size: 13px !important; }
   .slbl { font-size: 10px !important; margin: 14px 0 6px !important; }
 
-  /* Toolbar — full-width buttons */
-  .input-row { flex-direction: column; gap: 8px; padding: 10px; }
-  .input-row input { min-width: 0; width: 100%; padding: 12px; }
+  /* Toolbar — compact grid. Ticker box + Analyze share the first row; the
+     secondary actions pair up small below; Clear all stays slim at the end. */
+  .input-row { display: grid; grid-template-columns: 1.4fr 1fr; gap: 6px; padding: 8px; }
+  .input-row input { min-width: 0; width: 100%; padding: 7px 10px; min-height: 36px; font-size: 13px; grid-column: 1; }
   .input-row > .btn,
   .input-row > .btn-ref,
   .input-row > .btn-ai-all,
+  .input-row > .btn-best,
   .input-row > .btn-clr,
-  .input-row > button { width: 100%; padding: 12px; font-size: 13px; min-height: 44px; }
+  .input-row > button { width: 100%; padding: 6px 5px; font-size: 11.5px; min-height: 32px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .input-row > .btn { grid-column: 2; min-height: 36px; font-size: 12.5px; } /* Analyze beside the ticker box */
+  .input-row > .btn-clr { grid-column: 1 / -1; min-height: 28px; padding: 4px; font-size: 11px; }
 
   /* Hide less-important table columns on mobile — keep ticker, price, total, signal */
   table { min-width: 0; font-size: 12px; width: 100%; }
   /* New cols: 1=caret 2=ticker 3=company 4=price 5=fair 6=entry 7=total 8=fund 9=tech 10=pe 11=roe 12=gm 13=eps 14=trend 15=signal 16=options 17=updated 18=actions */
-  /* On mobile, hide: 3=company, 8=fund, 9=tech, 10=pe, 11=roe, 12=gm, 13=eps, 14=trend, 17=updated. Keep Options visible. */
+  /* On mobile hide: 1=caret (rows are tap-to-expand anyway), 3=company,
+     8..14 metrics, 16=options, 17=updated. Keep ticker, price, FAIR, ENTRY,
+     total, signal, actions — the value-investing essentials. Cells are
+     tightened so all seven fit a ~393px viewport without clipping. */
+  thead th:nth-child(1),
   thead th:nth-child(3),
   thead th:nth-child(8),
   thead th:nth-child(9),
@@ -1168,7 +1185,9 @@ tbody tr { transition: background 0.15s ease; }
   thead th:nth-child(12),
   thead th:nth-child(13),
   thead th:nth-child(14),
+  thead th:nth-child(16),
   thead th:nth-child(17),
+  tbody tr:not(.expand-row) td:nth-child(1),
   tbody tr:not(.expand-row) td:nth-child(3),
   tbody tr:not(.expand-row) td:nth-child(8),
   tbody tr:not(.expand-row) td:nth-child(9),
@@ -1177,15 +1196,21 @@ tbody tr { transition: background 0.15s ease; }
   tbody tr:not(.expand-row) td:nth-child(12),
   tbody tr:not(.expand-row) td:nth-child(13),
   tbody tr:not(.expand-row) td:nth-child(14),
+  tbody tr:not(.expand-row) td:nth-child(16),
   tbody tr:not(.expand-row) td:nth-child(17) { display: none; }
-  thead th, tbody td { padding: 10px 8px; font-size: 12px; }
-  .tkr { font-size: 14px; }
-  .score-cell { padding: 3px 8px; font-size: 12px; }
+  thead th, tbody td { padding: 9px 3px; font-size: 11px; }
+  thead th { font-size: 10px; letter-spacing: 0; }
+  .tkr { font-size: 13px; }
+  .score-cell { padding: 2px 5px; font-size: 11px; }
+  /* Slim the per-row signal badge and ↻/✕ action buttons */
+  tbody td .buy, tbody td .hold, tbody td .sell { padding: 2px 6px; font-size: 10px; }
+  tbody td .rldbtn, tbody td .rmv { padding: 2px 4px; font-size: 13px; }
   /* Reset any block-display on expand row tds — keep them as table cells */
   .expand-row > td { display: table-cell; width: auto; max-width: none; padding: 0 !important; }
 
-  /* Hint at bottom of mobile table */
-  .tbl-wrap { overflow-x: hidden; max-width: 100vw; }
+  /* Hint at bottom of mobile table. overflow-x:auto (NOT hidden) — if columns
+     ever exceed the viewport again they must scroll, not vanish. */
+  .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100vw; }
   .tbl-wrap::after {
     content: "Tap any row for full details";
     display: block;
@@ -1409,14 +1434,17 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   font-weight: 600;
 }
 
-/* Mobile — wrap groups two-up, full-width search and reset */
+/* Mobile — wrap groups two-up, compact controls */
 @media (max-width: 720px) {
-  .filter-bar { padding: 10px; gap: 6px; }
-  .flt-search { flex: 1 1 100%; min-width: 0; min-height: 40px; }
-  .flt-group { flex: 1 1 calc(50% - 3px); min-width: 0; }
-  .flt-label { display: none; }
-  .flt-select { width: 100%; min-height: 40px; padding: 9px; }
-  .flt-reset { flex: 1 1 100%; min-height: 40px; padding: 10px; }
+  .filter-bar { padding: 6px; gap: 4px; }
+  .flt-search { flex: 1 1 100%; min-width: 0; min-height: 30px; padding: 4px 8px; font-size: 12px; }
+  /* Keep the labels (hiding them left five anonymous "All/Any" dropdowns) —
+     stack each label above its select. Three-up: Signal|Total|Tech on one
+     row, Value|Entry|Reset on the next — two rows of filters total. */
+  .flt-group { flex: 1 1 calc(33.3% - 3px); min-width: 0; flex-direction: column; align-items: stretch; gap: 1px; }
+  .flt-label { font-size: 8px; padding-left: 1px; letter-spacing: 0.2px; }
+  .flt-select { width: 100%; min-height: 28px; padding: 3px 4px; font-size: 11px; border-radius: 5px; }
+  .flt-reset { flex: 1 1 calc(33.3% - 3px); min-height: 28px; padding: 3px 4px; font-size: 10.5px; align-self: flex-end; }
 }
 /* ════════════════════════════════════════════════════════════
    MATERIAL DESIGN 3  —  default design language
@@ -1843,7 +1871,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     <tbody id="tbody"></tbody>
   </table>
 </div>
-<p class="note"><span class="ltag">●LIVE price</span> via Finnhub &nbsp;·&nbsp; <span class="ltag">●LIVE fundamentals</span> direct from Finnhub API &nbsp;·&nbsp; Not financial advice.</p>
+<p class="note"><span class="ltag">●LIVE price</span> via Finnhub &nbsp;·&nbsp; <span class="ltag">●LIVE fundamentals</span> direct from Finnhub API &nbsp;·&nbsp; Not financial advice. &nbsp;·&nbsp; <span style="color:var(--c-purple);font-size:10px">📱 APK build</span></p>
 
 <!-- ── GUIDE ── -->
 <div style="margin-top:24px">
@@ -2089,14 +2117,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
       <div style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:12px">🏦 Benjamin Graham — Safety &amp; Value</div>
       <p style="margin-bottom:12px">Graham's approach: buy stocks trading significantly below intrinsic value with a <em>margin of safety</em>. He was Buffett's mentor and wrote <em>The Intelligent Investor</em>. His criteria filter for cheap, safe, financially sound companies.</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin:12px 0">
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-amber);margin-bottom:4px">Adequate Size ≥ $2B</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Graham's first defensive criterion — exclude small caps "subject to more than average vicissitudes." ~$2B is Zweig's modern update of Graham's ≥$100M sales rule.</div></div>
         <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-amber);margin-bottom:4px">P/E &lt; 15</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Price-to-earnings below 15x. Above 25x is expensive. The market is paying less than 15 years of earnings — classic value territory.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-amber);margin-bottom:4px">P/B &lt; 1.5</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Price-to-book below 1.5x. Buying assets close to balance sheet value. Under 1x means trading below book — deep value territory.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-amber);margin-bottom:4px">P/E × P/B ≤ 22.5</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Graham's combined value rule (Ch.14 #7): the product of P/E and P/B should stay under 22.5 (= 15 × 1.5). A low P/E can offset a higher P/B — more flexible than two rigid gates.</div></div>
         <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-amber);margin-bottom:4px">Current Ratio ≥ 2</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Current assets are 2x current liabilities. Strong short-term financial health — won't need emergency financing anytime soon.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-amber);margin-bottom:4px">Debt/Equity ≤ 0.5</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Conservative debt. Company can weather downturns without being crushed by interest payments. Graham's safety margin.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-amber);margin-bottom:4px">EPS Growth 10yr &gt; 3%</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Sustained earnings growth over a decade proves a durable business model, not a one-hit wonder or cyclical spike.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-amber);margin-bottom:4px">Dividend Yield &gt; 0</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Any dividend signals financial maturity and management's confidence in cash flow. Graham viewed dividends as proof of earnings quality.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-amber);margin-bottom:4px">Revenue Growth 5yr &gt; 0</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Top-line growth over 5 years. The company is expanding, not shrinking. Even modest growth beats stagnation.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-amber);margin-bottom:4px">Net Margin &gt; 5%</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Keeps more than 5 cents of every dollar as profit. Thin margins mean fragility — one cost spike wipes out earnings.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-amber);margin-bottom:4px">Debt/Equity ≤ 0.5</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Conservative debt (a proxy for Graham's "long-term debt ≤ working capital"). The company can weather downturns without being crushed by interest payments.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-amber);margin-bottom:4px">Earnings Stability</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">No yearly deficit — Graham wanted positive earnings every year for a decade. We proxy with positive ROE across available history (or current profitability when history is missing).</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-amber);margin-bottom:4px">EPS Growth &gt; 3%</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Sustained earnings growth (~33% over the decade in Graham's rule). Proves a durable business, not a one-hit wonder. Driven by the 5-yr EPS growth field.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-amber);margin-bottom:4px">Pays a Dividend</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Any dividend signals financial maturity and management's confidence in cash flow. (Graham's defensive screen wants a 20-year record, which the free data tier can't source.)</div></div>
       </div>
       <div style="background:var(--surface-card);border-left:3px solid var(--c-amber);padding:12px 16px;border-radius:0 8px 8px 0"><strong style="color:var(--text-primary)">Best used for:</strong> Long-term buy-and-hold of undervalued blue chips. Look for Graham 5+/8 combined with Buffett 4+/8. Pure Graham stocks are often boring — utilities, financials, consumer staples — that the market ignores.</div>
     </div>
@@ -2106,14 +2134,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
       <div style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:12px">🎩 Warren Buffett — Quality &amp; Moat</div>
       <p style="margin-bottom:12px">Buffett evolved Graham's approach: buy <em>wonderful companies at fair prices</em>. He looks for durable competitive advantages (moats), exceptional management, and businesses that generate consistent free cash flow for decades.</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin:12px 0">
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-purple);margin-bottom:4px">ROE ≥ 15%</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Return on equity above 15%. The business earns excellent returns on shareholders' capital. Sustained ROE above 20% signals a genuine moat.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-purple);margin-bottom:4px">ROE Consistency ≥ 7yr</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">High ROE for 7+ consecutive years proves it's structural, not a fluke. This is the moat test — can they maintain it through cycles?</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-purple);margin-bottom:4px">FCF &gt; 0</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Positive free cash flow — real cash after all capital expenditures. Buffett calls earnings without FCF "accounting fiction."</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-purple);margin-bottom:4px">Gross Margin ≥ 40%</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">High gross margins = pricing power. Companies with 40%+ gross margins can raise prices without losing customers — the hallmark of a moat.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-purple);margin-bottom:4px">Durable ROE</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">ROE ≥ 15% for 7+ years (or ≥18% currently when history is missing). Durability is the moat test — one merged criterion instead of double-counting current and historical ROE.</div></div>
         <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-purple);margin-bottom:4px">ROIC ≥ 12%</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Return on invested capital. Measures how efficiently the business turns all capital (debt + equity) into profit. Above 12% = excellent.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-purple);margin-bottom:4px">Debt Payoff ≤ 3yr</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Could the company pay off all debt in under 3 years using free cash flow? Yes = conservative balance sheet Buffett loves.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-purple);margin-bottom:4px">Mgmt Score ≥ 7/10</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Computed from ROE + ROIC + FCF margin. High scores suggest disciplined capital allocation and management quality.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-purple);margin-bottom:4px">Moat Rating ≥ 3/5</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Computed from gross margin + ROIC + revenue growth consistency. Rating of 3+ = meaningful competitive advantage exists.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-purple);margin-bottom:4px">Gross Margin ≥ 40%</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">High gross margins = pricing power. Companies with 40%+ gross margins can raise prices without losing customers — the hallmark of a moat.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-purple);margin-bottom:4px">Net Margin ≥ 15%</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Profit after ALL costs. Pricing power that survives operating expenses and tax — the capital-light economics (See's, Coca-Cola) Buffett prizes. A distinct signal from gross margin.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-purple);margin-bottom:4px">FCF Margin ≥ 8%</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Free cash flow as a share of revenue — real cash the business throws off. A genuine quality bar, unlike "FCF &gt; 0" which almost any profitable company clears.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-purple);margin-bottom:4px">FCF / Net Income ≥ 0.8</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Owner-earnings quality: cash actually backs the reported profit. Persistently low conversion is the classic accrual red flag — earnings not supported by cash.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-purple);margin-bottom:4px">Low Leverage (LT D/E &lt; 50%)</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Self-funding business — long-term debt under half of equity. Uses long-term D/E so it stays distinct from Graham's total-debt test rather than scoring the same thing twice.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-purple);margin-bottom:4px">Revenue Growth 5yr &gt; 5%</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Durable top-line growth — intrinsic value compounding over time. A wonderful business should be getting bigger, not just efficient.</div></div>
       </div>
       <div style="background:var(--surface-card);border-left:3px solid var(--c-purple);padding:12px 16px;border-radius:0 8px 8px 0"><strong style="color:var(--text-primary)">Best used for:</strong> Core long-term holdings you'd own for 10+ years. Buffett 6+/8 stocks are rare — treasure them. Strong brands, network effects, switching costs, or cost advantages. A Buffett 7/8 or 8/8 deserves serious attention.</div>
     </div>
@@ -2121,16 +2149,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     <!-- LYNCH -->
     <div id="g-lynch" class="guide-section" style="display:none;margin-bottom:32px">
       <div style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:12px">🔍 Peter Lynch — Growth at a Reasonable Price</div>
-      <p style="margin-bottom:12px">Lynch managed Magellan Fund to 29% annual returns. His approach: find companies growing faster than their P/E ratio implies (low PEG), with insider buying, manageable debt, and a story a regular person can understand.</p>
+      <p style="margin-bottom:12px">Lynch managed Magellan Fund to 29% annual returns. His core method: <strong style="color:var(--text-primary)">first classify the company</strong> into one of six types (slow grower, stalwart, fast grower, cyclical, turnaround, asset play), <em>then</em> judge it by that type's yardstick — a slow grower is bought for its dividend, a fast grower for growth at a reasonable price. The screener detects the category and scores the growth/valuation/income criteria <em>appropriate to it</em>, rather than auto-rejecting everything that isn't a fast grower.</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin:12px 0">
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-green);margin-bottom:4px">PEG &lt; 1</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Price/Earnings-to-Growth below 1. Paying less for growth than the market expects. PEG of 0.5 means you're getting the growth at half price.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-green);margin-bottom:4px">EPS Growth YoY &gt; 10%</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Earnings growing 10%+ year-over-year. Lynch wanted fast growers — companies doubling earnings every 5–7 years.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-green);margin-bottom:4px">Inventory vs Sales Growth</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">If inventory grows faster than sales, the company is struggling to sell products — a warning sign Lynch watched closely as an early recession signal.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-green);margin-bottom:4px">Cash/Share &gt; 0</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Company holds cash per share — financial cushion that reduces risk and funds growth without needing to dilute shareholders.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-green);margin-bottom:4px">LT Debt/Equity &lt; 30%</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Long-term debt under 30% of equity. Lynch preferred companies that didn't need heavy debt to fuel their growth story.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-green);margin-bottom:4px">Reasonable P/E (&lt; 25)</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">GARP: refuse to pay extreme multiples even for fast growers. Lynch wanted growth at a price that still made sense. P/E above 25 means the market has fully priced the optimism — limited room for multiple expansion.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-green);margin-bottom:4px">Sales Growth &gt; 10%</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Top-line revenue growing 10%+ YoY. Earnings can be manipulated; revenue growth is harder to fake.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-green);margin-bottom:4px">Lynch Category 2–4</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Stalwart (steady grower), Fast Grower, or Cyclical at the right point in cycle — Lynch's three favorite types to own.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-green);margin-bottom:4px">PEG ≤ 1 (dividend-adjusted)</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Lynch's full rule: P/E divided by (growth rate + dividend yield). A fairly-priced grower has a P/E at or below its growth-plus-yield. Falls back to plain PEG when there's no dividend.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-green);margin-bottom:4px">Balance Sheet (LT D/E &lt; 30%)</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Long-term debt under 30% of equity. Lynch "respected the balance sheet" — companies that don't need heavy debt to fund their story survive bad years.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-green);margin-bottom:4px">Cash/Share &gt; 0</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Net cash per share — a cushion that reduces risk and funds growth without diluting shareholders.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-green);margin-bottom:4px">Operating Leverage</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Earnings growing at least as fast as sales (margin expansion) — the business gets more profitable as it scales, not just bigger.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-green);margin-bottom:4px">Growth fits category</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Judged against the category's yardstick: a fast grower wants 20–50% (the sweet spot; &gt;50% is unsustainable), a stalwart 10–30%, a slow grower steady, a cyclical recovering sales.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-green);margin-bottom:4px">Valuation fits category</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Fair price for its type — a fast grower's P/E below its growth rate; a stalwart under 20; a slow grower under 15; a cyclical bought at a low (or negative) off-cycle P/E.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-green);margin-bottom:4px">Income/safety fits category</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">A slow grower must pay a real dividend (&gt;3%); a stalwart some income; a fast grower just needs to fund itself without heavy debt; a cyclical must survive the downturn.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-green);margin-bottom:4px">Going concern</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Not collapsing — earnings haven't cratered and revenue is growing over time. Replaces the old gate that auto-rejected every slow grower, turnaround and asset play.</div></div>
       </div>
       <div style="background:var(--surface-card);border-left:3px solid var(--c-green);padding:12px 16px;border-radius:0 8px 8px 0"><strong style="color:var(--text-primary)">Best used for:</strong> Finding growth stocks before Wall Street notices. Lynch 5+/8 with PEG under 1 is a strong signal. Often mid-cap companies in niche industries with strong earnings momentum and low analyst coverage.</div>
     </div>
@@ -2138,16 +2166,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     <!-- TECHNICAL -->
     <div id="g-technical" class="guide-section" style="display:none;margin-bottom:32px">
       <div style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:12px">📈 Al Brooks Technical Analysis</div>
-      <p style="margin-bottom:12px">Al Brooks spent 30+ years developing a price action methodology. Unlike lagging indicators, his approach reads the raw bar-by-bar story the market tells. We compute 8 criteria from 250 days of real price data via Twelve Data.</p>
+      <p style="margin-bottom:12px">Al Brooks spent 30+ years developing a price action methodology built around a <strong style="color:var(--text-primary)">single 20-bar EMA</strong> (not a 20/50/200 stack), the "always-in" trend direction, and ranges defined by two-sided bar <em>overlap</em> rather than volatility. This is a <em>long-only</em> sleeve — it scores bullish setup quality, so a clean downtrend scores low. We compute 8 criteria from 250 days of real price data via Twelve Data.</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin:12px 0">
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-blue);margin-bottom:4px">Uptrend</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Price making higher highs and higher lows. The most basic condition for a bullish position. Trade with the trend — never against it.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-blue);margin-bottom:4px">Price above EMA20</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Above the 20-day EMA. Short-term momentum is bullish. This is the first line of support in a strong trend.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-blue);margin-bottom:4px">Price above EMA50</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Above the 50-day EMA. Medium-term trend is bullish. Institutional money tends to buy dips to the 50 EMA in uptrending stocks.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-blue);margin-bottom:4px">Higher Highs &amp; Lows</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Each swing high is higher than the previous; each swing low is higher. Classic uptrend structure. Breaking this = trend weakening.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-blue);margin-bottom:4px">Recent Breakout</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Price broke above a significant resistance level recently. Breakouts from consolidation patterns often lead to strong directional moves.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-blue);margin-bottom:4px">Pullback to EMA</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Price recently pulled back to EMA20 or EMA50 and held — a low-risk entry point within an uptrend. Buy the dip, not the rip.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-blue);margin-bottom:4px">Strong Trend Bars</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Recent bars have above-average range closing near their highs. Shows institutional conviction and buying pressure behind the move.</div></div>
-        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-blue);margin-bottom:4px">Not Trading Range</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Market is not in sideways chop. Trading ranges chew up options premium and produce false signals — wait for the breakout.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-blue);margin-bottom:4px">Trend (always-in 20-EMA)</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Most of the last 20 bars closed on one side of the 20-bar EMA (with an EMA-slope tiebreak) — Brooks's "always-in" direction. The single foundation of his method; no 50/200 stack.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-blue);margin-bottom:4px">Price above EMA20</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Above the 20-bar EMA right now — a long-friendly position. The first line of support in a strong trend.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-blue);margin-bottom:4px">Trend Structure (HH/HL)</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">In an uptrend, each swing high and low is higher than the last — classic bullish structure. Scored bullish-only (a tidy downtrend earns nothing here).</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-blue);margin-bottom:4px">Pullback to 20-EMA</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">In an uptrend, price has pulled back near the 20-EMA and the last bar is turning back up — Brooks's high-2/low-2 with-trend entry. Buy the dip, not the rip.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-blue);margin-bottom:4px">Breakout + follow-through</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Near the 60-day high AND closing as a strong bull bar — a breakout with conviction, not a weak poke at the high that fails.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-blue);margin-bottom:4px">Strong Trend Bars</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Most of the last five bars closed above the 20-EMA — sustained buying pressure behind the move.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-blue);margin-bottom:4px">Not Trading Range</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">Not sideways chop. Detected by two-sided bar <em>overlap</em> with a flat EMA (Brooks's actual definition) — not by volatility, which mislabels violent ranges and quiet trends.</div></div>
+        <div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;font-weight:700;color:var(--c-blue);margin-bottom:4px">No Climax/Reversal</div><div style="font-size:11px;color:var(--text-muted);line-height:1.6">The last bar isn't a parabolic blow-off (an exhaustion climax) or a strong reversal bar against the trend — Brooks's "don't buy the climax" caution.</div></div>
       </div>
       <div style="background:var(--surface-card);border-left:3px solid var(--c-blue);padding:12px 16px;border-radius:0 8px 8px 0"><strong style="color:var(--text-primary)">How to use:</strong> Technical score 6+/8 = strong setup. 4–5 = proceed carefully. Below 4 = wait. Even perfect fundamentals (24/24) with Tech 1/8 means <em>now is not the right time</em>. Use SPY's technical score as a market regime filter.</div>
     </div>
@@ -2549,18 +2577,147 @@ function saveDefaultTickers(list){
 let keys=['','',''], stocks=[], activeDP=null, refreshing=false;
 let busyOp=null; // 'refresh' | 'discover-breakout' | etc — lock to prevent Twelve Data conflicts
 
+// Human-readable label for the current background task, used in dialogs.
+function busyOpLabel(op){
+  if(!op) return 'A task';
+  if(op === 'analyze') return 'Loading default stocks';
+  if(op === 'refresh') return 'Refreshing all stocks';
+  if(op.startsWith('discover-')){
+    const key = op.slice('discover-'.length);
+    return `${(typeof DISCOVER_UNIVERSES!=='undefined' && DISCOVER_UNIVERSES[key]?.title) || key} scan`;
+  }
+  return op;
+}
+
+// In-page confirm that replaces the native confirm() dialog (which shows an
+// ugly `The page at "file://" says:` header in a WebView). Returns a Promise.
+function appConfirm({title='Confirm', message='', ok='OK', cancel='Cancel', danger=false}={}){
+  return new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.className = 'modal-overlay open';
+    ov.style.zIndex = '500';
+    const okStyle = danger ? 'background:var(--accent-sell);' : '';
+    ov.innerHTML = `
+      <div class="modal" style="max-width:380px" role="dialog" aria-modal="true">
+        <div class="modal-title">${title}</div>
+        <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:20px;white-space:pre-line">${message}</div>
+        <div class="modal-footer">
+          <button class="modal-cancel" data-act="cancel">${cancel}</button>
+          <button class="modal-submit" data-act="ok" style="${okStyle}">${ok}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    const done = (val) => { document.removeEventListener('keydown', onKey); ov.remove(); resolve(val); };
+    const onKey = (e) => { if(e.key === 'Escape') done(false); };
+    ov.querySelector('[data-act="ok"]').onclick = () => done(true);
+    ov.querySelector('[data-act="cancel"]').onclick = () => done(false);
+    ov.addEventListener('click', (e) => { if(e.target === ov) done(false); });
+    document.addEventListener('keydown', onKey);
+  });
+}
+
+// Single-OK in-page alert. Replaces native window.alert.
+function appAlert(message, opts={}){
+  const {title='', ok='OK'} = opts;
+  return new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.className = 'modal-overlay open';
+    ov.style.zIndex = '500';
+    ov.innerHTML = `
+      <div class="modal" style="max-width:380px" role="dialog" aria-modal="true">
+        ${title ? `<div class="modal-title">${title}</div>` : ''}
+        <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:20px;white-space:pre-line">${message}</div>
+        <div class="modal-footer" style="justify-content:flex-end">
+          <button class="modal-submit" data-act="ok">${ok}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    const done = () => { document.removeEventListener('keydown', onKey); ov.remove(); resolve(); };
+    const onKey = (e) => { if(e.key === 'Escape' || e.key === 'Enter') done(); };
+    ov.querySelector('[data-act="ok"]').onclick = done;
+    ov.addEventListener('click', (e) => { if(e.target === ov) done(); });
+    document.addEventListener('keydown', onKey);
+  });
+}
+
+// Like appConfirm but with 2-4 explicit named options. Returns chosen value or null.
+function appChoose({title='Choose', message='', options=[]}={}){
+  return new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.className = 'modal-overlay open';
+    ov.style.zIndex = '500';
+    const btnsHtml = options.map((o,i) => {
+      const cls = o.primary ? 'modal-submit' : 'modal-cancel';
+      return `<button class="${cls}" data-i="${i}" style="width:100%;padding:11px 14px;text-align:left;justify-content:flex-start;margin:0">${o.label}</button>`;
+    }).join('');
+    ov.innerHTML = `
+      <div class="modal" style="max-width:380px" role="dialog" aria-modal="true">
+        <div class="modal-title">${title}</div>
+        ${message ? `<div style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:16px;white-space:pre-line">${message}</div>` : ''}
+        <div style="display:flex;flex-direction:column;gap:8px">${btnsHtml}</div>
+      </div>`;
+    document.body.appendChild(ov);
+    const done = (val) => { document.removeEventListener('keydown', onKey); ov.remove(); resolve(val); };
+    const onKey = (e) => { if(e.key === 'Escape') done(null); };
+    ov.querySelectorAll('button[data-i]').forEach(b => { b.onclick = () => done(options[parseInt(b.dataset.i,10)].value); });
+    ov.addEventListener('click', (e) => { if(e.target === ov) done(null); });
+    document.addEventListener('keydown', onKey);
+  });
+}
+
+// Shared "another task is already running" dialog.
+async function confirmInterruptBusy(){
+  return appConfirm({
+    title: 'Another task is running',
+    message: `${busyOpLabel(busyOp)} is in progress.\n\nStop it and start this one instead?`,
+    ok: 'Stop & start',
+    cancel: 'Keep running',
+  });
+}
+
+// AndroidBridge is injected by MainActivity when running inside the wrapper APK.
+// In a plain browser it's undefined — every call guards on this.
+const _hasAndroidBridge = typeof AndroidBridge !== 'undefined';
+let _bgTaskActive = false; // whether the foreground service is running
+
+function bgTaskStart(label){
+  if(!_hasAndroidBridge) return;
+  try { AndroidBridge.startTask(label || 'Working…'); _bgTaskActive = true; }
+  catch(e){ console.warn('bgTaskStart failed', e); }
+}
+function bgTaskUpdate(label){
+  if(!_hasAndroidBridge || !_bgTaskActive) return;
+  try { AndroidBridge.updateProgress(label || 'Working…'); }
+  catch(e){ console.warn('bgTaskUpdate failed', e); }
+}
+function bgTaskStop(){
+  if(!_hasAndroidBridge || !_bgTaskActive) return;
+  try { AndroidBridge.stopTask(); _bgTaskActive = false; }
+  catch(e){ console.warn('bgTaskStop failed', e); }
+}
+
 function showProgress(text){
   const el = document.getElementById('globalProgress');
   const t = document.getElementById('globalProgressText');
   if(el) el.style.display = 'flex';
   if(t) t.textContent = text;
+  if(_bgTaskActive) bgTaskUpdate(text);
+  else if(busyOp) bgTaskStart(text);
 }
 function hideProgress(){
   const el = document.getElementById('globalProgress');
   if(el) el.style.display = 'none';
+  bgTaskStop();
 }
-function forceCancel(){
-  if(!confirm('Cancel the running operation? Any unsaved progress will be lost.')) return;
+async function forceCancel(){
+  const ok = await appConfirm({
+    title: 'Cancel this task?',
+    message: `${busyOpLabel(busyOp)} is currently running. Any in-progress work will be discarded.`,
+    ok: 'Cancel task',
+    cancel: 'Keep running',
+    danger: true,
+  });
+  if(!ok) return;
   busyOp = null;
   // Clear any active scanning flags in localStorage
   try {
@@ -2612,13 +2769,14 @@ function setupSave(i){
   if(inp) inp.value = '';
   setupRefreshUI();
 }
-function setupStart(skip){
+async function setupStart(skip){
   if(!skip && (!keys[0]||!keys[1]||!keys[2])){
-    alert('Please save your Anthropic, Finnhub, and Twelve Data keys first.\n\nOr click "Skip setup" to continue without keys (limited functionality).');
+    appAlert('Please save your Anthropic, Finnhub, and Twelve Data keys first.\n\nOr click "Skip setup" to continue without keys (limited functionality).');
     return;
   }
   if(skip && (!keys[0]||!keys[1]||!keys[2])){
-    if(!confirm('Continue without API keys? Most features will not work until you add keys via ⚙ API Keys later.')) return;
+    const ok = await appConfirm({ title:'Continue without API keys?', message:'Most features need API keys to work. You can add them later via the ⚙ API Keys button.', ok:'Continue', cancel:'Add keys first' });
+    if(!ok) return;
   }
   console.log('setupStart proceeding, skip=', !!skip);
   document.getElementById('setupPage').classList.remove('active');
@@ -2739,7 +2897,7 @@ function savePosition(){
     const ticker = document.getElementById('mTicker').value.trim().toUpperCase();
     const shares = parseFloat(document.getElementById('mShares').value);
     const entryPrice = parseFloat(document.getElementById('mEntryPrice').value);
-    if(!ticker||isNaN(shares)||isNaN(entryPrice)){ alert('Please fill in ticker, shares, and entry price.'); return; }
+    if(!ticker||isNaN(shares)||isNaN(entryPrice)){ appAlert('Please fill in ticker, shares, and entry price.'); return; }
     pos = { type:'stock', ticker, shares, entryPrice,
       entryDate: document.getElementById('mEntryDate').value,
       notes: document.getElementById('mNotes').value.trim() };
@@ -2749,7 +2907,7 @@ function savePosition(){
     const expiry = document.getElementById('mExpiry').value;
     const contracts = parseInt(document.getElementById('mContracts').value)||1;
     const premium = parseFloat(document.getElementById('mPremium').value);
-    if(!ticker||isNaN(strike)||!expiry||isNaN(premium)){ alert('Please fill in all required option fields.'); return; }
+    if(!ticker||isNaN(strike)||!expiry||isNaN(premium)){ appAlert('Please fill in all required option fields.'); return; }
     pos = { type:'option', ticker, optType: document.getElementById('mOptType').value,
       strike, expiry, contracts, premium,
       entryDate: document.getElementById('mOptDate').value,
@@ -2767,8 +2925,9 @@ function savePosition(){
   renderPortfolio();
 }
 
-function deletePosition(id){
-  if(!confirm('Remove this position?')) return;
+async function deletePosition(id){
+  const ok = await appConfirm({ title:'Remove position?', message:'This will delete the position from your portfolio.', ok:'Remove', cancel:'Keep', danger:true });
+  if(!ok) return;
   positions = positions.filter(p=>p.id!==id);
   savePositions();
   renderPortfolio();
@@ -2898,7 +3057,7 @@ function renderStockCard(p){
   const warnHtml = warns.map(w=>`<span class="pos-warn ${w.type}">${w.text}</span>`).join('');
   const signalBadge = s ? `<span class="badge ${vc(s.overallSignal)}" style="font-size:10px">${s.overallSignal} ${s.totalScore}/32</span>` : `<span style="font-size:10px;color:var(--text-muted)">Not in screener</span>`;
   const pnlHtml = pnl ? `<span class="${pnl.pnl>=0?'pos-pnl-pos':'pos-pnl-neg'}" style="font-weight:700;font-size:13px">${pnl.pnl>=0?'+':''}$${Math.abs(pnl.pnl).toFixed(0)} (${pnl.pnlPct>=0?'+':''}${pnl.pnlPct.toFixed(1)}%)</span>` : '<span style="color:var(--text-muted);font-size:11px">refresh screener for price</span>';
-  const aiPanel = p.aiGuidance ? `<div class="pos-ai-panel"><div class="pos-ai-text">${p.aiGuidance}</div><div class="pos-ai-meta">Generated ${p.aiGeneratedAt||''} · <button class="pos-action-btn" onclick="getPositionGuidance('${p.id}')">↻ Refresh</button></div></div>` :
+  const aiPanel = p.aiGuidance ? `<div class="pos-ai-panel"><div class="pos-ai-text">${esc(p.aiGuidance)}</div><div class="pos-ai-meta">Generated ${p.aiGeneratedAt||''} · <button class="pos-action-btn" onclick="getPositionGuidance('${p.id}')">↻ Refresh</button></div></div>` :
     p.aiLoading ? `<div class="pos-ai-panel"><div class="pos-ai-loading"><span class="spin"></span>Getting guidance…</div></div>` : '';
 
   return `<div class="pos-card" id="pc-${p.id}">
@@ -2930,7 +3089,7 @@ function renderOptionCard(p){
   const signalBadge = s ? `<span class="badge ${vc(s.overallSignal)}" style="font-size:10px">${s.overallSignal} ${s.totalScore}/32</span>` : `<span style="font-size:10px;color:var(--text-muted)">Not in screener</span>`;
   const itmBadge = pnl.currentPrice ? (pnl.itm ? '<span class="pos-warn blue">ITM</span>' : '<span class="pos-warn yellow">OTM</span>') : '';
   const totalCost = (p.contracts*100*p.premium).toFixed(0);
-  const aiPanel = p.aiGuidance ? `<div class="pos-ai-panel"><div class="pos-ai-text">${p.aiGuidance}</div><div class="pos-ai-meta">Generated ${p.aiGeneratedAt||''} · <button class="pos-action-btn" onclick="getPositionGuidance('${p.id}')">↻ Refresh</button></div></div>` :
+  const aiPanel = p.aiGuidance ? `<div class="pos-ai-panel"><div class="pos-ai-text">${esc(p.aiGuidance)}</div><div class="pos-ai-meta">Generated ${p.aiGeneratedAt||''} · <button class="pos-action-btn" onclick="getPositionGuidance('${p.id}')">↻ Refresh</button></div></div>` :
     p.aiLoading ? `<div class="pos-ai-panel"><div class="pos-ai-loading"><span class="spin"></span>Getting guidance…</div></div>` : '';
 
   return `<div class="pos-card" id="pc-${p.id}">
@@ -3021,7 +3180,7 @@ Give specific actionable guidance in 3-5 sentences: should I hold, take profit, 
 
 // ── Portfolio-wide AI review ──
 async function reviewPortfolio(){
-  if(!positions.length){ alert('Add some positions first.'); return; }
+  if(!positions.length){ appAlert('Add some positions first.'); return; }
   const btn = document.getElementById('reviewBtn');
   btn.disabled = true; btn.textContent = '🧠 Reviewing…';
 
@@ -3097,24 +3256,21 @@ async function sendChat(){
 
   const systemMsg = `You are an investment advisor AI for a value investor using a stock screener. The user's current portfolio:\n${posContext}\n\nAnswer concisely and specifically. Reference actual tickers and numbers from the portfolio when relevant. Be direct — give recommendations, not just analysis.`;
 
-  // Build messages with history (keep last 10 exchanges for context)
-  const recentHistory = chatHistory.slice(-20);
-  const messages = [{role:'user', content:systemMsg+'\n\nUser question: '+recentHistory[recentHistory.length-1].content}];
-  if(recentHistory.length > 1){
-    // Include prior exchanges for context
-    const prior = recentHistory.slice(0,-1).map(m=>({role:m.role, content:m.content}));
-    messages.splice(0,0,...prior);
-  }
+  // Conversation turns only (system goes in the `system` param, not inlined into
+  // the first user message). Trim any leading assistant turn so the array starts
+  // with 'user' as the API requires.
+  const messages = chatHistory.slice(-20).map(m => ({ role: m.role, content: m.content }));
+  while(messages.length && messages[0].role !== 'user') messages.shift();
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':keys[0],'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages})
+    // Route through the shared helper: gains 429/529 retry + Retry-After honoring,
+    // and uses a current model. claude-sonnet-4-20250514 retires 2026-06-15.
+    const reply = await callAnthropic('', false, 3, {
+      system: systemMsg,
+      messages,
+      model: 'claude-sonnet-4-6',
+      maxTokens: 1000,
     });
-    const d = await res.json();
-    if(d.error) throw new Error(d.error.message);
-    const reply = d.content.filter(b=>b.type==='text').map(b=>b.text).join('');
     chatHistory.push({role:'assistant', content:reply});
   } catch(e) {
     chatHistory.push({role:'assistant', content:`⚠ Error: ${e.message}`});
@@ -3127,7 +3283,7 @@ async function sendChat(){
 function renderChat(){
   const el = document.getElementById('chatMsgs');
   if(!chatHistory.length){ el.innerHTML=''; return; }
-  el.innerHTML = chatHistory.map(m=>`<div class="chat-msg ${m.role}">${m.content.replace(/\n/g,'<br>')}</div>`).join('');
+  el.innerHTML = chatHistory.map(m=>`<div class="chat-msg ${m.role}">${esc(m.content).replace(/\n/g,'<br>')}</div>`).join('');
   el.scrollTop = el.scrollHeight;
 }
 function clearChat(){ chatHistory=[]; renderChat(); }
@@ -3201,7 +3357,7 @@ function handleRobinhoodFile(input){
 
 function importRobinhoodCSV(){
   const input = document.getElementById('skRobinhood');
-  if(!input || !input.files[0]){ alert('Select a Robinhood CSV file first.'); return; }
+  if(!input || !input.files[0]){ appAlert('Select a Robinhood CSV file first.'); return; }
   const reader = new FileReader();
   reader.onload = e => parseRobinhoodCSV(e.target.result);
   reader.readAsText(input.files[0]);
@@ -3210,7 +3366,7 @@ function importRobinhoodCSV(){
 function parseRobinhoodCSV(csv){
   // Robinhood CSV columns: name, symbol, shares, price, averageCost, totalReturn, equity
   const lines = csv.trim().split('\n');
-  if(lines.length < 2){ alert('CSV appears empty or invalid.'); return; }
+  if(lines.length < 2){ appAlert('CSV appears empty or invalid.'); return; }
 
   // Find header row — normalize: lowercase, strip BOM, quotes, spaces
   const rawHeader = lines[0].replace(/^\uFEFF/,''); // strip BOM
@@ -3222,7 +3378,7 @@ function parseRobinhoodCSV(csv){
   const costCol = col('averagecost') !== -1 ? col('averagecost') : col('average cost') !== -1 ? col('average cost') : col('avg cost');
   const nameCol = col('name') !== -1 ? col('name') : -1;
 
-  if(symCol === -1){ alert('Could not find Symbol column in CSV. Make sure this is a Robinhood positions export.'); return; }
+  if(symCol === -1){ appAlert('Could not find Symbol column in CSV. Make sure this is a Robinhood positions export.'); return; }
 
   let added=0, skipped=0;
   for(let i=1; i<lines.length; i++){
@@ -3270,7 +3426,7 @@ function parseRobinhoodCSV(csv){
     (notInScreener.length
       ? `📊 Queuing ${notInScreener.length} tickers for screener analysis:\n${notInScreener.join(', ')}`
       : '✅ All portfolio tickers already in screener.');
-  alert(msg);
+  appAlert(msg);
 
   if(notInScreener.length){
     const current = getDefaultTickers();
@@ -3420,10 +3576,10 @@ function saveDiscoverResults(){
 
 // ── AI-sourced discovery: Claude proposes tickers, the screener validates them ──
 async function aiDiscover(themeKey, customQuery){
-  if(!keys[0]){ alert('Need an Anthropic API key for AI discovery (⚙ API Keys).'); return; }
-  if(!keys[1] || !keys[2]){ alert('Need Finnhub + Twelve Data keys to validate suggestions.'); return; }
+  if(!keys[0]){ appAlert('Need an Anthropic API key for AI discovery (⚙ API Keys).'); return; }
+  if(!keys[1] || !keys[2]){ appAlert('Need Finnhub + Twelve Data keys to validate suggestions.'); return; }
   if(busyOp){
-    if(confirm(`Already running: ${busyOp}.\n\nForce-cancel and start fresh?`)){
+    if(await confirmInterruptBusy()){
       busyOp=null;
       Object.keys(discoverResults).forEach(k=>{ if(discoverResults[k]?.scanning){ discoverResults[k].scanning=null; discoverResults[k].interrupted=true; }});
       saveDiscoverResults();
@@ -3432,7 +3588,7 @@ async function aiDiscover(themeKey, customQuery){
   const theme = AI_THEMES[themeKey];
   const themeDesc = theme ? theme.prompt : (customQuery||'').trim();
   const themeTitle = theme ? theme.title : (customQuery||'Custom').trim().slice(0,40);
-  if(!themeDesc){ alert('Describe what to look for.'); return; }
+  if(!themeDesc){ appAlert('Describe what to look for.'); return; }
 
   busyOp = `discover-${themeKey}`;
   discoverResults[themeKey] = { scanning:'AI sourcing…', results:[], scannedAt:Date.now(), source:'ai', themeTitle };
@@ -3603,9 +3759,9 @@ function discoverCard(m){
 }
 
 async function scanDiscover(category){
-  if(!keys[1] || !keys[2]){ alert('Need Finnhub + Twelve Data keys to scan.'); return; }
+  if(!keys[1] || !keys[2]){ appAlert('Need Finnhub + Twelve Data keys to scan.'); return; }
   if(busyOp){
-    if(confirm(`Already running: ${busyOp}.\n\nClick OK to force-cancel and start fresh, or Cancel to wait.`)){
+    if(await confirmInterruptBusy()){
       busyOp = null;
       // also clear any stale scanning flag in localStorage
       Object.keys(discoverResults).forEach(k => {
@@ -3718,7 +3874,7 @@ function filterDiscover(category, s){
 
     case 'dca':
       // Quality value + dividend
-      if(s.graham?.score>=5 && s.graham?.dividendYield>2 && s.graham?.revenueGrowth5yr>0 && s.totalScore>=18) {
+      if(s.graham?.score>=5 && s.graham?.dividendYield>2 && s.buffett?.revenueGrowth5yr>0 && s.totalScore>=18) {
         return {...base, reason: `Div ${s.graham.dividendYield.toFixed(1)}% · Graham ${s.graham.score}/8`};
       }
       return null;
@@ -3866,7 +4022,7 @@ function loadStocks(){
 
 async function autoLoadDefaults(tickers){
   if(busyOp){
-    if(confirm(`Already running: ${busyOp}.\n\nClick OK to force-cancel and start fresh, or Cancel to wait.`)){ busyOp = null; }
+    if(await confirmInterruptBusy()) busyOp = null;
     else return;
   }
   busyOp = 'analyze';
@@ -3914,15 +4070,19 @@ function getSavedAt(){
 }
 
 document.getElementById('ti').addEventListener('keydown',e=>{if(e.key==='Enter')go();});
+// The full placeholder truncates mid-word on phones — use a short one there.
+if(window.matchMedia && matchMedia('(max-width: 720px)').matches){
+  document.getElementById('ti').placeholder = 'Ticker e.g. AAPL';
+}
 
 async function go(){
-  if(!keys[0]){alert('Anthropic API key not found — check key configuration.');return;}
+  if(!keys[0]){appAlert('Anthropic API key not found — check key configuration.');return;}
   const inp=document.getElementById('ti');
   const t=inp.value.trim().toUpperCase().replace(/[^A-Z0-9.]/g,'');
   if(!t)return; inp.value='';
   // Basic crypto guard — common crypto symbols
   const cryptos=['BTC','ETH','SOL','XRP','ADA','DOGE','MATIC','AVAX','DOT','LTC','BNB','USDT','USDC'];
-  if(cryptos.includes(t)){alert(`${t} is a cryptocurrency. This screener is for stocks only — it uses Graham/Buffett/Lynch criteria which require financial statements.`);return;}
+  if(cryptos.includes(t)){appAlert(`${t} is a cryptocurrency. This screener is for stocks only — it uses Graham/Buffett/Lynch criteria which require financial statements.`);return;}
   const ei=stocks.findIndex(s=>s.ticker===t);
   if(ei!==-1)stocks.splice(ei,1);
   const id=Date.now();
@@ -3935,7 +4095,7 @@ async function go(){
 async function refreshAll(){
   if(refreshing||!keys[0])return;
   if(busyOp){
-    if(confirm(`Already running: ${busyOp}.\n\nClick OK to force-cancel and start fresh, or Cancel to wait.`)){ busyOp = null; }
+    if(await confirmInterruptBusy()) busyOp = null;
     else return;
   }
   const done=stocks.filter(s=>s.status==='done').map(s=>s.ticker);
@@ -3954,13 +4114,21 @@ async function refreshAll(){
     showProgress(`↻ Refreshing ${Math.min(b+BATCH, done.length)}/${done.length} — ${batch.join(', ')}`);
     const _rm=document.getElementById('rmsg');if(_rm)_rm.textContent = `Refreshing batch ${Math.floor(b/BATCH)+1}/${Math.ceil(done.length/BATCH)} — ${batch.join(', ')}`;
 
-    // Preserve analyses + replace each with loading entry
+    // Refresh in place: keep each existing 'done' row and snapshot it, so a
+    // transient API failure rolls back to the prior good data instead of
+    // evicting the stock (and its AI analysis) — which save()'s done-only
+    // filter would then make permanent.
     const ids = batch.map((ticker, i) => {
       const existing = stocks.find(s=>s.ticker===ticker);
-      const savedAnalysis = existing?.analysis || null;
-      stocks = stocks.filter(s=>s.ticker!==ticker);
+      if(existing){
+        existing._prevSnapshot = JSON.parse(JSON.stringify(existing));
+        existing.refreshing = true;
+        existing.lastRefreshError = null;
+        existing.step = 'Refreshing…';
+        return {id: existing.id, ticker};
+      }
       const nid = Date.now() + (b+i)*100;
-      stocks.unshift({id:nid, ticker, status:'loading', step:'Refreshing…', _savedAnalysis:savedAnalysis});
+      stocks.unshift({id:nid, ticker, status:'loading', step:'Refreshing…'});
       return {id:nid, ticker};
     });
     renderTable();
@@ -3978,15 +4146,30 @@ async function refreshAll(){
   hideProgress();
 }
 
+// End a failed run(). If the row was a refresh of existing data, roll it back
+// to the snapshot and flag the failure (keeps scores/fair-entry/AI analysis);
+// otherwise it was a fresh analyze, so surface a normal error row.
+function failRun(id, t, errMsg){
+  const idx = stocks.findIndex(s=>s.id===id);
+  if(idx===-1) return;
+  const snap = stocks[idx]._prevSnapshot;
+  if(snap){
+    stocks[idx] = {...snap, refreshing:false, lastRefreshError: errMsg};
+  } else {
+    stocks[idx] = {id, ticker:t, status:'error', error:errMsg};
+  }
+  save(); renderTable();
+}
+
 async function run(id,t){
   try{
     const isClaudeIframe = window.self !== window.top &&
       (document.referrer.includes('claude.ai') || document.referrer.includes('anthropic.com'));
-    const restricted = isClaudeIframe || location.protocol === 'file:';
+    const isAndroidWebView = /;\s*wv\)/i.test(navigator.userAgent) || location.hostname === 'appassets.androidplatform.net';
+    const restricted = isClaudeIframe || (location.protocol === 'file:' && !isAndroidWebView);
 
     if(!keys[1]){
-      const idx = stocks.findIndex(s=>s.id===id);
-      if(idx!==-1){stocks[idx]={id,ticker:t,status:'error',error:'No Finnhub API key set — expand key overrides, paste key, click Save'};renderTable();}
+      failRun(id, t, 'No Finnhub API key set — expand key overrides, paste key, click Save');
       return;
     }
 
@@ -4004,17 +4187,15 @@ async function run(id,t){
       else console.warn('History error:', histResult.reason?.message);
     } else {
       // Restricted env (Claude.ai iframe) — can't fetch APIs directly due to CSP
-      const idx = stocks.findIndex(s=>s.id===id);
-      if(idx!==-1){stocks[idx]={id,ticker:t,status:'error',error:'Use the hosted Netlify site — APIs blocked in Claude.ai iframe'};renderTable();}
+      failRun(id, t, 'Use the hosted Netlify site — APIs blocked in Claude.ai iframe');
       return;
     }
 
     if(!fin){
-      const idx = stocks.findIndex(s=>s.id===id);
       const errMsg = finError
         ? `Finnhub error: ${finError}`
         : 'Finnhub returned no data — check ticker or API key';
-      if(idx!==-1){stocks[idx]={id,ticker:t,status:'error',error:errMsg};renderTable();}
+      failRun(id, t, errMsg);
       return;
     }
 
@@ -4023,21 +4204,19 @@ async function run(id,t){
 
     finalize(id, t, result, restricted);
   }catch(e){
-    const idx=stocks.findIndex(s=>s.id===id);
-    if(idx!==-1){stocks[idx]={id,ticker:t,status:'error',error:e.message||'Fetch failed'};renderTable();}
+    failRun(id, t, e.message||'Fetch failed');
   }
 }
 
 function finalize(id, t, result, restricted){
   const idx = stocks.findIndex(s=>s.id===id);
   if(idx===-1) return;
-  if(result.error){ stocks[idx]={id,ticker:t,status:'error',error:result.error}; }
-  else {
-    // Preserve existing AI summary if this is a refresh (don't wipe it)
-    const existing = stocks[idx];
-    const analysis = existing?.analysis || existing?._savedAnalysis || null;
-    stocks[idx]={id,status:'done',updatedAt:new Date().toLocaleString(),updatedAtTs:Date.now(),...result,analysis};
-  }
+  if(result.error){ failRun(id, t, result.error); return; }
+  // Preserve existing AI summary if this is a refresh (don't wipe it).
+  // The fresh object drops refreshing/_prevSnapshot/lastRefreshError flags.
+  const existing = stocks[idx];
+  const analysis = existing?.analysis || existing?._savedAnalysis || null;
+  stocks[idx]={id,status:'done',updatedAt:new Date().toLocaleString(),updatedAtTs:Date.now(),...result,analysis};
   save(); renderTable();
   document.getElementById('refBtn').disabled = stocks.filter(s=>s.status==='done').length===0;
   const _ab=document.getElementById('aiAllBtn');if(_ab)_ab.disabled=stocks.filter(s=>s.status==='done').length===0;
@@ -4136,9 +4315,10 @@ function parseFinnhubResponse(t, quote, profile, metricResp, extras){
   // Debt to equity — use quarterly if available
   const debtToEquity = m['totalDebt/totalEquityQuarterly'] || m['totalDebt/totalEquityAnnual'] || null;
 
-  // Long-term debt to equity as percent
-  const ltdeRaw = m['longTermDebt/equityQuarterly'] || m['longTermDebt/equityAnnual'] || 0;
-  const ltDebtEquityPct = ltdeRaw * 100; // decimal ratio → percent
+  // Long-term debt to equity as percent. Keep null when absent — do NOT coerce
+  // to 0, or a stock with no debt data would falsely pass the "< 30%" criterion.
+  const ltdeRaw = m['longTermDebt/equityQuarterly'] ?? m['longTermDebt/equityAnnual'] ?? null;
+  const ltDebtEquityPct = ltdeRaw != null ? ltdeRaw * 100 : null; // decimal ratio → percent
 
   // Dividend yield — Finnhub returns null if no dividend
   const dividendYield = m.currentDividendYieldTTM || 0;
@@ -4170,8 +4350,10 @@ function parseFinnhubResponse(t, quote, profile, metricResp, extras){
   // Finnhub doesn't give direct total debt $ amount. Approximate:
   // totalDebt/totalEquity × bookValue = totalDebt
   const bookValue = profile.marketCapitalization / (m.pb || 1); // $M equity
-  const totalDebtMillions = bookValue * (debtToEquity || 0);
-  const debtPayoffYrs = fcfMillions > 0 ? totalDebtMillions / fcfMillions : null;
+  // null when D/E is unknown — otherwise totalDebt collapses to 0 and the
+  // Buffett "pays off debt in <= 3 yrs" criterion passes for free.
+  const totalDebtMillions = debtToEquity != null ? bookValue * debtToEquity : null;
+  const debtPayoffYrs = (totalDebtMillions != null && fcfMillions > 0) ? totalDebtMillions / fcfMillions : null;
 
   // PEG — Finnhub's pegTTM
   const peg = m.pegTTM || null;
@@ -4185,12 +4367,31 @@ function parseFinnhubResponse(t, quote, profile, metricResp, extras){
   // Insider ownership — not in standard free Finnhub metric. Placeholder.
   const insiderOwnershipPct = 0;
 
+  // Finnhub's basic-financials metric (free tier) reports trailing EPS and book value
+  // per share directly. Using these lets fair value be a real intrinsic estimate instead
+  // of being back-derived from price/PE and price/PB (which is algebraically circular —
+  // it just restates the multiple and carries no independent valuation information).
+  let epsTTM = Number.isFinite(m.epsTTM) ? m.epsTTM
+             : Number.isFinite(m.epsBasicExclExtraItemsTTM) ? m.epsBasicExclExtraItemsTTM
+             : Number.isFinite(m.epsInclExtraItemsTTM) ? m.epsInclExtraItemsTTM
+             : Number.isFinite(m.epsAnnual) ? m.epsAnnual
+             : null;
+  // Non-circular fallback: net income per share = revenue/share × net margin.
+  // Both inputs are price-independent, so this preserves the independence guarantee.
+  if(epsTTM == null && revenuePerShare && Number.isFinite(netMargin)){
+    epsTTM = revenuePerShare * (netMargin / 100);
+  }
+  const bookValuePerShare = Number.isFinite(m.bookValuePerShareQuarterly) ? m.bookValuePerShareQuarterly
+             : Number.isFinite(m.bookValuePerShareAnnual) ? m.bookValuePerShareAnnual
+             : null;
+
   return {
     hasFMP: true, // keep flag name for UI compat
     companyName: profile.name || t,
     sector: profile.finnhubIndustry || '',
     fmpPrice: quote.c || null, // current price
     pe, pb, currentRatio, debtToEquity,
+    epsTTM, bookValuePerShare,
     epsGrowth10yr: epsGrowth5yr || null,
     dividendYield: dividendYield || null,
     revenueGrowth5yr,
@@ -4316,46 +4517,92 @@ function analyzeTechnicals(history){
   const ema50  = computeEMA(closes, 50);
   const ema200 = history.length >= 200 ? computeEMA(closes, 200) : null;
 
-  // Al Brooks criteria — real math:
-  // 1. Uptrend: EMA20 > EMA50 > EMA200 (trending up)
-  const uptrend = ema20 && ema50 && (!ema200 || ema20 > ema50) && (!ema200 || ema50 > ema200);
+  // Al Brooks criteria — real math. Brooks works off a SINGLE 20-bar EMA (no 20/50/200
+  // stack), defines the trend as "always-in" (most recent bars on one side of the 20-EMA),
+  // and judges ranges by two-sided OVERLAP, not volatility. ema50/ema200 are kept only for
+  // the entry-price heuristic and display, not as trend criteria.
+  const n = closes.length;
 
-  // 2. Price above EMA20 (short-term strength)
+  // EMA20 value AT EACH BAR — so "always-in" compares each close to the EMA at its own
+  // time (in a trend the older closes sit below today's single EMA; comparing them all to
+  // the latest value under-counts and mislabels clean trends as sideways).
+  const ema20Arr = new Array(n).fill(null);
+  if(n >= 20){
+    const k = 2/(20+1);
+    let e = closes.slice(0,20).reduce((s,p)=>s+p,0)/20; ema20Arr[19] = e;
+    for(let i=20;i<n;i++){ e = closes[i]*k + e*(1-k); ema20Arr[i] = e; }
+  }
+
+  // 1. Always-in trend: most of the last 20 bars closed on one side of the 20-EMA.
+  let aboveCt = 0, belowCt = 0;
+  for(let i = Math.max(0, n-20); i < n; i++){
+    if(ema20Arr[i] == null) continue;
+    if(closes[i] > ema20Arr[i]) aboveCt++; else if(closes[i] < ema20Arr[i]) belowCt++;
+  }
+  // 20-EMA slope (vs ~20 bars ago) breaks the borderline case.
+  const ema20Prev = (n >= 41 && ema20Arr[n-21] != null) ? ema20Arr[n-21] : ema20;
+  const emaRising = ema20 > ema20Prev;
+  const uptrend   = aboveCt >= 12 && (aboveCt >= 14 || emaRising);
+  const downtrend = !uptrend && belowCt >= 12 && (belowCt >= 14 || !emaRising);
+
+  // 2. Price above the 20-EMA. The screener is LONG-ONLY (entry is null in downtrends),
+  //    so the technical sleeve scores BULLISH setup quality — a clean downtrend should
+  //    score low, not earn "with-trend" credit for being a tidy downtrend.
   const priceAboveEMA20 = price > ema20;
 
-  // 3. Price above EMA50 (medium-term strength)
-  const priceAboveEMA50 = price > ema50;
-
-  // 4. Higher highs & higher lows: compare last 20 bars to prior 20 bars
+  // 3. Trend structure: higher highs & higher lows (bullish only).
   const last20Hi = Math.max(...highs.slice(-20));
   const last20Lo = Math.min(...lows.slice(-20));
   const prior20Hi = Math.max(...highs.slice(-40, -20));
   const prior20Lo = Math.min(...lows.slice(-40, -20));
-  const higherHighsLows = last20Hi > prior20Hi && last20Lo > prior20Lo;
+  const higherHighsLows = uptrend && last20Hi > prior20Hi && last20Lo > prior20Lo;
 
-  // 5. Recent breakout: current price within 3% of 60-day high
+  // Last-bar geometry (where it closed within its own range): >0.6 = bull body, <0.35 = bear body.
+  const lastRange = highs[n-1] - lows[n-1];
+  const lastBarStrength = lastRange > 0 ? (price - lows[n-1]) / lastRange : 0.5;
+
+  // 4. With-trend pullback that resumed (high-2/low-2 entry proxy): pulled back near the
+  //    20-EMA in an uptrend and the last bar is turning back up.
+  const pullbackToEma = uptrend && Math.abs(price - ema20) / ema20 < 0.04 && price >= prevClose;
+
+  // 5. Breakout WITH follow-through: near the 60-day high AND a strong bull bar (not just
+  //    poking the high on a weak bar that fails).
   const hi60 = Math.max(...highs.slice(-60));
-  const breakoutRecent = price >= hi60 * 0.97;
+  const breakoutRecent = price >= hi60 * 0.97 && lastBarStrength >= 0.6;
 
-  // 6. Pullback to EMA (healthy entry): price within 3% of EMA20 AND in uptrend
-  const pullbackToEma = Math.abs(price - ema20) / ema20 < 0.03 && uptrend;
-
-  // 7. Strong trend bars: last 5 closes all above EMA20 (or all below in downtrend)
+  // 6. Signs of strength: most of the last 5 closes are above the 20-EMA (bullish only).
   const last5 = closes.slice(-5);
-  const strongTrendBars = uptrend
-    ? last5.every(c => c > ema20)
-    : last5.every(c => c < ema20);
+  const strongTrendBars = uptrend && last5.filter(c => c > ema20).length >= 4;
 
-  // 8. NOT trading range: recent 20-day ATR > 2% of price (has movement/direction)
-  const ranges = [];
-  for(let i = highs.length - 20; i < highs.length; i++){
-    ranges.push(highs[i] - lows[i]);
+  // 7. NOT a trading range (Brooks: ranges are two-sided/overlapping with no net progress).
+  //    Flag a range when bars heavily overlap their predecessor AND the 20-EMA is flat —
+  //    a sloped EMA means real directional progress even if individual bars overlap, so
+  //    this stays distinct from criterion 1 (price-vs-EMA position).
+  let overlapBars = 0, ovCnt = 0;
+  for(let i = n - 19; i < n; i++){
+    if(i < 1) continue;
+    const ph = highs[i-1], pl = lows[i-1], priorRange = ph - pl;
+    const overlap = Math.max(0, Math.min(highs[i], ph) - Math.max(lows[i], pl));
+    if(priorRange > 0 && overlap >= 0.5 * priorRange) overlapBars++;
+    ovCnt++;
   }
-  const atr = ranges.reduce((s,r)=>s+r, 0) / ranges.length;
-  const notTradingRange = atr > price * 0.015;  // ATR > 1.5% of price = real movement
+  const overlapFrac = ovCnt > 0 ? overlapBars / ovCnt : 0;
+  const emaFlat = Math.abs(ema20 - ema20Prev) / price < 0.015;
+  const tradingRange = overlapFrac >= 0.5 && emaFlat;
+  const notTradingRange = !tradingRange;
 
-  const score = [uptrend, priceAboveEMA20, priceAboveEMA50, higherHighsLows,
-                 breakoutRecent, pullbackToEma, strongTrendBars, notTradingRange]
+  // 8. No climax / reversal warning ("don't buy the climax"): the last bar isn't a
+  //    parabolic blow-off (range >2.5× the recent average) and isn't a strong bar against
+  //    the trend (a bear bar in an uptrend / bull bar in a downtrend).
+  let avgRange = 0, arCnt = 0;
+  for(let i = Math.max(1, n - 11); i < n - 1; i++){ avgRange += (highs[i] - lows[i]); arCnt++; }
+  avgRange = arCnt > 0 ? avgRange / arCnt : lastRange;
+  const climax = avgRange > 0 && lastRange > 2.5 * avgRange;
+  const counterTrendBar = uptrend ? lastBarStrength < 0.35 : downtrend ? lastBarStrength > 0.65 : false;
+  const noClimax = !climax && !counterTrendBar;
+
+  const score = [uptrend, priceAboveEMA20, higherHighsLows, pullbackToEma,
+                 breakoutRecent, strongTrendBars, notTradingRange, noClimax]
                 .filter(Boolean).length;
 
   // Support & resistance from recent swing levels
@@ -4363,22 +4610,23 @@ function analyzeTechnicals(history){
   const resistanceLevel = last20Hi;
 
   // Trend direction
-  const trendDirection = uptrend ? 'uptrend' : (ema20 < ema50 ? 'downtrend' : 'sideways');
+  const trendDirection = uptrend ? 'uptrend' : downtrend ? 'downtrend' : 'sideways';
 
   // Signal text
   const signal = score >= 6 ? 'STRONG' : score >= 4 ? 'MIXED' : 'WEAK';
 
-  const summary = `${trendDirection.toUpperCase()} | EMA20=$${ema20.toFixed(2)}, EMA50=$${ema50.toFixed(2)}${ema200?', EMA200=$'+ema200.toFixed(2):''} | ${score}/8 Al Brooks criteria met`;
+  const summary = `${trendDirection.toUpperCase()} | EMA20=$${ema20.toFixed(2)}${ema50?', EMA50=$'+ema50.toFixed(2):''} | ${score}/8 Al Brooks criteria met`;
 
   return {
     trendDirection,
     priceVsEma20: price > ema20 ? 'above' : 'below',
-    priceVsEma50: price > ema50 ? 'above' : 'below',
+    priceVsEma50: ema50 ? (price > ema50 ? 'above' : 'below') : '?',
+    priceAboveEMA20, alwaysInCount: uptrend ? aboveCt : belowCt, noClimax,
     higherHighsLows, breakoutRecent, pullbackToEma, strongTrendBars,
-    tradingRange: !notTradingRange,
+    tradingRange,
     supportLevel, resistanceLevel,
     ema20, ema50, ema200,
-    recentPattern: breakoutRecent ? 'breakout' : pullbackToEma ? 'pullback' : uptrend ? 'trending' : 'consolidating',
+    recentPattern: breakoutRecent ? 'breakout' : pullbackToEma ? 'pullback' : uptrend ? 'trending' : downtrend ? 'falling' : 'consolidating',
     score, signal, summary,
   };
 }
@@ -4791,95 +5039,144 @@ function computeStock(ticker, fmp, history){
 
   // ── Compute deterministic fields from FMP data ──
 
-  // roeConsistencyYrs: use growth data consistency + current ROE level as proxy
-  // If current ROE >= 15% and ROE hasn't declined sharply in recent years, estimate consistency
+  // roeConsistencyYrs: count of available-history years with ROE >= 15%. roeHistoryReal
+  // flags whether we actually have a multi-year series (Finnhub free often returns none),
+  // so the Buffett durability criterion can fall back honestly instead of dying silently.
+  const roeHistoryReal = Array.isArray(fmp.roeHistory) && fmp.roeHistory.length >= 4;
   const roeConsistencyYrs = fmp.roeHistory
     ? fmp.roeHistory.filter(r => r >= 15).length
     : fmp.roe >= 15
       ? Math.min(7, 3 + (fmp.roeGrowthYrs || 0))  // base 3yrs + growth consistency years
       : Math.min(3, fmp.roeGrowthYrs || 0);
 
-  // mgmtScore (1-10): formula from ROE × ROIC × FCF margin
-  // Normalized: ROE contributes up to 4pts, ROIC up to 3pts, FCF margin up to 3pts
-  const roeNorm  = Math.min(4, Math.max(0, (fmp.roe || 0) / 25 * 4));        // 25% ROE = max
-  const roicNorm = Math.min(3, Math.max(0, (fmp.roic || 0) / 20 * 3));       // 20% ROIC = max
-  const fcfMarg  = fmp.fcfMillions && fmp.revenue ? fmp.fcfMillions / fmp.revenue * 100 : 0;
-  const fcfNorm  = Math.min(3, Math.max(0, fcfMarg / 20 * 3));               // 20% FCF margin = max
-  const mgmtScore = Math.round(roeNorm + roicNorm + fcfNorm);
+  // FCF margin — real cash generated per $ of revenue (a Buffett quality bar, unlike
+  // "FCF > 0" which almost every profitable company clears).
+  const fcfMargin = (fmp.fcfMillions != null && fmp.revenue > 0)
+    ? fmp.fcfMillions / fmp.revenue * 100 : null;
+  // FCF / net income — owner-earnings conversion quality (cash backs the reported profit).
+  const fcfToNI = (fmp.revenue > 0 && fmp.netMargin > 0 && fmp.fcfMillions != null)
+    ? fmp.fcfMillions / (fmp.revenue * fmp.netMargin / 100) : null;
+  // ROE volatility across the cycle — used to reclassify cyclicals.
+  let roeVol = null;
+  if(roeHistoryReal){
+    const h = fmp.roeHistory, mean = h.reduce((a,b)=>a+b,0)/h.length;
+    roeVol = Math.sqrt(h.reduce((a,b)=>a+(b-mean)*(b-mean),0)/h.length);
+  }
 
-  // moatRating (1-5): formula from gross margin + ROIC + revenue growth consistency
-  const gmNorm   = Math.min(2, Math.max(0, (fmp.grossMargin || 0) / 50 * 2));  // 50% GM = max
-  const roicMoat = Math.min(2, Math.max(0, (fmp.roic || 0) / 15 * 2));          // 15% ROIC = max
-  const growNorm = Math.min(1, Math.max(0, (fmp.revenueGrowth5yr || 0) / 20)); // 20% rev growth = max
-  const moatRating = Math.max(1, Math.min(5, Math.round(gmNorm + roicMoat + growNorm)));
+  // Graham's blended price-to-value: P/E × P/B (his Ch.14 #7 ≤ 22.5 rule of thumb).
+  const peBV = (fmp.pe > 0 && fmp.pb > 0) ? fmp.pe * fmp.pb : null;
 
-  // lynchCategory: rule-based from EPS growth rate
-  // 1=Slow, 2=Stalwart, 3=Fast, 4=Cyclical, 5=Turnaround, 6=AssetPlay
+  // lynchCategory (1=Slow 2=Stalwart 3=Fast 4=Cyclical 5=Turnaround 6=AssetPlay).
+  // EPS growth is the primary signal; a high-beta name with volatile ROE is reclassified
+  // Cyclical, since Lynch judges those off-cycle rather than on a single growth snapshot.
   const epsGr = fmp.epsGrowthYoy || 0;
-  const lynchCategory =
+  let lynchCategory =
     epsGr >= 25 ? 3 :      // Fast Grower (>25%)
     epsGr >= 10 ? 2 :      // Stalwart (10-25%)
     epsGr >= 0  ? 1 :      // Slow Grower (0-10%)
     epsGr >= -20 ? 5 :     // Turnaround (moderate decline)
     4;                     // Cyclical (severe swing)
+  if((fmp.beta != null && fmp.beta >= 1.3) && (roeVol != null && roeVol >= 12)
+     && (lynchCategory === 1 || lynchCategory === 2)) lynchCategory = 4;
 
-  // ── Graham /8 ──
+  // ── Graham /8 ── (defensive-investor criteria, The Intelligent Investor Ch.14)
+  // Removed the off-canon revenueGrowth5yr & netMargin tests (Graham has neither);
+  // added adequate size (#1), earnings stability (#3), and the blended P/E×P/B≤22.5 (#7).
+  const earningsStable = roeHistoryReal ? fmp.roeHistory.every(r => r > 0) : (fmp.netMargin > 0);
   const graham = {
-    pe: fmp.pe, pb: fmp.pb,
+    pe: fmp.pe, pb: fmp.pb, peBV,
     currentRatio: fmp.currentRatio, debtToEquity: fmp.debtToEquity,
     epsGrowth10yr: fmp.epsGrowth10yr, dividendYield: fmp.dividendYield,
-    revenueGrowth5yr: fmp.revenueGrowth5yr, netMargin: fmp.netMargin,
+    marketCap: fmp.marketCap, earningsStable, roeHistoryReal,
     score: [
-      fmp.pe > 0 && fmp.pe < 15,
-      fmp.pb > 0 && fmp.pb < 1.5,
-      fmp.currentRatio >= 2,
-      fmp.debtToEquity <= 0.5,
-      fmp.epsGrowth10yr > 3,
-      fmp.dividendYield > 0,
-      fmp.revenueGrowth5yr > 0,
-      fmp.netMargin > 5,
+      fmp.marketCap >= 2000,                                  // 1. adequate size (~$2B; Zweig update of Graham's ≥$100M sales)
+      fmp.pe > 0 && fmp.pe < 15,                              // 2. moderate P/E (Ch.14 #6)
+      peBV != null && peBV <= 22.5,                           // 3. moderate price-to-value, P/E×P/B ≤ 22.5 (Ch.14 #7)
+      fmp.currentRatio >= 2,                                  // 4. strong current ratio (Ch.14 #2)
+      fmp.debtToEquity != null && fmp.debtToEquity <= 0.5,    // 5. low debt (proxy for LT debt ≤ working capital)
+      earningsStable,                                         // 6. earnings stability — no yearly deficit (ROE>0 proxy / profitable)
+      fmp.epsGrowth10yr > 3,                                  // 7. earnings growth (Ch.14 #5; field is 5-yr EPS growth)
+      fmp.dividendYield > 0,                                  // 8. pays a dividend (enterprising test; 20-yr record not sourceable)
     ].filter(Boolean).length,
     signal: ''
   };
   graham.signal = graham.score >= 6 ? 'PASS' : graham.score >= 4 ? 'PARTIAL' : 'FAIL';
 
-  // ── Buffett /8 ──
+  // ── Buffett /8 ── (quality at a fair price). Removed the derived mgmtScore & moatRating —
+  // they only re-aggregated ROE/ROIC/GM/FCF already tested here (faking breadth) — and merged
+  // the duplicate ROE level+consistency into one durability slot. Eight distinct ratios now.
   const buffett = {
-    roe: fmp.roe, roeConsistencyYrs, fcfMillions: fmp.fcfMillions,
-    grossMargin: fmp.grossMargin, roic: fmp.roic, debtPayoffYrs: fmp.debtPayoffYrs,
-    mgmtScore, moatRating,
+    roe: fmp.roe, roeConsistencyYrs, roeHistoryReal,
+    fcfMillions: fmp.fcfMillions, fcfMargin, fcfToNI,
+    grossMargin: fmp.grossMargin, netMargin: fmp.netMargin, roic: fmp.roic,
+    ltDebtEquityPct: fmp.ltDebtEquityPct, revenueGrowth5yr: fmp.revenueGrowth5yr,
     roeHistory: (fmp.roeHistory||[]).slice(-8),
-    fcfToNI: (fmp.revenue>0 && fmp.netMargin>0 && fmp.fcfMillions!=null)
-      ? fmp.fcfMillions / (fmp.revenue * fmp.netMargin / 100) : null,
     score: [
-      fmp.roe >= 15,
-      roeConsistencyYrs >= 7,
-      fmp.fcfMillions > 0,
-      fmp.grossMargin >= 40,
-      fmp.roic >= 12,
-      fmp.debtPayoffYrs != null && fmp.debtPayoffYrs <= 3,
-      mgmtScore >= 7,
-      moatRating >= 3,
+      roeHistoryReal ? roeConsistencyYrs >= 7 : fmp.roe >= 18, // 1. durable high ROE (merges old ROE≥15 + consistency; falls back to a high current bar)
+      fmp.roic >= 12,                                          // 2. high return on invested capital
+      fmp.grossMargin >= 40,                                   // 3. pricing power (gross margin)
+      fmp.netMargin >= 15,                                     // 4. after-cost profitability (external Buffett bar, not a book number)
+      fcfMargin != null && fcfMargin >= 8,                     // 5. real cash generation (FCF-margin floor, replaces FCF>0)
+      fcfToNI != null && fcfToNI >= 0.8,                       // 6. owner-earnings quality (cash backs the profit)
+      fmp.ltDebtEquityPct != null && fmp.ltDebtEquityPct < 50, // 7. low leverage (long-term D/E; distinct from Graham's total D/E)
+      fmp.revenueGrowth5yr > 5,                                // 8. durable top-line growth (growing intrinsic value)
     ].filter(Boolean).length,
     signal: ''
   };
   buffett.signal = buffett.score >= 6 ? 'PASS' : buffett.score >= 4 ? 'PARTIAL' : 'FAIL';
 
-  // ── Lynch /8 ──
+  // ── Lynch /8 ── (One Up on Wall Street: classify the stock, THEN judge it by its
+  // category's yardstick. Replaces the old {2,3,4} include-gate that auto-rejected every
+  // slow grower / turnaround / asset play, and the raw salesGrowth floor that triple-counted growth.)
+  const dy = fmp.dividendYield || 0, eg = fmp.epsGrowthYoy, sg = fmp.salesGrowthYoy,
+        lpe = fmp.pe, ltde = fmp.ltDebtEquityPct;
+  // Dividend-adjusted PEG — Lynch's full rule divides P/E by (growth + yield).
+  const pegFit = dy > 0
+    ? (lpe > 0 && (eg + dy) / lpe >= 1)
+    : (fmp.peg > 0 && fmp.peg < 1);
+  // Category-appropriate growth / valuation / income fits.
+  let growthFit=false, valFit=false, incomeFit=false;
+  if(lynchCategory === 3){            // Fast grower
+    growthFit = eg >= 20 && eg <= 50;                 // sweet spot; >50 is unsustainable
+    valFit    = lpe > 0 && lpe < eg;                  // P/E below growth rate
+    incomeFit = ltde != null && ltde < 40;            // fund growth without heavy debt
+  } else if(lynchCategory === 2){     // Stalwart
+    growthFit = eg >= 10 && eg <= 30;
+    valFit    = lpe > 0 && lpe < 20;
+    incomeFit = dy > 1.5;                             // some income expected
+  } else if(lynchCategory === 1){     // Slow grower
+    growthFit = eg >= 0 && eg <= 12;
+    valFit    = lpe > 0 && lpe < 15;
+    incomeFit = dy > 3;                               // bought mainly for the dividend
+  } else if(lynchCategory === 4){     // Cyclical
+    growthFit = sg > 0;                               // sales recovering
+    valFit    = lpe <= 0 || lpe < 15;                 // buy off-cycle (low P/E, or losses at the trough)
+    incomeFit = ltde != null && ltde < 50;            // survive the downturn
+  } else if(lynchCategory === 5){     // Turnaround
+    growthFit = eg > -10;                             // decline stabilizing
+    valFit    = lpe <= 0 || lpe < 20;
+    incomeFit = ltde != null && ltde < 60;            // not drowning in debt
+  } else {                            // Asset play (6) / fallback
+    growthFit = (fmp.cashPerShare || 0) > 0;
+    valFit    = peBV != null && peBV <= 22.5;
+    incomeFit = ltde != null && ltde < 50;
+  }
+  const opLeverage = fmp.epsGrowthYoy > 0 && fmp.epsGrowthYoy >= fmp.salesGrowthYoy;
+  const goingConcern = fmp.epsGrowthYoy > -25 && (fmp.revenueGrowth5yr > 0 || fmp.salesGrowthYoy > 0);
   const lynch = {
-    peg: fmp.peg, epsGrowthYoy: fmp.epsGrowthYoy,
-    inventoryGrowth: fmp.inventoryGrowth, cashPerShare: fmp.cashPerShare,
-    ltDebtEquityPct: fmp.ltDebtEquityPct, pe: fmp.pe,
-    salesGrowthYoy: fmp.salesGrowthYoy, lynchCategory,
+    peg: fmp.peg, epsGrowthYoy: fmp.epsGrowthYoy, salesGrowthYoy: fmp.salesGrowthYoy,
+    cashPerShare: fmp.cashPerShare, ltDebtEquityPct: fmp.ltDebtEquityPct, pe: fmp.pe,
+    dividendYield: fmp.dividendYield, lynchCategory, pegFit, growthFit, valFit, incomeFit,
+    opLeverage, goingConcern,
     score: [
-      fmp.peg > 0 && fmp.peg < 1,
-      fmp.epsGrowthYoy > 10,
-      fmp.inventoryGrowth < fmp.salesGrowthYoy,
-      fmp.cashPerShare > 0,
-      fmp.ltDebtEquityPct < 30,
-      fmp.pe > 0 && fmp.pe < 25,         // GARP: reasonable P/E (replaces unavailable insider check)
-      fmp.salesGrowthYoy > 10,
-      [2,3,4].includes(lynchCategory),
+      pegFit,                                                  // 1. (dividend-adjusted) PEG ≤ 1
+      fmp.ltDebtEquityPct != null && fmp.ltDebtEquityPct < 30, // 2. strong balance sheet
+      fmp.cashPerShare > 0,                                    // 3. net cash position
+      opLeverage,                                              // 4. operating leverage (margin expansion)
+      growthFit,                                               // 5. growth appropriate for its category
+      valFit,                                                  // 6. valuation appropriate for its category
+      incomeFit,                                               // 7. income / safety appropriate for its category
+      goingConcern,                                            // 8. still a going concern (replaces the rejecting category gate)
     ].filter(Boolean).length,
     signal: ''
   };
@@ -4890,7 +5187,21 @@ function computeStock(ticker, fmp, history){
   const totalScore = fundamentalScore + technical.score;
 
   const overallSignal = totalScore >= 22 ? 'BUY' : totalScore >= 13 ? 'HOLD' : 'SELL';
-  const confidence = totalScore >= 26 ? 'HIGH' : totalScore >= 20 ? 'MEDIUM' : totalScore >= 13 ? 'LOW' : 'AVOID';
+  let confidence = totalScore >= 26 ? 'HIGH' : totalScore >= 20 ? 'MEDIUM' : totalScore >= 13 ? 'LOW' : 'AVOID';
+
+  // Signal-layer overlays — these temper confidence only; they do NOT change the /32
+  // total or the BUY/HOLD/SELL thresholds (so the score scale stays calibrated).
+  const flags = [];
+  // Speculative excess: a triple-digit P/E can still rack up points on the non-valuation
+  // criteria; never let it read as a high-conviction name (Lynch/Tyson red flag).
+  if(fmp.pe >= 100){ confidence = 'AVOID'; flags.push('Speculative P/E ≥ 100'); }
+  // Loss-maker: fair value is unreliable without positive earnings — downgrade one
+  // confidence tier rather than auto-selling (legitimate turnarounds live here).
+  if((fmp.epsTTM != null && fmp.epsTTM <= 0) || (fmp.pe != null && fmp.pe <= 0)){
+    const tiers = ['AVOID','LOW','MEDIUM','HIGH'];
+    confidence = tiers[Math.max(0, tiers.indexOf(confidence) - 1)];
+    flags.push('Unprofitable — fair value unreliable');
+  }
 
   // ── Options strategy (new framework-aware logic) ──
   // Compute realized volatility for IV proxy + rolling history for stock-aware classification
@@ -5015,8 +5326,10 @@ function computeStock(ticker, fmp, history){
   //   growth, last resort YoY EPS (noisy); g capped at 12%. Max multiplier ≈ 25× vs 38.5×.
   // Fallback: Graham Number = √(22.5 × EPS × BVPS) — defensive investor formula
   let fairPrice = null;
-  const eps = (fmp.pe && fmp.pe > 0) ? price / fmp.pe : null;
-  const bvps = (fmp.pb && fmp.pb > 0) ? price / fmp.pb : null;
+  // Real trailing EPS / book value from Finnhub — NOT price/PE and price/PB, which are
+  // algebraically circular (they restate the multiple and carry no independent value signal).
+  const eps = (fmp.epsTTM != null && fmp.epsTTM > 0) ? fmp.epsTTM : null;
+  const bvps = (fmp.bookValuePerShare != null && fmp.bookValuePerShare > 0) ? fmp.bookValuePerShare : null;
   const gSrc = fmp.epsGrowth10yr != null ? fmp.epsGrowth10yr
              : fmp.revenueGrowth5yr != null ? fmp.revenueGrowth5yr
              : (fmp.epsGrowthYoy || 0);
@@ -5054,7 +5367,7 @@ function computeStock(ticker, fmp, history){
     ticker, companyName: fmp.companyName, sector: fmp.sector,
     currentPrice: price, priceIsLive: true, hasFMP: true, error: null,
     graham, buffett, lynch, technical, options,
-    fundamentalScore, totalScore, overallSignal, confidence, oneLiner,
+    fundamentalScore, totalScore, overallSignal, confidence, flags, oneLiner,
     fairPrice, entryPrice,  // ← NEW
     marketCap: fmp.marketCap,  // millions, for cap tiers in Discover
     analysis: null,
@@ -5106,8 +5419,8 @@ Graham: ${s.graham?.score}/8 · Buffett: ${s.buffett?.score}/8 · Lynch: ${s.lyn
 KEY FINANCIALS:
 P/E: ${s.graham?.pe?.toFixed?.(1)}x · P/B: ${s.graham?.pb?.toFixed?.(1)}x
 ROE: ${s.buffett?.roe?.toFixed?.(1)}% · ROIC: ${s.buffett?.roic?.toFixed?.(1)}% · Gross Margin: ${s.buffett?.grossMargin?.toFixed?.(1)}%
-FCF: $${s.buffett?.fcfMillions?.toFixed?.(0)}M · Debt Payoff: ${s.buffett?.debtPayoffYrs?.toFixed?.(1)} yrs
-Revenue Growth 5yr: ${s.graham?.revenueGrowth5yr?.toFixed?.(1)}% · EPS Growth YoY: ${s.lynch?.epsGrowthYoy?.toFixed?.(1)}%
+FCF: $${s.buffett?.fcfMillions?.toFixed?.(0)}M · FCF Margin: ${s.buffett?.fcfMargin?.toFixed?.(1)}% · Net Margin: ${s.buffett?.netMargin?.toFixed?.(1)}% · LT D/E: ${s.buffett?.ltDebtEquityPct?.toFixed?.(0)}%
+Revenue Growth 5yr: ${s.buffett?.revenueGrowth5yr?.toFixed?.(1)}% · EPS Growth YoY: ${s.lynch?.epsGrowthYoy?.toFixed?.(1)}%
 PEG: ${s.lynch?.peg?.toFixed?.(2)} · Dividend Yield: ${s.graham?.dividendYield?.toFixed?.(2)}%
 
 TECHNICAL:
@@ -5166,18 +5479,20 @@ Write with depth, real numbers from the data above, and specificity. CRITICAL: F
 
 // ── Helper: call Anthropic API ──
 async function callAnthropic(prompt, useSearch=false, retries=3, options={}){
-  const {onChunk, system} = options;
+  const {onChunk, system, messages, model='claude-haiku-4-5', maxTokens=2000} = options;
   const useStreaming = !!onChunk;
 
   const body = {
-    model:'claude-haiku-4-5',
-    max_tokens:2000,
+    model,
+    max_tokens: maxTokens,
     temperature:0.3,
     ...(system?{system}:{}),
     ...(useSearch?{tools:[{type:'web_search_20250305',name:'web_search'}]}:{}),
     ...(useStreaming?{stream:true}:{}),
-    stop_sequences:['\n\nNote:','\n\nAdditional','\n\nDisclaimer:'],
-    messages:[{role:'user',content:prompt}]
+    // No stop_sequences: '\n\nNote:' / '\n\nAdditional' etc. would silently truncate
+    // legitimate prose (chat, portfolio review) mid-answer. For JSON calls they were
+    // inert anyway (newlines are escaped inside JSON strings).
+    messages: messages || [{role:'user',content:prompt}]
   };
 
   const res = await fetch('https://api.anthropic.com/v1/messages',{
@@ -5304,9 +5619,9 @@ function _stockDataBlock(s){
   const iv=typeof o.ivContext==='string'?o.ivContext:(o.ivContext?.label||'n/a');
   return `${s.ticker} (${s.companyName||''}) — $${f(s.currentPrice)}, signal ${s.overallSignal}, total ${s.totalScore}/32
   Graham fair value $${s.fairPrice?f(s.fairPrice):'n/a'}${disc!=null?` (${disc>=0?disc+'% BELOW':Math.abs(disc)+'% above'} fair)`:''} · Entry zone $${s.entryPrice?f(s.entryPrice):'n/a'}
-  Graham ${g.score}/8: P/E ${f(g.pe)}, P/B ${f(g.pb)}, CurrentRatio ${f(g.currentRatio)}, D/E ${f(g.debtToEquity)}, EPSgrowth10y ${f(g.epsGrowth10yr)}%, Div ${f(g.dividendYield)}%, RevGrowth5y ${f(g.revenueGrowth5yr)}%, NetMargin ${f(g.netMargin)}%
-  Buffett ${b.score}/8: ROE ${f(b.roe)}%, GrossMargin ${f(b.grossMargin)}%, ROIC ${f(b.roic)}%, FCF $${f(b.fcfMillions)}M, DebtPayoff ${f(b.debtPayoffYrs)}y, moat ${f(b.moatRating)}/5
-  Lynch ${l.score}/8: PEG ${f(l.peg)}, EPSgrYoY ${f(l.epsGrowthYoy)}%, SalesGrYoY ${f(l.salesGrowthYoy)}%
+  Graham ${g.score}/8: Size $${f(g.marketCap/1000)}B, P/E ${f(g.pe)}, P/E×P/B ${f(g.peBV)} (≤22.5), CurrentRatio ${f(g.currentRatio)}, D/E ${f(g.debtToEquity)}, EarningsStable ${g.earningsStable?'Y':'N'}, EPSgrowth ${f(g.epsGrowth10yr)}%, Div ${f(g.dividendYield)}%
+  Buffett ${b.score}/8: DurableROE ${f(b.roeConsistencyYrs)}y, ROIC ${f(b.roic)}%, GrossMargin ${f(b.grossMargin)}%, NetMargin ${f(b.netMargin)}%, FCFmargin ${f(b.fcfMargin)}%, FCF/NI ${f(b.fcfToNI)}, LT-D/E ${f(b.ltDebtEquityPct)}%, RevGr5y ${f(b.revenueGrowth5yr)}%
+  Lynch ${l.score}/8 (${['','Slow','Stalwart','Fast','Cyclical','Turnaround','AssetPlay'][l.lynchCategory||0]||'?'}): PEG ${f(l.peg)}, EPSgrYoY ${f(l.epsGrowthYoy)}%, SalesGrYoY ${f(l.salesGrowthYoy)}%, fits[g/v/i] ${l.growthFit?'Y':'N'}/${l.valFit?'Y':'N'}/${l.incomeFit?'Y':'N'}
   Technical ${t.score}/8: ${t.trendDirection}, EMA20 $${f(t.ema20)} / EMA50 $${f(t.ema50)} / EMA200 $${f(t.ema200)}, support $${f(t.supportLevel)}, resistance $${f(t.resistanceLevel)}. ${t.summary||''}
   Options: ${o.strategyName||'n/a'} (${o.conviction||'n/a'} conviction)${o.targetPriceUpside?`, ~${o.targetPriceUpside}% target upside`:''}${o.earningsWarning==='YES'?', earnings <30d':''}, IV ${iv}`;
 }
@@ -5450,13 +5765,18 @@ async function reload(id,e){
   await run(nid,t);
 }
 function rm(id,e){e.stopPropagation();stocks=stocks.filter(s=>s.id!==id);save();if(activeDP===id)closeDP();renderTable();document.getElementById('refBtn').disabled=stocks.filter(s=>s.status==='done').length===0;}
-function clearPortfolio(){
-  if(!confirm('Remove all positions? This cannot be undone.')) return;
+async function clearPortfolio(){
+  const ok = await appConfirm({ title:'Clear portfolio?', message:`This will remove all ${positions.length} position${positions.length===1?'':'s'}. This cannot be undone.`, ok:'Remove all', cancel:'Keep', danger:true });
+  if(!ok) return;
   positions = [];
   savePositions();
   renderPortfolio();
 }
-function clearAll(){if(!confirm('Remove all stocks?'))return;stocks=[];save();closeDP();renderTable();document.getElementById('refBtn').disabled=true;const _ab3=document.getElementById('aiAllBtn');if(_ab3)_ab3.disabled=true;}
+async function clearAll(){
+  const ok = await appConfirm({ title:'Clear all stocks?', message:`This will remove all ${stocks.length} analyzed stock${stocks.length===1?'':'s'} from the table.`, ok:'Remove all', cancel:'Keep', danger:true });
+  if(!ok) return;
+  stocks=[];save();closeDP();renderTable();document.getElementById('refBtn').disabled=true;const _ab3=document.getElementById('aiAllBtn');if(_ab3)_ab3.disabled=true;
+}
 
 // ── RENDER TABLE ──
 function sc(n,max){const p=n/max;return p>=0.7?'var(--c-green)':p>=0.45?'var(--c-amber)':'var(--c-red)';}
@@ -5699,10 +6019,13 @@ function renderTable(){
       // Entry Price (Al Brooks: pullback to EMA50 or support)
       let entryHtml = '<span style="color:var(--text-faint)" title="Wait for trend reversal">wait</span>';
       if(s.entryPrice && s.currentPrice){
-        const entryPct = ((s.entryPrice - s.currentPrice) / s.currentPrice) * 100;
-        // Green if entry is at/below current (good — already at or below target). Yellow if needs small wait.
-        const entryColor = entryPct <= 0 ? 'var(--accent-buy)' : entryPct < 5 ? 'var(--accent-hold)' : 'var(--text-tertiary)';
-        const entryLabel = entryPct <= 0 ? 'at/below entry now' : `wait for ${entryPct.toFixed(0)}% pullback`;
+        // How far price must still fall to reach the pullback entry. <=0 means
+        // price is already AT/BELOW the entry target (buy zone) → green. The old
+        // code keyed off (entry-current) and was inverted: it flagged green while
+        // price was still above entry (i.e. you should be waiting).
+        const pullbackNeeded = ((s.currentPrice - s.entryPrice) / s.currentPrice) * 100;
+        const entryColor = pullbackNeeded <= 0 ? 'var(--accent-buy)' : pullbackNeeded < 5 ? 'var(--accent-hold)' : 'var(--text-tertiary)';
+        const entryLabel = pullbackNeeded <= 0 ? 'at/below entry now' : `wait for ${pullbackNeeded.toFixed(0)}% pullback`;
         entryHtml = `<span style="color:${entryColor};font-weight:600" title="${entryLabel}">$${s.entryPrice.toFixed(0)}</span>`;
       }
 
@@ -5724,9 +6047,14 @@ function renderTable(){
         : `${op.strategyName||''} · ${op.conviction||''} conviction · ${op.dominantFramework||''}`;
       const optHtml = `<span class="badge ${optCls}" style="font-size:10px;white-space:nowrap" title="${(optTitle||'').replace(/"/g,'&quot;')}">${optLabel}${optConvText}</span>`;
 
+      const tkrMark = s.refreshing
+        ? '<span class="spin" style="width:9px;height:9px;margin-right:4px"></span>'
+        : s.lastRefreshError
+          ? `<span title="Refresh failed — showing last good data. ${esc(s.lastRefreshError)}" style="color:var(--c-amber);margin-right:3px;cursor:help">⚠</span>`
+          : '';
       return`<tr onclick="toggleDP(${s.id})" class="${isExpanded?'row-expanded':''}">
         <td style="width:24px;padding:10px 4px;color:var(--text-faint);font-size:11px;text-align:center"><span class="caret ${isExpanded?'open':''}">▶</span></td>
-        <td class="tkr">${s.ticker}</td>
+        <td class="tkr">${tkrMark}${s.ticker}</td>
         <td style="color:var(--text-tertiary);max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:13px">${esc(s.companyName)||'—'}</td>
         <td style="font-size:14px;font-weight:600">${pxHtml}</td>
         <td style="font-size:13px">${fairHtml}</td>
@@ -5771,19 +6099,22 @@ function buildAnalysisHtml(s){
     return `<div style="text-align:center;padding:20px;background:var(--bg-surface);border-radius:8px;border:1px solid var(--border-default)"><span class="spin"></span><div style="font-size:13px;color:var(--text-muted);margin-top:10px">Generating AI analysis…</div></div>`;
   }
   if(an.error){
-    return `<div style="padding:12px;background:var(--accent-sell-bg);border-radius:8px;border:1px solid var(--accent-sell-border)"><div style="color:var(--accent-sell);font-size:12px">⚠ ${an.error}</div><button class="ai-btn" onclick="fetchSummary(${s.id})" style="margin-top:10px">↻ Retry</button></div>`;
+    return `<div style="padding:12px;background:var(--accent-sell-bg);border-radius:8px;border:1px solid var(--accent-sell-border)"><div style="color:var(--accent-sell);font-size:12px">⚠ ${esc(an.error)}</div><button class="ai-btn" onclick="fetchSummary(${s.id})" style="margin-top:10px">↻ Retry</button></div>`;
   }
   if(an.thesis){
     const streaming = an._streaming;
+    // esc() every model-derived field: web_search can pull attacker-controlled
+    // text into these, and they're injected straight into innerHTML in a WebView
+    // whose localStorage holds the API keys + gist token.
     return [
       `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:11px;color:${streaming?'var(--accent-ai)':'var(--text-muted)'}">${streaming?'<span class="spin" style="width:10px;height:10px"></span> Streaming AI analysis…':'AI analysis — based on pure-math scores'}</div>${streaming?'':`<button class="ai-btn-sm" onclick="s=stocks.find(x=>x.id===${s.id});if(s){s.analysis=null;renderTable();fetchSummary(${s.id});}">↻ Regenerate</button>`}</div>`,
-      an.thesis?`<div class="an-block"><div class="an-lbl">📋 Investment Thesis</div><div class="an-txt">${an.thesis}</div></div>`:'',
-      an.bullCase?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-buy)">🐂 Bull Case</div><div class="an-txt">${an.bullCase}</div></div>`:'',
-      an.bearCase?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-sell)">🐻 Bear Case</div><div class="an-txt">${an.bearCase}</div></div>`:'',
-      an.riskFactors?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-hold)">⚠️ Key Risks</div><div class="an-txt">${an.riskFactors}</div></div>`:'',
-      an.entryStrategy?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-info)">🎯 Entry Strategy</div><div class="an-txt">${an.entryStrategy}</div></div>`:'',
-      an.catalysts?`<div class="an-block"><div class="an-lbl">⚡ Catalysts</div><div class="an-txt">${an.catalysts}</div></div>`:'',
-      an.sectorContext?`<div class="an-block"><div class="an-lbl">🏭 Sector Context</div><div class="an-txt">${an.sectorContext}</div></div>`:'',
+      an.thesis?`<div class="an-block"><div class="an-lbl">📋 Investment Thesis</div><div class="an-txt">${esc(an.thesis)}</div></div>`:'',
+      an.bullCase?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-buy)">🐂 Bull Case</div><div class="an-txt">${esc(an.bullCase)}</div></div>`:'',
+      an.bearCase?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-sell)">🐻 Bear Case</div><div class="an-txt">${esc(an.bearCase)}</div></div>`:'',
+      an.riskFactors?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-hold)">⚠️ Key Risks</div><div class="an-txt">${esc(an.riskFactors)}</div></div>`:'',
+      an.entryStrategy?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-info)">🎯 Entry Strategy</div><div class="an-txt">${esc(an.entryStrategy)}</div></div>`:'',
+      an.catalysts?`<div class="an-block"><div class="an-lbl">⚡ Catalysts</div><div class="an-txt">${esc(an.catalysts)}</div></div>`:'',
+      an.sectorContext?`<div class="an-block"><div class="an-lbl">🏭 Sector Context</div><div class="an-txt">${esc(an.sectorContext)}</div></div>`:'',
     ].filter(Boolean).join('');
   }
   return `<div style="text-align:center;padding:20px;background:var(--bg-surface);border-radius:8px;border:1px dashed var(--border-strong)"><div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">No AI summary yet</div><button class="ai-btn" onclick="fetchSummary(${s.id})">🧠 Generate AI Summary</button><div style="font-size:11px;color:var(--text-faint);margin-top:8px">Uses pure-math scores as input · ~15 seconds</div></div>`;
@@ -5818,53 +6149,56 @@ function buildExpandRow(s){
   const mb=(lbl,val,pass,neu=false)=>{const st=(neu||val==='—')?'neut':(pass?'pass':'fail');return `<div class="mbox mbox-${st}"><div class="ml">${lbl}</div><div class="mv ${st}">${val}</div></div>`;};
   const f=(v,sfx='',dp=1)=>v!==null&&v!==undefined&&!isNaN(v)?parseFloat(v).toFixed(dp)+sfx:'—';
 
-  // Graham metrics
+  // Graham metrics (defensive-investor criteria, Intelligent Investor Ch.14)
   const grHtml=[
+    mb('Adequate Size (≥ $2B)',g?.marketCap!=null?'$'+(g.marketCap/1000).toFixed(1)+'B':'—',g?.marketCap>=2000),
     mb('P/E Ratio (< 15)',f(g?.pe,'x'),g?.pe>0&&g?.pe<15),
-    mb('P/B Ratio (< 1.5)',f(g?.pb,'x'),g?.pb>0&&g?.pb<1.5),
+    mb('P/E×P/B (≤ 22.5)',f(g?.peBV,'',1),g?.peBV!=null&&g?.peBV<=22.5),
     mb('Current Ratio (≥ 2)',f(g?.currentRatio,'x'),g?.currentRatio>=2),
-    mb('Debt/Equity (≤ 0.5)',f(g?.debtToEquity,'x'),g?.debtToEquity<=0.5),
-    mb('EPS Growth 10yr (> 3%)',f(g?.epsGrowth10yr,'%'),g?.epsGrowth10yr>3),
+    mb('Debt/Equity (≤ 0.5)',f(g?.debtToEquity,'x'),g?.debtToEquity!=null&&g?.debtToEquity<=0.5),
+    mb('Earnings Stability (no deficits)',g?.earningsStable?'Yes':'No',g?.earningsStable),
+    mb('EPS Growth (> 3%)',f(g?.epsGrowth10yr,'%'),g?.epsGrowth10yr>3),
     mb('Dividend Yield (> 0)',f(g?.dividendYield,'%'),g?.dividendYield>0),
-    mb('Revenue Growth 5yr (> 0)',f(g?.revenueGrowth5yr,'%'),g?.revenueGrowth5yr>0),
-    mb('Net Margin (> 5%)',f(g?.netMargin,'%'),g?.netMargin>5),
   ].join('');
 
-  // Buffett metrics
+  // Buffett metrics (mgmtScore/moatRating removed — they only re-aggregated these ratios)
   const bfHtml=[
-    mb('ROE (≥ 15%)',f(b?.roe,'%'),b?.roe>=15),
-    mb('ROE Consistency (≥ 7yr)',f(b?.roeConsistencyYrs,' yrs',0),b?.roeConsistencyYrs>=7),
-    mb('Free Cash Flow',f(b?.fcfMillions,'M',0),b?.fcfMillions>0),
-    mb('Gross Margin (≥ 40%)',f(b?.grossMargin,'%'),b?.grossMargin>=40),
+    mb('Durable ROE (≥7yr@15% / ≥18%)',f(b?.roeConsistencyYrs,' yrs',0),b?.roeHistoryReal?b?.roeConsistencyYrs>=7:b?.roe>=18),
     mb('ROIC (≥ 12%)',f(b?.roic,'%'),b?.roic>=12),
-    mb('Debt Payoff (≤ 3yr)',f(b?.debtPayoffYrs,' yrs'),b?.debtPayoffYrs!=null&&b?.debtPayoffYrs<=3),
-    mb('Mgmt Score (≥ 7/10, derived)',f(b?.mgmtScore,'/10',0),b?.mgmtScore>=7),
-    mb('Moat Rating (≥ 3/5, derived)',f(b?.moatRating,'/5',0),b?.moatRating>=3),
+    mb('Gross Margin (≥ 40%)',f(b?.grossMargin,'%'),b?.grossMargin>=40),
+    mb('Net Margin (≥ 15%)',f(b?.netMargin,'%'),b?.netMargin>=15),
+    mb('FCF Margin (≥ 8%)',f(b?.fcfMargin,'%'),b?.fcfMargin!=null&&b?.fcfMargin>=8),
+    mb('FCF / Net Income (≥ 0.8)',f(b?.fcfToNI,'x',2),b?.fcfToNI!=null&&b?.fcfToNI>=0.8),
+    mb('Low Leverage (LT D/E < 50%)',f(b?.ltDebtEquityPct,'%'),b?.ltDebtEquityPct!=null&&b?.ltDebtEquityPct<50),
+    mb('Revenue Growth 5yr (> 5%)',f(b?.revenueGrowth5yr,'%'),b?.revenueGrowth5yr>5),
   ].join('') + buffettQualityChips(b);
 
-  // Lynch metrics
+  // Lynch metrics (classify, then judge by the category's yardstick)
+  const lcat=['','Slow Grower','Stalwart','Fast Grower','Cyclical','Turnaround','Asset Play'][l?.lynchCategory||0]||'—';
   const lcHtml=[
-    mb('PEG Ratio (< 1)',f(l?.peg,'x'),l?.peg>0&&l?.peg<1),
-    mb('EPS Growth YoY (> 10%)',f(l?.epsGrowthYoy,'%'),l?.epsGrowthYoy>10),
-    mb('Inventory vs Sales Growth','—',false,true),
+    mb('Category',lcat,true,true),
+    mb('PEG / div-adj (≤ 1)',f(l?.peg,'x'),l?.pegFit),
+    mb('Balance Sheet (LT D/E < 30%)',f(l?.ltDebtEquityPct,'%'),l?.ltDebtEquityPct!=null&&l?.ltDebtEquityPct<30),
     mb('Cash/Share (> 0)',f(l?.cashPerShare,'$'),l?.cashPerShare>0),
-    mb('LT Debt/Equity (< 30%)',f(l?.ltDebtEquityPct,'%'),l?.ltDebtEquityPct<30),
-    mb('Reasonable P/E (< 25)',f(l?.pe,'x'),l?.pe>0 && l?.pe<25),
-    mb('Sales Growth YoY (> 10%)',f(l?.salesGrowthYoy,'%'),l?.salesGrowthYoy>10),
-    mb('Lynch Category',['','Slow','Stalwart','Fast','Cyclical','Turnaround','Asset Play'][l?.lynchCategory||0]||'—',[2,3,4].includes(l?.lynchCategory)),
+    mb('Operating Leverage (EPS ≥ Sales)',f(l?.epsGrowthYoy,'%'),l?.opLeverage),
+    mb('Growth fits category',l?.growthFit?'Yes':'No',l?.growthFit),
+    mb('Valuation fits category',l?.valFit?'Yes':'No',l?.valFit),
+    mb('Income/safety fits category',l?.incomeFit?'Yes':'No',l?.incomeFit),
+    mb('Going concern (not collapsing)',l?.goingConcern?'Yes':'No',l?.goingConcern),
   ].join('');
 
-  // Technical metrics
+  // Technical metrics (Al Brooks — single 20-EMA, always-in trend, overlap-based range)
   const bool=(v,t,f='No')=>v?`<span class="pass">${t||'Yes'}</span>`:`<span class="fail">${f}</span>`;
   const taHtml=ta?[
-    mb('Trend',ta.trendDirection||'—',ta.trendDirection==='uptrend'),
-    mb('Price vs EMA20',ta.priceVsEma20||'—',ta.priceVsEma20==='above'),
-    mb('Price vs EMA50',ta.priceVsEma50||'—',ta.priceVsEma50==='above'),
-    mb('Higher Highs/Lows',ta.higherHighsLows?'Yes':'No',ta.higherHighsLows),
-    mb('Recent Breakout',ta.breakoutRecent?'Yes':'No',ta.breakoutRecent),
-    mb('Pullback to EMA',ta.pullbackToEma?'Yes':'No',ta.pullbackToEma),
+    mb('Trend (always-in 20-EMA)',ta.trendDirection||'—',ta.trendDirection==='uptrend'),
+    mb('Price above EMA20',ta.priceVsEma20||'—',ta.priceAboveEMA20),
+    mb('Trend Structure (HH/HL)',ta.higherHighsLows?'Yes':'No',ta.higherHighsLows),
+    mb('Pullback to 20-EMA',ta.pullbackToEma?'Yes':'No',ta.pullbackToEma),
+    mb('Breakout + follow-through',ta.breakoutRecent?'Yes':'No',ta.breakoutRecent),
     mb('Strong Trend Bars',ta.strongTrendBars?'Yes':'No',ta.strongTrendBars),
     mb('Not Trading Range',!ta.tradingRange?'Yes':'No',!ta.tradingRange),
+    mb('No Climax/Reversal',ta.noClimax?'Yes':'No',ta.noClimax),
+    ta.priceVsEma50&&ta.priceVsEma50!=='?'?mb('Price vs EMA50 (info)',ta.priceVsEma50,ta.priceVsEma50==='above',true):'',
     ta.ema20?mb('EMA 20','$'+parseFloat(ta.ema20).toFixed(2),true,true):'',
     ta.ema50?mb('EMA 50','$'+parseFloat(ta.ema50).toFixed(2),true,true):'',
     ta.ema200?mb('EMA 200','$'+parseFloat(ta.ema200).toFixed(2),true,true):'',
@@ -5921,26 +6255,35 @@ function eswTab(id, name){
 // ── SUMMARIZE ALL ──
 async function summarizeAll(){
   if(busyOp){
-    if(!confirm(`A "${busyOp}" operation is running. AI summaries will only generate for stocks already in 'done' state — others will be skipped.\n\nProceed anyway?`)) return;
+    const proceed = await appConfirm({ title:'Another task is running', message:`${busyOpLabel(busyOp)} is in progress. AI summaries will only generate for stocks already analyzed — others will be skipped.\n\nGenerate summaries anyway?`, ok:'Generate summaries', cancel:'Wait' });
+    if(!proceed) return;
   }
   const hasSummary = stocks.filter(s=>s.status==='done' && s.analysis?.thesis);
   const noSummary  = stocks.filter(s=>s.status==='done' && (!s.analysis || !s.analysis.thesis));
-  if(!keys[0]){ alert('Anthropic API key not set — go to ⚙ API Keys.'); return; }
-  if(!hasSummary.length && !noSummary.length){ alert('No analyzed stocks yet.'); return; }
+  if(!keys[0]){ appAlert('Anthropic API key not set — go to ⚙ API Keys.'); return; }
+  if(!hasSummary.length && !noSummary.length){ appAlert('No analyzed stocks yet.'); return; }
 
   let targets;
   if(!noSummary.length){
     // All have summaries — ask to regenerate
-    if(!confirm(`All ${hasSummary.length} stocks already have summaries.\nRegenerate all?`)) return;
+    const ok = await appConfirm({ title:'Regenerate all summaries?', message:`All ${hasSummary.length} stocks already have AI summaries. Generating again will replace them with fresh analysis.`, ok:'Regenerate all', cancel:'Keep existing' });
+    if(!ok) return;
     targets = hasSummary;
     targets.forEach(s => s.analysis = null);
   } else if(hasSummary.length){
-    // Mix — let user choose
-    const missOnly = confirm(
-      `${noSummary.length} missing · ${hasSummary.length} already done.\n\nOK = generate missing only\nCancel = regenerate ALL`
-    );
-    targets = missOnly ? noSummary : [...noSummary, ...hasSummary];
-    if(!missOnly) hasSummary.forEach(s => s.analysis = null);
+    // Mix — let the user choose between three options.
+    const choice = await appChoose({
+      title: 'Generate AI summaries',
+      message: `${noSummary.length} stock${noSummary.length===1?'':'s'} missing a summary.\n${hasSummary.length} already done.`,
+      options: [
+        {label:`Missing only (${noSummary.length})`, value:'missing', primary:true},
+        {label:`Regenerate all (${noSummary.length + hasSummary.length})`, value:'all'},
+        {label:'Cancel', value:null},
+      ],
+    });
+    if(!choice) return;
+    if(choice === 'missing'){ targets = noSummary; }
+    else { targets = [...noSummary, ...hasSummary]; hasSummary.forEach(s => s.analysis = null); }
   } else {
     targets = noSummary;
   }
@@ -5949,24 +6292,33 @@ async function summarizeAll(){
   btn.disabled = true;
   let succeeded = 0, failed = 0;
 
-  // SEQUENTIAL: web search adds ~3-5k tokens per call and the search itself takes 3-8 seconds.
-  // Running 1 at a time with a 12s gap = max 5 calls/min × 5k tokens = 25k tokens/min, safely under 30k limit.
-  // Slower than parallel but virtually eliminates rate-limit failures.
-  for(let i=0; i<targets.length; i++){
-    btn.textContent = `🧠 ${i+1}/${targets.length} — ${targets[i].ticker}…`;
-    try {
-      await fetchSummary(targets[i].id);
-      succeeded++;
-    } catch(e) {
-      failed++;
-      console.warn('Summary failed for', targets[i].ticker, e.message);
+  // Foreground service while the batch runs so the OS doesn't freeze the
+  // process when the user navigates away mid-summarize.
+  bgTaskStart(`🧠 Generating AI summaries (0/${targets.length})`);
+  try {
+    // SEQUENTIAL: web search adds ~3-5k tokens per call and the search itself takes 3-8 seconds.
+    // Running 1 at a time with a 12s gap = max 5 calls/min × 5k tokens = 25k tokens/min, safely under 30k limit.
+    // Slower than parallel but virtually eliminates rate-limit failures.
+    for(let i=0; i<targets.length; i++){
+      const progress = `🧠 ${i+1}/${targets.length} — ${targets[i].ticker}…`;
+      btn.textContent = progress;
+      bgTaskUpdate(progress);
+      try {
+        await fetchSummary(targets[i].id);
+        succeeded++;
+      } catch(e) {
+        failed++;
+        console.warn('Summary failed for', targets[i].ticker, e.message);
+      }
+      // 12s gap — comfortable margin under 30k tokens/min with web search overhead.
+      if(i+1 < targets.length) await new Promise(r=>setTimeout(r, 12000));
     }
-    // 12s gap — comfortable margin under 30k tokens/min with web search overhead.
-    if(i+1 < targets.length) await new Promise(r=>setTimeout(r, 12000));
+  } finally {
+    bgTaskStop();
   }
   btn.disabled = false;
   btn.textContent = '🧠 AI Summary all';
-  if(failed) alert(`Done: ${succeeded} generated, ${failed} failed.${failed?'\n\nCheck browser console (F12) for specific errors. You can re-run "AI Summary all" — it will only retry the failed ones.':''}`);
+  if(failed) appAlert(`Done: ${succeeded} generated, ${failed} failed.${failed?'\n\nCheck browser console (F12) for specific errors. You can re-run "AI Summary all" — it will only retry the failed ones.':''}`);
 }
 // ── OPTIONS HTML BUILDER (used in buildExpandRow) ──
 function buildOptionsHTML(s){
@@ -6102,8 +6454,10 @@ function buildOptionsHTML(s){
     <p style="font-size:11px;color:var(--text-faint);margin-top:10px">Premium estimates use a realized-volatility proxy and are approximate. <b style="color:var(--text-tertiary)">Always verify actual bid/ask in your broker before placing the trade.</b> Not financial advice. Options can lose 100% of premium.</p>`;
 }
 
-// Show warning if opened as file:// (CORS blocked)
-if(location.protocol==='file:'){
+// Detect Android WebView (APK build)
+const isAndroidWebView = /;\s*wv\)/i.test(navigator.userAgent) || location.hostname === 'appassets.androidplatform.net';
+// Show warning if opened as file:// (CORS blocked) — but NOT in the APK build
+if(location.protocol==='file:' && !isAndroidWebView){
   const fw=document.getElementById('fileWarn');
   if(fw)fw.style.display='block';
 }
@@ -6114,34 +6468,104 @@ if(location.protocol==='file:'){
 //  Does NOT sync API keys (entered per device). Token is stored in
 //  this browser's localStorage only — never written into the file.
 // ════════════════════════════════════════════════════════════
-const SYNC_KEYS = [SS, PS, 'viss_watchlist', 'viss_discover', 'viss_theme', 'viss_design'];
+// Each entry here is synced independently with its OWN modification time, so a
+// change to one (e.g. a theme toggle) can never overwrite a newer value of
+// another (e.g. your latest stock scores). SS+'_savedAt' rides along so the
+// "Data saved" date reflects whoever refreshed last — not this device's clock.
+const SYNC_KEYS = [SS, SS+'_savedAt', PS, 'viss_watchlist', 'viss_discover', 'viss_theme', 'viss_design'];
 const GIST_FILE = 'viss-screener-sync.json';
 const GIST_DESC = 'VISS Screener device sync — auto-managed, do not edit by hand';
 let gistToken = localStorage.getItem('viss_gist_token') || '';
 let gistId = localStorage.getItem('viss_gist_id') || '';
 let syncPushTimer = null, syncBusy = false;
 
-function bumpSyncMtime(){ localStorage.setItem('viss_sync_mtime', String(Date.now())); }
+// ── Per-key modification tracking ──────────────────────────────────────────
+// viss_sync_meta = { [key]: { m:<mtime>, h:<value-hash> } }. We detect local
+// edits by hashing each key's value, so no call-site needs to declare what it
+// changed — scheduleSyncPush() just re-scans before pushing.
+function syncHash(s){ if(s==null) return '0'; let h=5381; for(let i=0;i<s.length;i++){ h=((h<<5)+h+s.charCodeAt(i))|0; } return String(h>>>0); }
+function syncLoadMeta(){ try{ return JSON.parse(localStorage.getItem('viss_sync_meta')||'{}') || {}; }catch(e){ return {}; } }
+function syncSaveMeta(meta){ try{ localStorage.setItem('viss_sync_meta', JSON.stringify(meta)); }catch(e){} }
+// Monotonic clock: always strictly greater than any mtime we've seen, so a
+// device with a lagging wall clock can still "win" after it makes a change.
+function syncNextMtime(meta){
+  let max = parseInt(localStorage.getItem('viss_sync_mtime')||'0',10) || 0;
+  Object.values(meta).forEach(e=>{ if(e && e.m>max) max=e.m; });
+  return Math.max(Date.now(), max+1);
+}
+// Re-scan local keys, assigning a fresh mtime to any whose value changed.
+function syncRecomputeMtimes(){
+  const meta = syncLoadMeta();
+  // First run after upgrade: seed every key from the old global mtime so the
+  // pre-upgrade newest-wins ordering between devices carries over.
+  const seed = parseInt(localStorage.getItem('viss_sync_mtime')||'0',10) || Date.now();
+  let changed = false;
+  SYNC_KEYS.forEach(k=>{
+    const h = syncHash(localStorage.getItem(k));
+    if(!meta[k]){ meta[k] = { m:seed, h }; changed = true; }
+    else if(meta[k].h !== h){ meta[k] = { m:syncNextMtime(meta), h }; changed = true; }
+  });
+  if(changed) syncSaveMeta(meta);
+  return meta;
+}
 function collectSyncData(){
-  const data = {};
-  SYNC_KEYS.forEach(k=>{ const v = localStorage.getItem(k); if(v!=null) data[k]=v; });
-  let mt = parseInt(localStorage.getItem('viss_sync_mtime')||'0',10);
-  if(!mt){ mt = Date.now(); localStorage.setItem('viss_sync_mtime', String(mt)); }
-  return { v:1, lastModified:mt, data };
+  const meta = syncRecomputeMtimes();
+  const keys = {}, data = {};
+  let maxM = 0;
+  SYNC_KEYS.forEach(k=>{
+    const v = localStorage.getItem(k);
+    if(v==null) return;
+    const m = (meta[k] && meta[k].m) || 0;
+    keys[k] = { value:v, m };
+    data[k] = v;            // legacy mirror so a not-yet-upgraded device still reads it
+    if(m>maxM) maxM=m;
+  });
+  if(!maxM) maxM = Date.now();
+  localStorage.setItem('viss_sync_mtime', String(maxM)); // keep legacy global current
+  return { v:2, lastModified:maxM, keys, data };
 }
-function applySyncData(blob){
-  if(!blob || !blob.data) return;
-  Object.entries(blob.data).forEach(([k,v])=>{ try{ localStorage.setItem(k, v); }catch(e){} });
-  localStorage.setItem('viss_sync_mtime', String(blob.lastModified || Date.now()));
-  try{ loadTheme(); }catch(e){}
-  try{ loadDesign(); }catch(e){}
-  try{ loadStocks(); }catch(e){}
-  try{ loadPositions(); }catch(e){}
-  try{ loadDiscoverResults(); }catch(e){}
-  try{ renderTable(); }catch(e){}
-  try{ const pt=document.getElementById('tabPortfolio'); if(pt && pt.style.display!=='none') renderPortfolio(); }catch(e){}
-  try{ const dt=document.getElementById('tabDiscover'); if(dt && dt.style.display!=='none') renderDiscover(); }catch(e){}
+// Normalize either a v2 (per-key) or v1 (whole-blob) remote into {k:{value,m}}.
+function syncNormalizeRemote(blob){
+  const out = {};
+  if(blob && blob.v===2 && blob.keys && typeof blob.keys==='object'){
+    Object.entries(blob.keys).forEach(([k,e])=>{ if(e && typeof e.value==='string') out[k] = { value:e.value, m:(typeof e.m==='number'?e.m:0) }; });
+  } else if(blob && blob.data && typeof blob.data==='object' && blob.data!==null){
+    const m = (typeof blob.lastModified==='number'?blob.lastModified:0);
+    Object.entries(blob.data).forEach(([k,v])=>{ if(typeof v==='string') out[k] = { value:v, m }; });
+  }
+  return out;
 }
+// Merge a remote blob into local: per key, adopt remote only if its mtime beats
+// ours. Returns {appliedAny, localNewer} — localNewer means we hold key(s) the
+// remote should receive, so the caller should push. Only SYNC_KEYS are ever
+// written, so a foreign/tampered gist can't inject arbitrary localStorage keys.
+function mergeRemoteBlob(blob){
+  const remote = syncNormalizeRemote(blob);
+  const meta = syncRecomputeMtimes();
+  let appliedAny=false, localNewer=false;
+  SYNC_KEYS.forEach(k=>{
+    const r = remote[k];
+    const localM = (meta[k] && meta[k].m) || 0;
+    if(r){
+      if(r.m > localM){ try{ localStorage.setItem(k, r.value); appliedAny=true; meta[k] = { m:r.m, h:syncHash(r.value) }; }catch(e){} }
+      else if(localM > r.m && localStorage.getItem(k)!=null){ localNewer=true; }
+    } else if(localStorage.getItem(k)!=null){ localNewer=true; }
+  });
+  syncSaveMeta(meta);
+  if(appliedAny){
+    try{ loadTheme(); }catch(e){}
+    try{ loadDesign(); }catch(e){}
+    try{ loadStocks(); }catch(e){}
+    try{ loadPositions(); }catch(e){}
+    try{ loadDiscoverResults(); }catch(e){}
+    try{ renderTable(); }catch(e){}
+    try{ const pt=document.getElementById('tabPortfolio'); if(pt && pt.style.display!=='none') renderPortfolio(); }catch(e){}
+    try{ const dt=document.getElementById('tabDiscover'); if(dt && dt.style.display!=='none') renderDiscover(); }catch(e){}
+    try{ refreshSavedSubtitle(); }catch(e){}
+  }
+  return { appliedAny, localNewer };
+}
+function applySyncData(blob){ return mergeRemoteBlob(blob); } // back-compat alias
 async function gistApi(method, path, body){
   const res = await fetch('https://api.github.com'+path, {
     method,
@@ -6168,23 +6592,13 @@ async function syncFindOrCreateGist(){
   const created = await gistApi('POST','/gists',{ description:GIST_DESC, public:false, files:{ [GIST_FILE]:{ content: JSON.stringify(collectSyncData()) } } });
   gistId = created.id; localStorage.setItem('viss_gist_id', gistId); return gistId;
 }
-async function syncPull(silent){
-  if(!gistToken || !gistId) return;
-  syncBusy=true; updateSyncBadge('syncing');
-  try {
-    const g = await gistApi('GET','/gists/'+gistId);
-    const f = g.files && g.files[GIST_FILE];
-    let content = f && f.content;
-    if(f && f.truncated && f.raw_url){ try{ content = await (await fetch(f.raw_url)).text(); }catch(e){} }
-    if(content){
-      const blob = JSON.parse(content);
-      const localMt = parseInt(localStorage.getItem('viss_sync_mtime')||'0',10);
-      if((blob.lastModified||0) > localMt){ applySyncData(blob); }
-    }
-    localStorage.setItem('viss_sync_last', new Date().toISOString());
-    updateSyncBadge('ok');
-  } catch(e){ updateSyncBadge('err'); if(!silent) alert('Sync pull failed: '+e.message); }
-  finally { syncBusy=false; }
+// Fetch the remote blob's content (following GitHub's truncation for big files).
+async function syncFetchContent(){
+  const g = await gistApi('GET','/gists/'+gistId);
+  const f = g.files && g.files[GIST_FILE];
+  let content = f && f.content;
+  if(f && f.truncated && f.raw_url){ try{ content = await (await fetch(f.raw_url)).text(); }catch(e){} }
+  return content;
 }
 async function syncPush(silent){
   if(!gistToken || !gistId) return;
@@ -6194,20 +6608,56 @@ async function syncPush(silent){
     await gistApi('PATCH','/gists/'+gistId,{ files:{ [GIST_FILE]:{ content: JSON.stringify(blob) } } });
     localStorage.setItem('viss_sync_last', new Date().toISOString());
     updateSyncBadge('ok');
-  } catch(e){ updateSyncBadge('err'); if(!silent) alert('Sync push failed: '+e.message); }
+  } catch(e){ updateSyncBadge('err'); if(!silent) appAlert('Sync push failed: '+e.message); }
+  finally { syncBusy=false; }
+}
+async function syncPull(silent){
+  if(!gistToken || !gistId) return;
+  syncBusy=true; updateSyncBadge('syncing');
+  try {
+    const content = await syncFetchContent();
+    if(content){ mergeRemoteBlob(JSON.parse(content)); }
+    localStorage.setItem('viss_sync_last', new Date().toISOString());
+    updateSyncBadge('ok');
+  } catch(e){ updateSyncBadge('err'); if(!silent) appAlert('Sync pull failed: '+e.message); }
+  finally { syncBusy=false; }
+}
+// One round-trip reconcile: pull+merge, then push only if we hold newer keys.
+// This is what fixes drift — every load and every manual sync both pulls
+// remote changes AND uploads any local edits the other device never received.
+async function syncReconcile(silent){
+  if(!gistToken || !gistId) return;
+  syncBusy=true; updateSyncBadge('syncing');
+  try {
+    let res = { appliedAny:false, localNewer:true };
+    const content = await syncFetchContent();
+    if(content){ res = mergeRemoteBlob(JSON.parse(content)); }
+    localStorage.setItem('viss_sync_last', new Date().toISOString());
+    if(res.localNewer){
+      const blob = collectSyncData();
+      await gistApi('PATCH','/gists/'+gistId,{ files:{ [GIST_FILE]:{ content: JSON.stringify(blob) } } });
+      localStorage.setItem('viss_sync_last', new Date().toISOString());
+    }
+    updateSyncBadge('ok');
+    return res;
+  } catch(e){ updateSyncBadge('err'); if(!silent) appAlert('Sync failed: '+e.message); }
   finally { syncBusy=false; }
 }
 function scheduleSyncPush(){
   if(!gistToken || !gistId) return;
-  bumpSyncMtime();
+  syncRecomputeMtimes();   // stamp changed keys now, near the edit
   clearTimeout(syncPushTimer);
-  syncPushTimer = setTimeout(()=>{ syncPush(true); }, 4000);
+  syncPushTimer = setTimeout(()=>{ syncPushTimer=null; syncPush(true); }, 4000);
+}
+// Flush a pending debounced push immediately — called when the app is
+// backgrounded/closed so a change made <4s before leaving isn't lost.
+function syncFlushPending(){
+  if(syncPushTimer){ clearTimeout(syncPushTimer); syncPushTimer=null; if(gistToken && gistId) syncPush(true); }
 }
 async function syncNow(){
   if(!gistToken || !gistId){ openSyncModal(); return; }
   setSyncStatus('Syncing…');
-  await syncPull(false);
-  await syncPush(false);
+  await syncReconcile(false);
   setSyncStatus('✓ Synced '+new Date().toLocaleTimeString());
   renderSyncModal();
 }
@@ -6227,8 +6677,7 @@ async function syncConnect(){
   setSyncStatus('Connecting…'); updateSyncBadge('syncing');
   try {
     await syncFindOrCreateGist();
-    await syncPull(true);   // newest-wins: pull existing data if this is a 2nd device
-    await syncPush(true);   // seed / refresh remote with current state
+    await syncReconcile(true);   // pull a 2nd device's data, then push anything newer here
     setSyncStatus('✓ Connected and synced.');
     updateSyncBadge('ok');
     renderSyncModal();
@@ -6238,10 +6687,11 @@ async function syncConnect(){
     updateSyncBadge('off');
   }
 }
-function syncDisconnect(){
-  if(!confirm('Disconnect sync on this device? Your data stays here and in the gist — this device just stops syncing.')) return;
+async function syncDisconnect(){
+  const ok = await appConfirm({ title:'Disconnect sync?', message:'Your data stays here and in the gist — this device just stops syncing.', ok:'Disconnect', cancel:'Keep synced' });
+  if(!ok) return;
   gistToken=''; gistId='';
-  ['viss_gist_token','viss_gist_id','viss_sync_mtime','viss_sync_last'].forEach(k=>localStorage.removeItem(k));
+  ['viss_gist_token','viss_gist_id','viss_sync_mtime','viss_sync_last','viss_sync_meta'].forEach(k=>localStorage.removeItem(k));
   updateSyncBadge('off'); renderSyncModal();
 }
 function setSyncStatus(msg){ const el=document.getElementById('syncStatus'); if(el) el.textContent=msg||''; }
@@ -6285,18 +6735,30 @@ loadKeys(); // handles routing to setup or screener, and calls loadStocks when r
 clearStaleScanFlags(); // clean up any stuck scanning flags from previous interrupted runs
 loadPositions();
 updateSyncBadge(gistToken && gistId ? 'ok' : 'off');
-if(gistToken && gistId){ setTimeout(()=>syncPull(true), 400); } // auto pull-on-load
+// Reconcile on load: pull remote changes AND push any local edits this device
+// never managed to send (e.g. an app that was closed inside the 4s push window).
+if(gistToken && gistId){ setTimeout(()=>syncReconcile(true), 400); }
+// Don't lose a just-made change when the app is backgrounded/closed.
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden') syncFlushPending(); });
+window.addEventListener('pagehide', syncFlushPending);
 
-// Show last saved timestamp in subtitle
-setTimeout(()=>{
+// Show last-saved timestamp in the subtitle; re-render it after a sync adopts
+// a fresher copy from another device (idempotent — updates in place, no dupes).
+function refreshSavedSubtitle(){
+  const sub = document.querySelector('.sub'); if(!sub) return;
   const t = getSavedAt();
-  const sub = document.querySelector('.sub');
-  if(sub && t){
-    sub.innerHTML += ` &nbsp;·&nbsp; <span style="color:var(--text-faint)">Data saved: ${t} — hit ↻ Refresh all to update</span>`;
-  } else if(sub && stocks.length===0){
-    sub.innerHTML += ` &nbsp;·&nbsp; <span style="color:var(--c-amber)">First load — fetching all 14 stocks…</span>`;
+  if(t){
+    let span = sub.querySelector('.sub-saved');
+    if(!span){
+      sub.insertAdjacentHTML('beforeend', ` &nbsp;·&nbsp; <span class="sub-saved" style="color:var(--text-faint)"></span>`);
+      span = sub.querySelector('.sub-saved');
+    }
+    span.textContent = `Data saved: ${t} — hit ↻ Refresh all to update`;
+  } else if(stocks.length===0 && !sub.querySelector('.sub-firstload')){
+    sub.insertAdjacentHTML('beforeend', ` &nbsp;·&nbsp; <span class="sub-firstload" style="color:var(--c-amber)">First load — fetching all 14 stocks…</span>`);
   }
-}, 100);
+}
+setTimeout(refreshSavedSubtitle, 100);
 </script>
 </body>
 </html>
