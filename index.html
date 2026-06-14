@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v8.1 — build 2026-04-18 -->
+<!-- v8.2 — build 2026-06-13 — data-confidence interlock, fair-value band + MoS gate, catalyst clock + value-trap, portfolio construction + crowding/correlation -->
 <html lang="en" data-design="material">
 <head>
 <meta charset="UTF-8">
@@ -1866,6 +1866,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
       <th>Trend</th>
       <th onclick="sortBy('signal')" style="cursor:pointer;user-select:none">Signal <span id="si-signal">↕</span></th>
       <th onclick="sortBy('options')" style="cursor:pointer;user-select:none" title="Options strategy + conviction">Options <span id="si-options">↕</span></th>
+      <th onclick="sortBy('catalyst')" style="cursor:pointer;user-select:none" title="Days to next scheduled earnings (catalyst clock)">Catalyst <span id="si-catalyst">↕</span></th>
       <th style="font-size:10px;color:var(--text-faint)">Updated</th><th></th>
     </tr></thead>
     <tbody id="tbody"></tbody>
@@ -2379,6 +2380,19 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
   <!-- Portfolio summary stats -->
   <div class="port-summary" id="portSummary" style="display:none"></div>
+
+  <!-- Account size (cash). Weights are % of NAV (positions + cash). This is a USER decision → it syncs. -->
+  <div id="portCashRow" style="display:none;align-items:center;flex-wrap:wrap;gap:8px;margin:2px 0 12px;font-size:12px;color:var(--text-secondary)">
+    <span>Cash / uninvested:</span><span style="color:var(--text-faint)">$</span>
+    <input id="cashInput" type="number" min="0" step="any" inputmode="decimal" placeholder="0" onchange="setCash(this.value)"
+      style="width:120px;background:var(--bg-input);border:1px solid var(--border-default);border-radius:6px;padding:5px 8px;color:var(--text-primary);font-family:inherit;font-size:12px" />
+    <span style="font-size:11px;color:var(--text-faint)">→ weights become % of NAV (positions + cash), not % invested</span>
+  </div>
+
+  <!-- Stage 4: portfolio construction / concentration -->
+  <div id="portConstruction"></div>
+  <!-- Stage 5: correlation / crowding -->
+  <div id="portCrowding"></div>
 
   <!-- Header + actions -->
   <div class="port-header">
@@ -3017,6 +3031,239 @@ function getStockWarnings(pos){
   return warns;
 }
 
+// ── Stage 4: portfolio construction / concentration ──
+// Coarse sector buckets from Finnhub's finnhubIndustry string (s.sector). Partial by design —
+// anything unmapped falls to 'Unclassified', which COUNTS against diversification (never vanishes).
+const SECTOR_MAP = {
+  'Technology':'Tech','Semiconductors':'Tech','Software':'Tech','Hardware':'Tech','Electronic Equipment':'Tech','Internet':'Tech','Information Technology':'Tech','Communications Equipment':'Tech',
+  'Financial Services':'Financials','Banking':'Financials','Banks':'Financials','Insurance':'Financials','Capital Markets':'Financials','Diversified Financials':'Financials','Financial':'Financials',
+  'Health Care':'Healthcare','Healthcare':'Healthcare','Pharmaceuticals':'Healthcare','Biotechnology':'Healthcare','Medical Devices':'Healthcare','Life Sciences Tools & Services':'Healthcare',
+  'Energy':'Energy','Oil & Gas':'Energy','Oil, Gas & Consumable Fuels':'Energy',
+  'Industrials':'Industrials','Aerospace & Defense':'Industrials','Machinery':'Industrials','Construction':'Industrials','Transportation':'Industrials','Airlines':'Industrials','Building':'Industrials',
+  'Retail':'Consumer Disc','Automobiles':'Consumer Disc','Auto Components':'Consumer Disc','Hotels, Restaurants & Leisure':'Consumer Disc','Media':'Consumer Disc','Textiles, Apparel & Luxury Goods':'Consumer Disc','Consumer Discretionary':'Consumer Disc',
+  'Consumer products':'Consumer Staples','Food products':'Consumer Staples','Beverages':'Consumer Staples','Consumer Staples':'Consumer Staples','Tobacco':'Consumer Staples','Food & Staples Retailing':'Consumer Staples',
+  'Materials':'Materials','Chemicals':'Materials','Metals & Mining':'Materials','Metals':'Materials','Mining':'Materials',
+  'Utilities':'Utilities','Electric Utilities':'Utilities','Gas Utilities':'Utilities',
+  'Real Estate':'Real Estate','REITs':'Real Estate','Real Estate Management & Development':'Real Estate',
+  'Communications':'Comm Services','Telecommunication':'Comm Services','Communication Services':'Comm Services','Telecommunications':'Comm Services',
+};
+function coarseSector(industry){
+  if(!industry) return 'Unclassified';
+  if(SECTOR_MAP[industry]) return SECTOR_MAP[industry];
+  const s = String(industry).toLowerCase();
+  if(/semicon|software|internet|hardware|electronic|\btech/.test(s)) return 'Tech';
+  if(/bank|financ|insur|capital market|asset manag/.test(s)) return 'Financials';
+  if(/health|pharma|biotech|medical|life scien|drug/.test(s)) return 'Healthcare';
+  if(/oil|gas|energy|coal|petroleum/.test(s)) return 'Energy';
+  if(/retail|auto|apparel|leisure|restaurant|hotel|media|entertain|gaming/.test(s)) return 'Consumer Disc';
+  if(/food|beverage|staple|tobacco|household|grocery/.test(s)) return 'Consumer Staples';
+  if(/chemical|metal|mining|material|paper|forest/.test(s)) return 'Materials';
+  if(/utilit|electric|water/.test(s)) return 'Utilities';
+  if(/real estate|reit/.test(s)) return 'Real Estate';
+  if(/telecom|communication/.test(s)) return 'Comm Services';
+  if(/aerospace|defense|machinery|industrial|transport|airline|construct|building|rail/.test(s)) return 'Industrials';
+  return 'Unclassified';
+}
+function getCash(){ const v = parseFloat(localStorage.getItem('viss_cash')); return (isFinite(v) && v > 0) ? v : 0; }
+function setCash(v){
+  const n = parseFloat(v);
+  if(isFinite(n) && n > 0) localStorage.setItem('viss_cash', String(n)); else localStorage.removeItem('viss_cash');
+  if(typeof scheduleSyncPush === 'function') scheduleSyncPush();   // cash is a user decision → syncs
+  renderPortfolio();
+}
+// Per-name weights as % of NAV (positions + cash), concentration (top-5, HHI → effective bets),
+// sector exposure, weighted margin-of-safety and weighted beta with COVERAGE (null beta never
+// defaulted to 1 — an unknown is excluded and surfaced as reduced coverage).
+function computePortfolioStats(stockPositions){
+  const cash = getCash();
+  const rows = [];
+  let invested = 0;
+  (stockPositions || []).forEach(p => {
+    const live = getLivePrice(p.ticker);
+    if(!live) return;
+    const value = p.shares * live;
+    invested += value;
+    const sd = getScreenerData(p.ticker);
+    rows.push({ ticker: p.ticker, value, sector: coarseSector(sd?.sector),
+      beta: (sd && sd.beta != null) ? sd.beta : null, mos: (sd && sd.marginOfSafety != null) ? sd.marginOfSafety : null });
+  });
+  const totalEquity = invested + cash;
+  const empty = { positions:[], totalEquity, invested, cash, priced: rows.length, top5Pct:0, hhi:0, effectiveN:0, sectorWeights:{}, weightedMoS:null, weightedBeta:null, betaCoverage:0 };
+  if(totalEquity <= 0 || !rows.length) return empty;
+  rows.forEach(r => r.weight = r.value / totalEquity);   // % of NAV (incl. cash) — for the bars & sector mix
+  rows.sort((a,b) => b.weight - a.weight);
+  const top5Pct = rows.slice(0,5).reduce((s,r)=>s+r.weight, 0);
+  // HHI / effective-bets measure concentration AMONG holdings, so use invested-relative weights:
+  // NAV weights would let a big cash balance push "effective bets" ABOVE the number of names held.
+  const hhi = invested > 0 ? rows.reduce((s,r)=>{ const w = r.value/invested; return s + w*w; }, 0) : 0;
+  const effectiveN = hhi > 0 ? 1/hhi : 0;
+  const sectorWeights = {};
+  rows.forEach(r => sectorWeights[r.sector] = (sectorWeights[r.sector]||0) + r.weight);
+  if(cash > 0) sectorWeights['Cash'] = cash / totalEquity;
+  let mosNum=0, mosDen=0, betaNum=0, betaDen=0;
+  rows.forEach(r => {
+    if(r.mos != null){ mosNum += r.mos * r.weight; mosDen += r.weight; }
+    if(r.beta != null){ betaNum += r.beta * r.weight; betaDen += r.weight; }
+  });
+  return { positions: rows.map(r=>({ticker:r.ticker, weight:r.weight, value:r.value, sector:r.sector, beta:r.beta, mos:r.mos})),
+    totalEquity, invested, cash, priced: rows.length, top5Pct, hhi, effectiveN, sectorWeights,
+    weightedMoS: mosDen > 0 ? mosNum/mosDen : null,
+    weightedBeta: betaDen > 0 ? betaNum/betaDen : null,
+    betaCoverage: betaDen };   // betaDen is fraction-of-NAV weight with a known beta
+}
+function renderPortfolioConstruction(stockPos){
+  const el = document.getElementById('portConstruction'); if(!el) return;
+  const st = computePortfolioStats(stockPos);
+  if(!st || st.priced < 1 || st.totalEquity <= 0){ el.innerHTML = ''; return; }
+  const pct = x => (x*100).toFixed(x*100 >= 99.5 ? 0 : 1) + '%';
+  const barColor = w => w > 0.10 ? 'var(--c-amber)' : 'var(--c-blue)';
+  const nameBars = st.positions.map(p =>
+    `<div style="display:flex;align-items:center;gap:8px;margin:3px 0;font-size:11px">
+       <span style="min-width:52px;color:var(--text-secondary);font-weight:600">${esc(p.ticker)}</span>
+       <div style="flex:1;background:var(--bg-input);border-radius:4px;height:14px;overflow:hidden"><div style="height:100%;width:${Math.min(100,p.weight*100)}%;background:${barColor(p.weight)}"></div></div>
+       <span style="min-width:42px;text-align:right;color:${p.weight>0.10?'var(--c-amber)':'var(--text-tertiary)'}">${pct(p.weight)}</span>
+     </div>`).join('');
+  const sectorEntries = Object.entries(st.sectorWeights).sort((a,b)=>b[1]-a[1]);
+  const sectorBars = sectorEntries.map(([sec,w]) => {
+    const over = w > 0.30 && sec !== 'Cash';
+    const col = sec==='Cash' ? 'var(--text-faint)' : over ? 'var(--c-red)' : 'var(--c-blue)';
+    return `<div style="display:flex;align-items:center;gap:8px;margin:3px 0;font-size:11px">
+       <span style="min-width:96px;color:var(--text-secondary)">${esc(sec)}${sec==='Unclassified'?' <span title="No sector mapping — counts against diversification" style="cursor:help">ⓘ</span>':''}</span>
+       <div style="flex:1;background:var(--bg-input);border-radius:4px;height:14px;overflow:hidden"><div style="height:100%;width:${Math.min(100,w*100)}%;background:${col}"></div></div>
+       <span style="min-width:42px;text-align:right;color:${over?'var(--c-red)':'var(--text-tertiary)'}">${pct(w)}${over?' ⚠':''}</span>
+     </div>`;
+  }).join('');
+  const nameOver = st.positions.some(p => p.weight > 0.10);
+  const sectorOver = sectorEntries.some(([sec,w]) => w > 0.30 && sec !== 'Cash');
+  const flagLine = (nameOver || sectorOver)
+    ? `<div style="font-size:11px;color:var(--c-red);margin-top:6px">⚠ ${[nameOver?'a single name &gt;10% of NAV':'', sectorOver?'a sector &gt;30% of NAV':''].filter(Boolean).join(' · ')}</div>` : '';
+  const wMoS = st.weightedMoS != null ? `${st.weightedMoS>=0?'+':''}${(st.weightedMoS*100).toFixed(0)}%` : 'n/a';
+  const wBeta = st.weightedBeta != null ? st.weightedBeta.toFixed(2) : 'n/a';
+  const betaCovPct = st.betaCoverage > 0 ? `${(st.betaCoverage*100).toFixed(0)}% coverage` : 'no beta data';
+  el.innerHTML = `<div class="port-section" style="border:1px solid var(--border-default);border-radius:10px;padding:14px;margin-bottom:14px">
+    <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:2px">🧮 Portfolio Construction</div>
+    <div style="font-size:11px;color:var(--text-faint);margin-bottom:10px">NAV $${Math.round(st.totalEquity).toLocaleString()} = $${Math.round(st.invested).toLocaleString()} invested${st.cash>0?` + $${Math.round(st.cash).toLocaleString()} cash`:''}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:12px">
+      <div class="mbox"><div style="font-size:10px;color:var(--text-faint)">Top-5 weight</div><div style="font-size:16px;font-weight:700;color:${st.top5Pct>0.6?'var(--c-amber)':'var(--text-primary)'}">${pct(st.top5Pct)}</div></div>
+      <div class="mbox"><div style="font-size:10px;color:var(--text-faint)">Effective bets (HHI)</div><div style="font-size:16px;font-weight:700;color:var(--text-primary)">${st.effectiveN.toFixed(1)}</div><div style="font-size:9px;color:var(--text-faint)">of ${st.priced} held</div></div>
+      <div class="mbox"><div style="font-size:10px;color:var(--text-faint)">Weighted MoS</div><div style="font-size:16px;font-weight:700;color:${st.weightedMoS!=null?(st.weightedMoS>=0?'var(--accent-buy)':'var(--accent-sell)'):'var(--text-faint)'}">${wMoS}</div></div>
+      <div class="mbox"><div style="font-size:10px;color:var(--text-faint)">Weighted β</div><div style="font-size:16px;font-weight:700;color:var(--text-primary)">${wBeta}</div><div style="font-size:9px;color:var(--text-faint)">${betaCovPct}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+      <div><div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:4px">Position weights (% NAV)</div>${nameBars}</div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:4px">Sector exposure</div>${sectorBars}</div>
+    </div>
+    ${flagLine}
+  </div>`;
+}
+
+// ── Stage 5: correlation / crowding ──
+// Price history is a LOCAL, re-downloadable cache — NOT user data. viss_pxcache never goes into
+// SYNC_KEYS and is never attached to a synced object; each device rebuilds it from the feed.
+function cachePriceHistory(ticker, history){
+  if(!ticker || !Array.isArray(history) || history.length < 50) return;
+  let cache = {};
+  try{ cache = JSON.parse(localStorage.getItem('viss_pxcache') || '{}') || {}; }catch(e){ cache = {}; }
+  const closes = history.map(h => h.close).filter(c => typeof c === 'number' && isFinite(c));
+  if(closes.length < 50) return;
+  cache[ticker] = { closes, ts: Date.now() };   // full DAILY closes — do NOT downsample
+  // Cap to the ~60 most-recently-updated tickers (evict oldest by ts).
+  let ks = Object.keys(cache);
+  if(ks.length > 60){
+    ks.sort((a,b)=>(cache[a].ts||0)-(cache[b].ts||0));
+    ks.slice(0, ks.length - 60).forEach(k => delete cache[k]);
+  }
+  try{ localStorage.setItem('viss_pxcache', JSON.stringify(cache)); }
+  catch(e){ // quota — drop the oldest half and retry once
+    try{ ks = Object.keys(cache).sort((a,b)=>(cache[a].ts||0)-(cache[b].ts||0)); ks.slice(0, Math.ceil(ks.length/2)).forEach(k=>delete cache[k]); localStorage.setItem('viss_pxcache', JSON.stringify(cache)); }catch(e2){}
+  }
+}
+// Pairwise return-correlation across cached holdings. Reads ONLY the cache (never fetches).
+function computeCorrelationMatrix(tickers){
+  let cache = {};
+  try{ cache = JSON.parse(localStorage.getItem('viss_pxcache') || '{}') || {}; }catch(e){ cache = {}; }
+  const present = [], missing = [];
+  [...new Set(tickers||[])].forEach(t => {
+    (cache[t] && Array.isArray(cache[t].closes) && cache[t].closes.length >= 40) ? present.push(t) : missing.push(t);
+  });
+  if(present.length < 2) return { matrix:{}, avgPairwise:null, clusters:[], effectiveBets: present.length, missing, n: present.length };
+  // Align on the common (shortest) recent window — intersect from the latest bar backward.
+  const minLen = Math.min(...present.map(t => cache[t].closes.length));
+  const rets = {};
+  present.forEach(t => {
+    const cl = cache[t].closes.slice(-minLen), r = [];
+    for(let i=1;i<cl.length;i++){ r.push(cl[i-1] ? (cl[i]-cl[i-1])/cl[i-1] : 0); }
+    rets[t] = r;
+  });
+  const pearson = (x,y) => {
+    const n = Math.min(x.length, y.length); if(n < 20) return null;
+    let sx=0, sy=0; for(let i=0;i<n;i++){ sx+=x[i]; sy+=y[i]; }
+    const mx=sx/n, my=sy/n; let cov=0, vx=0, vy=0;
+    for(let i=0;i<n;i++){ const dx=x[i]-mx, dy=y[i]-my; cov+=dx*dy; vx+=dx*dx; vy+=dy*dy; }
+    return (vx>0 && vy>0) ? cov/Math.sqrt(vx*vy) : null;
+  };
+  const matrix = {}; let pairSum=0, pairCnt=0;
+  for(let i=0;i<present.length;i++){
+    matrix[present[i]] = matrix[present[i]] || {};
+    for(let j=0;j<present.length;j++){
+      if(i===j){ matrix[present[i]][present[j]] = 1; continue; }
+      const c = pearson(rets[present[i]], rets[present[j]]);
+      matrix[present[i]][present[j]] = c;
+      if(i<j && c != null){ pairSum += c; pairCnt++; }
+    }
+  }
+  const avgPairwise = pairCnt > 0 ? pairSum/pairCnt : null;
+  const N = present.length;
+  const denom = (avgPairwise != null) ? (1 + (N-1)*avgPairwise) : null;
+  const effectiveBets = (denom != null && denom > 0) ? N/denom : N;
+  // Greedy clusters of members all >0.7 correlated to the seed.
+  const clusters = [], used = new Set();
+  for(let i=0;i<present.length;i++){
+    if(used.has(present[i])) continue;
+    const group = [present[i]];
+    for(let j=0;j<present.length;j++){
+      if(j===i || used.has(present[j])) continue;
+      const c = matrix[present[i]][present[j]];
+      if(c != null && c > 0.7) group.push(present[j]);
+    }
+    if(group.length >= 2){
+      group.forEach(t => used.add(t));
+      let gs=0, gc=0;
+      for(let a=0;a<group.length;a++) for(let b=a+1;b<group.length;b++){ const c=matrix[group[a]][group[b]]; if(c!=null){ gs+=c; gc++; } }
+      clusters.push({ tickers: group, avgCorr: gc>0 ? gs/gc : null });
+    }
+  }
+  clusters.sort((a,b)=> b.tickers.length - a.tickers.length || (b.avgCorr||0)-(a.avgCorr||0));
+  return { matrix, avgPairwise, clusters, effectiveBets, missing, n: N };
+}
+function renderCrowding(stockPos){
+  const el = document.getElementById('portCrowding'); if(!el) return;
+  const tickers = [...new Set((stockPos||[]).map(p=>p.ticker))];
+  if(tickers.length < 2){ el.innerHTML = ''; return; }
+  let cm; try{ cm = computeCorrelationMatrix(tickers); }catch(e){ console.error('corr error', e); el.innerHTML=''; return; }
+  const wrap = inner => `<div class="port-section" style="border:1px solid var(--border-default);border-radius:10px;padding:14px;margin-bottom:14px">
+    <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:8px">🔗 Crowding / correlation</div>${inner}
+    <div style="font-size:10px;color:var(--text-faint);margin-top:8px">Minimum crowding (trailing ~1yr) — correlations rise in selloffs. Reads only cached daily closes; no API calls on open.</div></div>`;
+  if(cm.n < 2){
+    el.innerHTML = wrap(`<div style="font-size:12px;color:var(--text-secondary)">Not enough cached history yet to correlate. <span style="color:var(--c-amber)">Needs refresh: ${esc(cm.missing.join(', ')||'—')}</span> (run a Refresh so each name's daily closes are cached).</div>`);
+    return;
+  }
+  const st = computePortfolioStats(stockPos);
+  const wOf = t => { const p = (st.positions||[]).find(x=>x.ticker===t); return p ? p.weight : 0; };
+  const headline = cm.avgPairwise != null
+    ? `avg pairwise correlation <b style="color:${cm.avgPairwise>0.7?'var(--c-red)':cm.avgPairwise>0.5?'var(--c-amber)':'var(--text-primary)'}">${cm.avgPairwise.toFixed(2)}</b> → ~<b>${cm.effectiveBets.toFixed(1)}</b> effective bets from ${cm.n} holdings`
+    : `not enough overlapping history to correlate`;
+  let clusterHtml = '';
+  if(cm.clusters.length){
+    const c = cm.clusters[0];
+    const combinedW = c.tickers.reduce((s,t)=>s+wOf(t), 0);
+    clusterHtml = `<div style="font-size:12px;color:var(--c-amber);margin-top:8px">⚠ <b>${esc(c.tickers.join('+'))}</b> move as ~1 position (avg corr ${c.avgCorr!=null?c.avgCorr.toFixed(2):'n/a'})${combinedW>0?` — ${(combinedW*100).toFixed(0)}% of book`:''}</div>`;
+  }
+  const missingHtml = cm.missing.length
+    ? `<div style="font-size:11px;color:var(--text-faint);margin-top:6px">Needs refresh (no cached history): ${esc(cm.missing.join(', '))}</div>` : '';
+  el.innerHTML = wrap(`<div style="font-size:13px;color:var(--text-secondary)">${headline}</div>${clusterHtml}${missingHtml}`);
+}
+
 // ── Render ──
 function renderPortfolio(){
   loadPositions();
@@ -3048,6 +3295,14 @@ function renderPortfolio(){
   const oe = document.getElementById('optionPositions');
   if(!optPos.length){ oe.innerHTML='<div class="port-empty">No options positions yet — click + Add Option to get started.</div>'; }
   else { oe.innerHTML = optPos.map(p=>renderOptionCard(p)).join(''); }
+
+  // Cash input + Stage 4 construction + Stage 5 crowding panels
+  const cashRow = document.getElementById('portCashRow');
+  if(cashRow) cashRow.style.display = positions.length ? 'flex' : 'none';
+  const cashInp = document.getElementById('cashInput');
+  if(cashInp && document.activeElement !== cashInp){ const c = getCash(); cashInp.value = c > 0 ? c : ''; }
+  try{ renderPortfolioConstruction(stockPos); }catch(e){ console.error('construction panel error:', e); }
+  try{ renderCrowding(stockPos); }catch(e){ console.error('crowding panel error:', e); }
 }
 
 function renderStockCard(p){
@@ -3467,6 +3722,7 @@ function getSortVal(s, col){
     case 'grossMargin':  return s.buffett?.grossMargin||0;
     case 'epsGrowth':    return s.lynch?.epsGrowthYoy||0;
     case 'signal':       return ['BUY','HOLD','SELL'].indexOf(s.overallSignal);
+    case 'catalyst':     return (s.nextEarningsDays != null && s.nextEarningsDays >= 0) ? s.nextEarningsDays : 99999; // soonest first on ascending
     case 'options':      {
       // Sort: ranks options panel attractiveness — BUY strategies with HIGH conviction first.
       // Order high to low: LEAPS-HIGH, 6mo-HIGH, 3mo-HIGH, then MEDIUM, then LOW, then CSP/CC, then NONE.
@@ -3808,6 +4064,7 @@ async function scanDiscover(category){
           const hist = await fetchPriceHistory(t);
           if(!hist || hist.length<50) continue;
           stockData = computeStock(t, fh, hist);
+          cachePriceHistory(t, hist);   // local, non-synced daily-close cache for correlation
         }
 
         // Apply category-specific filters
@@ -4201,6 +4458,7 @@ async function run(id,t){
 
     setStep(id,'Computing scores…');
     const result = computeStock(t, fin, priceHistory);
+    cachePriceHistory(t, priceHistory);   // local, non-synced daily-close cache for correlation
 
     finalize(id, t, result, restricted);
   }catch(e){
@@ -4293,7 +4551,10 @@ function parseFinnhubResponse(t, quote, profile, metricResp, extras){
 
   // FCF margin history (annual, for Buffett quality)
   const fcfMarginHistory = (series.annual?.fcfMargin || []).map(x => x.v || 0);
-  const latestFcfMargin = fcfMarginHistory[0] || 0;
+  // null (NOT 0) when Finnhub returned no FCF series — so downstream can tell genuine
+  // "missing data" from a real zero margin. Defaulting to 0 silently failed the two
+  // Buffett FCF criteria and was invisible to the Stage-1 data-confidence interlock.
+  const latestFcfMargin = fcfMarginHistory.length ? fcfMarginHistory[0] : null;
 
   // Revenue growth: use 5Y compound from metric, else fallback
   const revenueGrowth5yr = m.revenueGrowth5Y || 0; // already percent
@@ -4344,7 +4605,8 @@ function parseFinnhubResponse(t, quote, profile, metricResp, extras){
   const revenuePerShare = m.revenuePerShareTTM || 0;
   const sharesOut = profile.shareOutstanding || 0; // in millions
   const revenueMillions = revenuePerShare * sharesOut; // already in millions × $/share
-  const fcfMillions = revenueMillions * latestFcfMargin;
+  // null when FCF margin is unknown — preserves the missing-data signal end to end.
+  const fcfMillions = (latestFcfMargin != null && revenueMillions) ? revenueMillions * latestFcfMargin : null;
 
   // Debt payoff years — market cap as proxy isn't right. Use total debt / FCF
   // Finnhub doesn't give direct total debt $ amount. Approximate:
@@ -4378,8 +4640,11 @@ function parseFinnhubResponse(t, quote, profile, metricResp, extras){
              : null;
   // Non-circular fallback: net income per share = revenue/share × net margin.
   // Both inputs are price-independent, so this preserves the independence guarantee.
+  // epsTTMImputed flags this estimate so fair value can be marked unreliable (Stage 1/2).
+  let epsTTMImputed = false;
   if(epsTTM == null && revenuePerShare && Number.isFinite(netMargin)){
     epsTTM = revenuePerShare * (netMargin / 100);
+    epsTTMImputed = true;
   }
   const bookValuePerShare = Number.isFinite(m.bookValuePerShareQuarterly) ? m.bookValuePerShareQuarterly
              : Number.isFinite(m.bookValuePerShareAnnual) ? m.bookValuePerShareAnnual
@@ -4391,7 +4656,7 @@ function parseFinnhubResponse(t, quote, profile, metricResp, extras){
     sector: profile.finnhubIndustry || '',
     fmpPrice: quote.c || null, // current price
     pe, pb, currentRatio, debtToEquity,
-    epsTTM, bookValuePerShare,
+    epsTTM, bookValuePerShare, epsTTMImputed,
     epsGrowth10yr: epsGrowth5yr || null,
     dividendYield: dividendYield || null,
     revenueGrowth5yr,
@@ -5186,22 +5451,88 @@ function computeStock(ticker, fmp, history){
   const fundamentalScore = graham.score + buffett.score + lynch.score;
   const totalScore = fundamentalScore + technical.score;
 
-  const overallSignal = totalScore >= 22 ? 'BUY' : totalScore >= 13 ? 'HOLD' : 'SELL';
+  let overallSignal = totalScore >= 22 ? 'BUY' : totalScore >= 13 ? 'HOLD' : 'SELL';
   let confidence = totalScore >= 26 ? 'HIGH' : totalScore >= 20 ? 'MEDIUM' : totalScore >= 13 ? 'LOW' : 'AVOID';
 
-  // Signal-layer overlays — these temper confidence only; they do NOT change the /32
-  // total or the BUY/HOLD/SELL thresholds (so the score scale stays calibrated).
-  const flags = [];
-  // Speculative excess: a triple-digit P/E can still rack up points on the non-valuation
-  // criteria; never let it read as a high-conviction name (Lynch/Tyson red flag).
-  if(fmp.pe >= 100){ confidence = 'AVOID'; flags.push('Speculative P/E ≥ 100'); }
-  // Loss-maker: fair value is unreliable without positive earnings — downgrade one
-  // confidence tier rather than auto-selling (legitimate turnarounds live here).
-  if((fmp.epsTTM != null && fmp.epsTTM <= 0) || (fmp.pe != null && fmp.pe <= 0)){
-    const tiers = ['AVOID','LOW','MEDIUM','HIGH'];
-    confidence = tiers[Math.max(0, tiers.indexOf(confidence) - 1)];
-    flags.push('Unprofitable — fair value unreliable');
+  // ── Fair value as a BAND + margin of safety (computed BEFORE the verdict overlay so the
+  //    buy gate can act on price-vs-value). base = Graham growth formula EPS×(7+1.5g) and is
+  //    kept as s.fairPrice for every downstream reader; bear = Graham Number floor; bull = a
+  //    higher-growth read (LEAST trusted). g preference: 5yr EPS → 5yr revenue → noisy YoY. ──
+  const eps  = (fmp.epsTTM != null && fmp.epsTTM > 0) ? fmp.epsTTM : null;
+  const bvps = (fmp.bookValuePerShare != null && fmp.bookValuePerShare > 0) ? fmp.bookValuePerShare : null;
+  const _haveLongGrowth = (fmp.epsGrowth10yr != null) || !!fmp.revenueGrowth5yr;
+  const gSrc = fmp.epsGrowth10yr != null ? fmp.epsGrowth10yr
+             : fmp.revenueGrowth5yr ? fmp.revenueGrowth5yr
+             : (fmp.epsGrowthYoy || 0);
+  const gFellBackToYoY = !_haveLongGrowth;   // only YoY EPS left → noisy, mark value unreliable
+  const growthRate = Math.max(0, Math.min(12, gSrc));
+  // Trust the fair value only with positive REAL earnings, a real book value, and a
+  // multi-year growth input. Loss-makers / imputed EPS / YoY-only growth → not reliable.
+  const fairValueReliable = (eps != null && eps > 0) && !fmp.epsTTMImputed && (bvps != null) && !gFellBackToYoY;
+
+  let fairPrice = null, fairValueBand = null;
+  if(eps != null && eps > 0){
+    const base = eps * (7 + 1.5 * growthRate);
+    const bear = (bvps != null) ? Math.sqrt(22.5 * eps * bvps) : eps * 7;
+    const bullG = Math.max(0, Math.min(gSrc, growthRate * 1.5));   // optimistic growth — least trusted leg
+    const bull = eps * (7 + 1.5 * bullG);
+    const wide = !fairValueReliable || gFellBackToYoY || (fcfMargin == null);
+    fairPrice = base;
+    fairValueBand = { bear: Math.round(bear*100)/100, base: Math.round(base*100)/100, bull: Math.round(bull*100)/100, wide };
+  } else if(bvps != null){
+    // No usable EPS (loss-maker) → book-value anchor only; always a wide, low-trust read.
+    fairPrice = bvps * 1.5;
+    fairValueBand = { bear: bvps, base: Math.round(bvps*1.5*100)/100, bull: Math.round(bvps*2*100)/100, wide: true };
   }
+  const marginOfSafety = (fairPrice != null && fairPrice > 0) ? (fairPrice - price) / fairPrice : null;
+  const downsideToBear = (fairValueBand && fairValueBand.bear > 0) ? (price - fairValueBand.bear) / price : null;
+
+  // ── Stage 1: data-confidence interlock ── keep the raw /8 scores; just count which
+  //    criteria had REAL (non-imputed) inputs so thin data can DIAL DOWN confidence. We
+  //    never re-score on "% available" — a real fail and an unknown stay distinct.
+  const dataConfidence = { graham:{verified:8,total:8}, buffett:{verified:8,total:8}, lynch:{verified:8,total:8}, pct:1, imputed:[] };
+  const _impute = (fw, n, label) => { dataConfidence[fw].verified -= n; if(label && !dataConfidence.imputed.includes(label)) dataConfidence.imputed.push(label); };
+  if(fcfMargin == null) _impute('buffett', 2, 'FCF (cash generation + owner-earnings)');
+  if(!roeHistoryReal){ _impute('buffett', 1, null); _impute('graham', 1, 'ROE history (durability + earnings stability)'); }
+  if(fmp.ltDebtEquityPct == null){ _impute('buffett', 1, null); _impute('lynch', 1, 'long-term debt/equity'); }
+  if(fmp.peg == null && !(fmp.dividendYield > 0)) _impute('lynch', 1, 'PEG ratio');
+  if(fmp.epsTTMImputed && !dataConfidence.imputed.includes('trailing EPS (estimated)')) dataConfidence.imputed.push('trailing EPS (estimated)');
+  ['graham','buffett','lynch'].forEach(k => dataConfidence[k].verified = Math.max(0, dataConfidence[k].verified));
+  dataConfidence.pct = (dataConfidence.graham.verified + dataConfidence.buffett.verified + dataConfidence.lynch.verified) / 24;
+
+  // ── Verdict + confidence overlays (temper confidence / gate the verdict — never re-denominate) ──
+  const _tiers = ['AVOID','LOW','MEDIUM','HIGH'];
+  const _dropTier = () => { confidence = _tiers[Math.max(0, _tiers.indexOf(confidence) - 1)]; };
+  const flags = [];
+  let verdictNote = '';
+  // Speculative excess: a triple-digit P/E can still rack up non-valuation points.
+  if(fmp.pe >= 100){ confidence = 'AVOID'; flags.push('Speculative P/E ≥ 100'); }
+  // Loss-maker: fair value unreliable without positive earnings — temper, don't auto-sell.
+  if((fmp.epsTTM != null && fmp.epsTTM <= 0) || (fmp.pe != null && fmp.pe <= 0)){
+    _dropTier(); flags.push('Unprofitable — fair value unreliable');
+  }
+  // Thin data (Stage 1): too many imputed inputs — dial confidence down one step.
+  if(dataConfidence.pct < 0.6){ _dropTier(); flags.push(`Thin data — ${dataConfidence.imputed.length} input${dataConfidence.imputed.length===1?'':'s'} estimated`); }
+  // Value-trap overlay (Stage 3): Graham-cheap BUT in a downtrend, earnings shrinking, and
+  // price stuck in the bottom quarter of its 52-week range (null EPS growth = caution, not pass).
+  const _grahamValuePasses = (fmp.pe > 0 && fmp.pe < 15) && (fmp.pb > 0 && fmp.pb < 1.5);
+  const _w52h = fmp.week52High, _w52l = fmp.week52Low;
+  const _bottomQuartile = (_w52h != null && _w52l != null && _w52h > _w52l) ? (price <= _w52l + 0.25 * (_w52h - _w52l)) : false;
+  const valueTrap = _grahamValuePasses
+    && technical?.trendDirection === 'downtrend'
+    && (fmp.epsGrowthYoy != null ? fmp.epsGrowthYoy < 0 : true)
+    && _bottomQuartile;
+  if(valueTrap){ _dropTier(); flags.push('VALUE TRAP RISK'); }
+  // Margin-of-safety BUY gate (single rule for now; can later tighten to a 10–15% MoS floor):
+  // keep BUY only when price ≤ reliable base fair value; else cap at HOLD.
+  if(overallSignal === 'BUY' && fairValueReliable && marginOfSafety != null && marginOfSafety < 0){
+    overallSignal = 'HOLD'; verdictNote = 'Great company, wrong price';
+  } else if(!fairValueReliable){
+    verdictNote = 'Fair value unreliable';
+  }
+  // No-catalyst flag (Stage 3): cheap/BUY-ish but no scheduled earnings inside the 90-day data horizon.
+  const noCatalyst = (overallSignal === 'BUY' || (marginOfSafety != null && marginOfSafety > 0))
+    && (fmp.nextEarningsDays == null || fmp.nextEarningsDays > 60);
 
   // ── Options strategy (new framework-aware logic) ──
   // Compute realized volatility for IV proxy + rolling history for stock-aware classification
@@ -5226,10 +5557,21 @@ function computeStock(ticker, fmp, history){
   if(strat.expiryMonths > 0) expDate.setMonth(expDate.getMonth() + strat.expiryMonths);
   const expiryDate = strat.expiryMonths > 0 ? expDate.toISOString().slice(0,10) : '';
 
-  // Target price (6mo, same formula as before but expiry-aware)
-  const monthsForTarget = Math.max(3, strat.expiryMonths || 6);
-  const targetPrice = Math.round(price * (1 + (totalScore/100) * (monthsForTarget/6)) * 100) / 100;
-  const targetUpsidePct = Math.round(totalScore * (monthsForTarget/6));
+  // Reward:risk from the FAIR-VALUE base (not a fabricated score-derived target). Upside =
+  // distance to base fair value; downside = distance to the nearest technical support. Only
+  // meaningful when fair value is reliable AND there's positive EPS — else null (no fake number).
+  const _support = (technical?.supportLevel || technical?.ema50 || null);
+  const rewardRisk = (fairValueReliable && eps != null && eps > 0 && fairPrice != null && _support && _support < price)
+    ? (() => {
+        const upside = (fairPrice - price) / price;
+        const downside = (price - _support) / price;
+        return { ratio: downside > 0 ? Math.round((upside / downside) * 100) / 100 : null,
+                 upside: Math.round(upside * 1000) / 10, downside: Math.round(downside * 1000) / 10 };
+      })()
+    : null;
+  // The options stock-vs-option payoff still needs a price target — use the fair-value base
+  // (an honest "what if it reaches fair value"), null when we have no reliable fair value.
+  const targetPrice = fairValueReliable ? fairPrice : null;
 
   // Premium estimate at the midpoint of the suggested strike range
   let premiumLow = null, premiumHigh = null, premiumMid = null;
@@ -5303,9 +5645,9 @@ function computeStock(ticker, fmp, history){
     premiumLow, premiumMid, premiumHigh,
     // Stock vs option comparison
     comparison,
-    // Target
-    targetPrice6mo: targetPrice,
-    targetPriceUpside: targetUpsidePct,
+    // Reward:risk from fair value (replaces the fabricated score-derived target)
+    rewardRisk,
+    fairValueTarget: targetPrice,   // = base fair value when reliable, else null
     // Rules
     exitRule, maxLossRule,
     positionSizeRule: sizing.label + ' — ' + sizing.note,
@@ -5318,34 +5660,7 @@ function computeStock(ticker, fmp, history){
     ? `Moderate ${totalScore}/32 score — ${graham.score>=5?'Graham value':buffett.score>=5?'Buffett quality':lynch.score>=5?'Lynch growth':'mixed'} signals, wait for better setup.`
     : `Weak ${totalScore}/32 score — fails most framework criteria, avoid new positions.`;
 
-  // ── FAIR PRICE & ENTRY PRICE (from books) ──
-  // Fair Price: conservative variant of Graham's Growth Formula (Intelligent Investor Ch. 11)
-  //   Original: V = EPS × (8.5 + 2g). Widely considered too generous in modern markets,
-  //   and g is meant to be long-term EARNINGS growth — not revenue growth.
-  //   We use V = EPS × (7 + 1.5g), preferring 10-yr EPS growth, fallback 5-yr revenue
-  //   growth, last resort YoY EPS (noisy); g capped at 12%. Max multiplier ≈ 25× vs 38.5×.
-  // Fallback: Graham Number = √(22.5 × EPS × BVPS) — defensive investor formula
-  let fairPrice = null;
-  // Real trailing EPS / book value from Finnhub — NOT price/PE and price/PB, which are
-  // algebraically circular (they restate the multiple and carry no independent value signal).
-  const eps = (fmp.epsTTM != null && fmp.epsTTM > 0) ? fmp.epsTTM : null;
-  const bvps = (fmp.bookValuePerShare != null && fmp.bookValuePerShare > 0) ? fmp.bookValuePerShare : null;
-  const gSrc = fmp.epsGrowth10yr != null ? fmp.epsGrowth10yr
-             : fmp.revenueGrowth5yr != null ? fmp.revenueGrowth5yr
-             : (fmp.epsGrowthYoy || 0);
-  const growthRate = Math.max(0, Math.min(12, gSrc));
-
-  if(eps && eps > 0 && growthRate > 0){
-    // Conservative Graham Growth Formula — primary
-    fairPrice = eps * (7 + 1.5 * growthRate);
-  } else if(eps && eps > 0 && bvps && bvps > 0){
-    // Graham Number fallback — for non-growth stocks
-    fairPrice = Math.sqrt(22.5 * eps * bvps);
-  } else if(bvps && bvps > 0){
-    // Last resort — just use book value
-    fairPrice = bvps * 1.5;
-  }
-
+  // ── ENTRY PRICE (fair value + band were computed above with the verdict overlay) ──
   // Entry Price: Al Brooks pullback-to-EMA approach
   // Uptrend → target EMA50 (deeper pullback, better risk/reward)
   // Sideways/uncertain → target nearest support (recent swing low approx by 1.5% below price)
@@ -5369,6 +5684,12 @@ function computeStock(ticker, fmp, history){
     graham, buffett, lynch, technical, options,
     fundamentalScore, totalScore, overallSignal, confidence, flags, oneLiner,
     fairPrice, entryPrice,  // ← NEW
+    // Stage 1–3 additive fields (all null-guarded by readers)
+    fairValueBand, fairValueReliable, marginOfSafety, downsideToBear,
+    dataConfidence, verdictNote, rewardRisk, valueTrap, noCatalyst,
+    nextEarningsDays: fmp.nextEarningsDays ?? null,
+    week52High: fmp.week52High ?? null, week52Low: fmp.week52Low ?? null,
+    beta: fmp.beta ?? null,
     marketCap: fmp.marketCap,  // millions, for cap tiers in Discover
     analysis: null,
   };
@@ -5618,12 +5939,12 @@ function _stockDataBlock(s){
   const g=s.graham||{},b=s.buffett||{},l=s.lynch||{},t=s.technical||{},o=s.options||{};
   const iv=typeof o.ivContext==='string'?o.ivContext:(o.ivContext?.label||'n/a');
   return `${s.ticker} (${s.companyName||''}) — $${f(s.currentPrice)}, signal ${s.overallSignal}, total ${s.totalScore}/32
-  Graham fair value $${s.fairPrice?f(s.fairPrice):'n/a'}${disc!=null?` (${disc>=0?disc+'% BELOW':Math.abs(disc)+'% above'} fair)`:''} · Entry zone $${s.entryPrice?f(s.entryPrice):'n/a'}
+  Graham fair value $${s.fairPrice?f(s.fairPrice):'n/a'}${s.fairValueBand?` (range $${f(s.fairValueBand.bear)}–$${f(s.fairValueBand.bull)}${s.fairValueBand.wide?', WIDE/low-confidence':''})`:''}${s.marginOfSafety!=null?` · margin of safety ${(s.marginOfSafety*100).toFixed(0)}%`:''}${s.fairValueReliable===false?' · FAIR VALUE UNRELIABLE — do not anchor on it':''}${s.verdictNote?` · note: ${s.verdictNote}`:''} · Entry zone $${s.entryPrice?f(s.entryPrice):'n/a'}${s.valueTrap?' · ⚠ VALUE-TRAP RISK':''}
   Graham ${g.score}/8: Size $${f(g.marketCap/1000)}B, P/E ${f(g.pe)}, P/E×P/B ${f(g.peBV)} (≤22.5), CurrentRatio ${f(g.currentRatio)}, D/E ${f(g.debtToEquity)}, EarningsStable ${g.earningsStable?'Y':'N'}, EPSgrowth ${f(g.epsGrowth10yr)}%, Div ${f(g.dividendYield)}%
   Buffett ${b.score}/8: DurableROE ${f(b.roeConsistencyYrs)}y, ROIC ${f(b.roic)}%, GrossMargin ${f(b.grossMargin)}%, NetMargin ${f(b.netMargin)}%, FCFmargin ${f(b.fcfMargin)}%, FCF/NI ${f(b.fcfToNI)}, LT-D/E ${f(b.ltDebtEquityPct)}%, RevGr5y ${f(b.revenueGrowth5yr)}%
   Lynch ${l.score}/8 (${['','Slow','Stalwart','Fast','Cyclical','Turnaround','AssetPlay'][l.lynchCategory||0]||'?'}): PEG ${f(l.peg)}, EPSgrYoY ${f(l.epsGrowthYoy)}%, SalesGrYoY ${f(l.salesGrowthYoy)}%, fits[g/v/i] ${l.growthFit?'Y':'N'}/${l.valFit?'Y':'N'}/${l.incomeFit?'Y':'N'}
   Technical ${t.score}/8: ${t.trendDirection}, EMA20 $${f(t.ema20)} / EMA50 $${f(t.ema50)} / EMA200 $${f(t.ema200)}, support $${f(t.supportLevel)}, resistance $${f(t.resistanceLevel)}. ${t.summary||''}
-  Options: ${o.strategyName||'n/a'} (${o.conviction||'n/a'} conviction)${o.targetPriceUpside?`, ~${o.targetPriceUpside}% target upside`:''}${o.earningsWarning==='YES'?', earnings <30d':''}, IV ${iv}`;
+  Options: ${o.strategyName||'n/a'} (${o.conviction||'n/a'} conviction)${o.rewardRisk?`, reward:risk ${o.rewardRisk.ratio!=null?o.rewardRisk.ratio+'x':'n/a'} (+${o.rewardRisk.upside}% to fair / −${o.rewardRisk.downside}% to support)`:''}${o.earningsWarning==='YES'?', earnings <30d':''}, IV ${iv}`;
 }
 
 async function showBestSetup(){
@@ -5970,7 +6291,7 @@ function renderTable(){
 
     // If filters wiped out all done rows and there are no loading rows either, show a friendly empty-state row
     if(sorted.length === 0){
-      tbody.innerHTML = `<tr><td colspan="18" style="text-align:center;padding:28px 12px;color:var(--text-muted);font-size:13px">
+      tbody.innerHTML = `<tr><td colspan="19" style="text-align:center;padding:28px 12px;color:var(--text-muted);font-size:13px">
         No stocks match the current filters.
         &nbsp;<span style="color:var(--accent-info);cursor:pointer;text-decoration:underline;font-weight:600" onclick="resetFilters()">Clear filters</span>
       </td></tr>`;
@@ -5979,7 +6300,7 @@ function renderTable(){
 
     tbody.innerHTML=sorted.map(s=>{
       if(s.status==='loading')return`<tr><td class="tkr"><span class="spin"></span>${s.ticker}</td><td colspan="18" style="color:#555;font-style:italic">${s.step||'Loading…'}</td></tr>`;
-      if(s.status==='error')return`<tr><td class="tkr">${s.ticker}</td><td colspan="15" style="color:var(--c-red);font-size:11px">${s.error||'Error'}</td><td></td><td><button class="rmv" onclick="rm(${s.id},event)">✕</button></td></tr>`;
+      if(s.status==='error')return`<tr><td class="tkr">${s.ticker}</td><td colspan="16" style="color:var(--c-red);font-size:11px">${s.error||'Error'}</td><td></td><td><button class="rmv" onclick="rm(${s.id},event)">✕</button></td></tr>`;
       const ts=s.totalScore??0,fs=s.fundamentalScore??0,ta=s.technical?.score??0,tc=sc(ts,32);
       const td=s.technical?.trendDirection||'';
       const trcls=td==='uptrend'?'tup':td==='downtrend'?'tdn':'tsd';
@@ -6000,7 +6321,7 @@ function renderTable(){
       const ai = dataAgeInfo(s);
       const updTime = ai ? `<span style="color:${ai.color}" title="${s.updatedAt||''}">${ai.label}</span>` : '—';
       let expandHtml = '';
-      if(isExpanded){ try{ expandHtml = buildExpandRow(s); }catch(e){ console.error('buildExpandRow error:', e); expandHtml = `<tr class="expand-row"><td colspan="18"><div class="expand-inner" style="color:var(--c-red)">Error rendering detail: ${e.message}</div></td></tr>`; } }
+      if(isExpanded){ try{ expandHtml = buildExpandRow(s); }catch(e){ console.error('buildExpandRow error:', e); expandHtml = `<tr class="expand-row"><td colspan="19"><div class="expand-inner" style="color:var(--c-red)">Error rendering detail: ${e.message}</div></td></tr>`; } }
       // Pick score-cell color class based on tier
       const totCls = s.overallSignal==='BUY' ? 'score-buy' : s.overallSignal==='HOLD' ? 'score-hold' : s.overallSignal==='SELL' ? 'score-sell' : 'score-neutral';
       const fundCls = fs >= 16 ? 'score-buy' : fs >= 9 ? 'score-hold' : 'score-sell';
@@ -6010,10 +6331,14 @@ function renderTable(){
       // Fair Price (Graham's Growth Formula) — color-code: green if current price below fair (undervalued), red if above (overvalued)
       let fairHtml = '<span style="color:var(--text-faint)">—</span>';
       if(s.fairPrice && s.currentPrice){
-        const fairPct = ((s.fairPrice - s.currentPrice) / s.currentPrice) * 100;
-        const fairColor = fairPct > 5 ? 'var(--accent-buy)' : fairPct < -5 ? 'var(--accent-sell)' : 'var(--accent-hold)';
-        const fairLabel = fairPct > 5 ? 'undervalued' : fairPct < -5 ? 'overvalued' : 'near fair';
-        fairHtml = `<span style="color:${fairColor};font-weight:700" title="${fairLabel}: ${fairPct>=0?'+':''}${fairPct.toFixed(0)}% vs current">$${s.fairPrice.toFixed(0)}</span>`;
+        // MoS = (base fair − price) / base fair. Wide band → low-confidence "≈" marker.
+        const mos = (s.marginOfSafety != null) ? s.marginOfSafety * 100 : ((s.fairPrice - s.currentPrice) / s.fairPrice) * 100;
+        const fairColor = mos > 5 ? 'var(--accent-buy)' : mos < -5 ? 'var(--accent-sell)' : 'var(--accent-hold)';
+        const band = s.fairValueBand;
+        const wideMark = band?.wide ? '≈' : '';
+        const rangeTip = (band && band.bear != null && band.bull != null) ? `Fair range $${band.bear.toFixed(0)}–$${band.bull.toFixed(0)} (base $${(band.base??s.fairPrice).toFixed(0)}). ` : '';
+        const mosTip = `${rangeTip}Margin of safety ${mos>=0?'+':''}${mos.toFixed(0)}% vs current${band?.wide?' — LOW-confidence range, rough anchor only':''}`;
+        fairHtml = `<span style="color:${fairColor};font-weight:700" title="${esc(mosTip)}">${wideMark}$${s.fairPrice.toFixed(0)}<span style="font-size:9px;display:block;color:var(--text-faint);font-weight:500">MoS ${mos>=0?'+':''}${mos.toFixed(0)}%</span></span>`;
       }
 
       // Entry Price (Al Brooks: pullback to EMA50 or support)
@@ -6052,6 +6377,28 @@ function renderTable(){
         : s.lastRefreshError
           ? `<span title="Refresh failed — showing last good data. ${esc(s.lastRefreshError)}" style="color:var(--c-amber);margin-right:3px;cursor:help">⚠</span>`
           : '';
+
+      // Catalyst clock (Stage 3) — days to next scheduled earnings; amber when imminent.
+      const _ned = s.nextEarningsDays;
+      let catHtml = '<span style="color:var(--text-faint)">—</span>';
+      if(_ned != null && _ned >= 0){
+        const _catCol = _ned < 14 ? 'var(--c-amber)' : 'var(--text-tertiary)';
+        catHtml = `<span style="color:${_catCol};font-weight:${_ned<14?'700':'500'};font-size:12px" title="Next earnings in ~${_ned} days">${_ned}d</span>`;
+      } else if(s.noCatalyst){
+        catHtml = `<span style="color:var(--text-faint);font-size:10px;cursor:help" title="No scheduled earnings catalyst in 90d">no cat.</span>`;
+      }
+      // Data-confidence badge (Stage 1) — how many of the 24 fundamental criteria had real inputs.
+      const _dc = s.dataConfidence;
+      const _dcVer = _dc ? (_dc.graham.verified + _dc.buffett.verified + _dc.lynch.verified) : null;
+      const dataBadge = _dcVer != null
+        ? `<span class="pill" style="display:inline-block;margin-top:3px;font-size:9px;padding:0 5px;border-radius:6px;background:var(--bg-input);color:${_dcVer>=20?'var(--text-faint)':'var(--c-amber)'}" title="${_dcVer}/24 fundamental criteria from reported data — ${24-_dcVer} estimated${_dc.imputed?.length?': '+esc(_dc.imputed.join(', ')):''}">data ${_dcVer}/24</span>`
+        : '';
+      const verdictTag = s.verdictNote
+        ? `<span style="display:block;font-size:9px;color:var(--text-faint);margin-top:2px;cursor:help" title="${esc(s.verdictNote)}">${s.verdictNote==='Great company, wrong price'?'✋ wrong price':'≈ FV unreliable'}</span>`
+        : '';
+      const trapTag = s.valueTrap
+        ? '<span style="display:block;font-size:9px;color:var(--c-red);font-weight:700;margin-top:2px;cursor:help" title="Cheap on Graham value BUT downtrend + shrinking earnings + near 52-week low">⚠ TRAP</span>'
+        : '';
       return`<tr onclick="toggleDP(${s.id})" class="${isExpanded?'row-expanded':''}">
         <td style="width:24px;padding:10px 4px;color:var(--text-faint);font-size:11px;text-align:center"><span class="caret ${isExpanded?'open':''}">▶</span></td>
         <td class="tkr">${tkrMark}${s.ticker}</td>
@@ -6067,15 +6414,16 @@ function renderTable(){
         <td style="font-size:13px">${gmHtml}</td>
         <td style="font-size:13px">${epsHtml}</td>
         <td>${trendHtml}</td>
-        <td><span class="badge ${vc(s.overallSignal)}">${s.overallSignal||'—'}</span></td>
+        <td><span class="badge ${vc(s.overallSignal)}">${s.overallSignal||'—'}</span>${verdictTag}${dataBadge}${trapTag}</td>
         <td>${optHtml}</td>
+        <td style="font-size:13px">${catHtml}</td>
         <td class="updated">${updTime}</td>
         <td style="white-space:nowrap"><button class="rldbtn" onclick="reload(${s.id},event)" title="Re-analyze">↻</button> <button class="rmv" onclick="rm(${s.id},event)">✕</button></td>
       </tr>${expandHtml}`;
     }).join('');
   } catch(e) {
     console.error('renderTable error:', e);
-    tbody.innerHTML = `<tr><td colspan="18" style="color:var(--c-red);padding:20px">Render error: ${e.message}. Try clearing all stocks.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="19" style="color:var(--c-red);padding:20px">Render error: ${e.message}. Try clearing all stocks.</td></tr>`;
   }
 }
 
@@ -6209,7 +6557,7 @@ function buildExpandRow(s){
   // Options tab content
   const opHtml = buildOptionsHTML(s);
 
-  const colCount = 17; // number of table columns (added Fair + Entry)
+  const colCount = 19; // number of table columns (added Fair + Entry + Catalyst)
 
   return `<tr class="expand-row"><td colspan="${colCount}"><div class="expand-inner">
     <div class="expand-head">
@@ -6403,7 +6751,7 @@ function buildOptionsHTML(s){
     <div style="font-size:11px;font-weight:700;color:var(--c-blue);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">🎯 Strike Range</div>
     <div style="font-size:14px;color:var(--text-secondary);margin-bottom:4px"><b>$${op.strikeGuide.low}–$${op.strikeGuide.high}</b> <span style="color:var(--text-tertiary);font-size:12px;font-weight:400">(${op.strikeGuide.anchor})</span></div>
     <div style="font-size:11px;color:var(--text-tertiary);line-height:1.6;margin-bottom:8px">${op.strikeGuide.note}</div>
-    ${op.premiumMid != null ? `<div style="font-size:12px;color:var(--text-secondary);border-top:1px solid var(--border-default);padding-top:8px;margin-top:8px"><b>Estimated premium:</b> ${moneyFmt(op.premiumLow)}–${moneyFmt(op.premiumHigh)} per contract <span style="font-size:10px;color:var(--text-muted)">(rough, from realized-vol proxy)</span></div>` : '<div style="font-size:11px;color:var(--text-muted);font-style:italic">Premium estimate unavailable — verify in your broker.</div>'}
+    ${op.premiumMid != null ? `<div style="font-size:12px;color:var(--text-secondary);border-top:1px solid var(--border-default);padding-top:8px;margin-top:8px"><b>Modeled premium:</b> ${moneyFmt(op.premiumLow)}–${moneyFmt(op.premiumHigh)} per contract <span style="font-size:10px;color:var(--text-muted)">(modeled estimate from a realized-vol proxy — verify on your broker)</span></div>` : '<div style="font-size:11px;color:var(--text-muted);font-style:italic">Premium estimate unavailable — verify on your broker.</div>'}
   </div>` : '';
 
   // Section 4: IV advice + Earnings timing
@@ -6418,7 +6766,7 @@ function buildOptionsHTML(s){
   // Section 5: Stock vs Option comparison
   const c = op.comparison;
   const comparisonSection = c ? `<div style="background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px 14px;margin-bottom:10px">
-    <div style="font-size:11px;font-weight:700;color:var(--c-blue);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">⚖️ Stock vs Option — payoff at $${c.targetPrice.toFixed(0)} target</div>
+    <div style="font-size:11px;font-weight:700;color:var(--c-blue);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">⚖️ Stock vs Option — payoff if price reaches fair value $${c.targetPrice.toFixed(0)}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
       <div style="background:var(--bg-page);border:1px solid var(--border-default);border-radius:6px;padding:10px">
         <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:2px">🏢 Stock — ${c.stockShares} shares</div>
@@ -6472,7 +6820,9 @@ if(location.protocol==='file:' && !isAndroidWebView){
 // change to one (e.g. a theme toggle) can never overwrite a newer value of
 // another (e.g. your latest stock scores). SS+'_savedAt' rides along so the
 // "Data saved" date reflects whoever refreshed last — not this device's clock.
-const SYNC_KEYS = [SS, SS+'_savedAt', PS, 'viss_watchlist', 'viss_discover', 'viss_theme', 'viss_design'];
+// viss_cash is a USER decision (account size) → it syncs. Market-data caches (incl. viss_pxcache)
+// are device-local and re-downloadable, so they are deliberately NOT here and never sync.
+const SYNC_KEYS = [SS, SS+'_savedAt', PS, 'viss_watchlist', 'viss_discover', 'viss_theme', 'viss_design', 'viss_cash'];
 const GIST_FILE = 'viss-screener-sync.json';
 const GIST_DESC = 'VISS Screener device sync — auto-managed, do not edit by hand';
 let gistToken = localStorage.getItem('viss_gist_token') || '';
