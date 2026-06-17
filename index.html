@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v8.3 — build 2026-06-15 — Discover reliability (per-ticker failure tracking + transient-rate-limit retry pass), theme filter lists all scanned themes w/ counts; v8.2: data-confidence interlock, fair-value band + MoS gate, catalyst clock + value-trap, portfolio construction + crowding/correlation -->
+<!-- v8.3 — build 2026-06-15 — Discover reliability (per-ticker failure tracking + transient-rate-limit retry pass), theme filter lists all scanned themes w/ counts, clear discoveries (per-theme ✕ + clear-all), "added from Discover" source tag on screener rows; v8.2: data-confidence interlock, fair-value band + MoS gate, catalyst clock + value-trap, portfolio construction + crowding/correlation -->
 <html lang="en" data-design="material">
 <head>
 <meta charset="UTF-8">
@@ -588,7 +588,11 @@ tbody tr { transition: background 0.15s ease; }
 .disc-ctrl-label{font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:8px}
 .disc-ctrl-hint{font-weight:400;color:var(--text-muted)}
 .disc-theme-row{display:flex;flex-wrap:wrap;gap:8px}
-.disc-theme-btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:var(--surface-card);border:1px solid var(--border-strong);border-radius:10px;padding:8px 12px;cursor:pointer;font-family:inherit;color:var(--text-secondary);transition:all .15s;min-width:118px}
+.disc-theme-btn{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:var(--surface-card);border:1px solid var(--border-strong);border-radius:10px;padding:8px 12px;cursor:pointer;font-family:inherit;color:var(--text-secondary);transition:all .15s;min-width:118px}
+.disc-tb-clear{position:absolute;top:-7px;right:-7px;width:19px;height:19px;border-radius:50%;background:var(--surface-card);border:1px solid var(--border-strong);color:var(--text-muted);font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2}
+.disc-tb-clear:hover{color:var(--c-red);border-color:var(--c-red);background:var(--bg-input)}
+.disc-clear-all{background:transparent;border:1px solid var(--border-strong);border-radius:6px;color:var(--text-muted);font-size:11px;font-weight:600;padding:4px 10px;cursor:pointer;font-family:inherit}
+.disc-clear-all:hover{color:var(--c-red);border-color:var(--c-red)}
 .disc-theme-btn:hover{border-color:var(--border-focus);color:var(--text-primary);transform:translateY(-1px)}
 .disc-theme-btn.done{border-color:var(--accent-buy-border)}
 .disc-theme-btn.scanning{border-color:var(--accent-ai);cursor:wait}
@@ -623,6 +627,7 @@ tbody tr { transition: background 0.15s ease; }
 .disc-gap.neu{color:var(--text-muted)}
 .disc-card-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
 .disc-tag{font-size:9.5px;color:var(--text-tertiary);background:var(--bg-surface-2);border:1px solid var(--border-default);border-radius:999px;padding:1px 7px}
+.disc-src-tag{display:inline-block;margin-top:3px;font-size:8.5px;font-weight:600;color:var(--c-purple);background:rgba(139,92,246,.14);border:1px solid rgba(139,92,246,.42);border-radius:6px;padding:0 5px;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis;cursor:help}
 .disc-card-reason{font-size:11px;color:var(--accent-ai);line-height:1.5}
 
 /* ══════════════════════════════════════════════════════════
@@ -3771,6 +3776,7 @@ const DISCOVER_UNIVERSES = {
 };
 
 let discoverResults = {}; // category/theme -> {results, scannedAt, source, themeTitle}
+let discoverSourceMap = {}; // ticker -> {themes:[...keys], addedAt} — pending tag for a stock being added from Discover
 
 // AI-sourced discovery themes — Claude proposes tickers (incl. small/mid-caps), screener validates
 const AI_THEMES = {
@@ -3828,6 +3834,25 @@ function clearStaleScanFlags(){
 function saveDiscoverResults(){
   localStorage.setItem('viss_discover', JSON.stringify(discoverResults));
   if(typeof scheduleSyncPush==='function') scheduleSyncPush();
+}
+// Clear discovered stocks: one theme (key given, immediate) or ALL (no key, confirmed).
+// Never touches a theme that's mid-scan, your screener stocks, watchlist, or price cache.
+async function clearDiscover(key){
+  if(key){
+    if(discoverResults[key]?.scanning){ appAlert('That theme is still scanning — cancel it first (tap it), then clear.'); return; }
+    delete discoverResults[key];
+    if(discFilter.theme === key) discFilter.theme = 'all';
+  } else {
+    const scanningNow = Object.values(discoverResults).some(r => r && r.scanning);
+    const ok = await appConfirm({ title:'Clear all discoveries?', danger:true,
+      message:`Removes every discovered stock from the Discover grid${scanningNow?' (any theme still scanning is kept)':''}. Your screener stocks, watchlist and positions are untouched.`,
+      ok:'Clear all', cancel:'Keep' });
+    if(!ok) return;
+    Object.keys(discoverResults).forEach(k => { if(!discoverResults[k]?.scanning) delete discoverResults[k]; });
+    discFilter.theme = 'all';
+  }
+  saveDiscoverResults();
+  renderDiscover();
 }
 
 // ── AI-sourced discovery: Claude proposes tickers, the screener validates them ──
@@ -3927,7 +3952,12 @@ function _themeBtn(key, isAI){
   // so "targets keep failing" is visible and the user knows a re-run will retry them.
   const failList = (r && r.failed && r.failed.length) ? `\nCouldn't fetch: ${r.failed.slice(0,30).join(', ')}${r.failed.length>30?'…':''}` : '';
   const tip = ((meta.desc || meta.prompt || '') + failList).replace(/"/g,'&quot;');
+  // ✕ to clear THIS theme's results (also clears the "0 found · N failed" clutter). Only when
+  // there's something to clear and it isn't mid-scan; stopPropagation so it doesn't re-scan.
+  const clearX = (wasScanned || count || interrupted) && !scanning
+    ? `<span class="disc-tb-clear" onclick="event.stopPropagation(); clearDiscover('${key}')" title="Clear ${(meta.title||'').replace(/"/g,'&quot;')} results">✕</span>` : '';
   return `<button class="${cls}" onclick="${onclick}" ${scanning?'disabled':''} title="${tip}">
+    ${clearX}
     <span class="disc-tb-title">${meta.icon} ${meta.title}</span>
     <span class="disc-tb-sub">${sub}</span>
   </button>`;
@@ -3962,6 +3992,7 @@ function renderDiscover(){
 
   const resultKeys = Object.keys(discoverResults).filter(k=>discoverResults[k] && discoverResults[k].results && discoverResults[k].results.length);
   const anyScanning = Object.values(discoverResults).some(r=>r && r.scanning);
+  const anyScanned = Object.keys(discoverResults).some(k=>discoverResults[k] && (discoverResults[k].scannedAt || (discoverResults[k].results||[]).length));
   const sel = (v,cur)=>v===cur?'selected':'';
   // List EVERY scanned theme (not only ones with matches) so a failed / 0-match scan no longer
   // silently disappears from the filter. Show the match count so it's clear which have results.
@@ -3974,6 +4005,7 @@ function renderDiscover(){
 
   el.innerHTML = `
     <div class="disc-controls">
+      ${anyScanned ? `<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="disc-clear-all" onclick="clearDiscover()" ${anyScanning?'disabled':''}>🗑 Clear all results</button></div>` : ''}
       <div class="disc-ctrl-label">🤖 AI discovery <span class="disc-ctrl-hint">— surfaces under-followed names, incl. small-caps · validated live · ~3–4 min</span></div>
       <div class="disc-theme-row">${Object.keys(AI_THEMES).map(k=>_themeBtn(k,true)).join('')}</div>
       <div class="disc-custom">
@@ -4180,8 +4212,23 @@ function filterDiscover(category, s){
   return null;
 }
 
+// Which discovered themes a ticker currently matches (for the "added from Discover" tag).
+function discoverThemesFor(ticker){
+  const themes = [];
+  Object.entries(discoverResults).forEach(([key,r])=>{
+    if(((r&&r.results)||[]).some(m=>m && m.ticker===ticker)) themes.push(key);
+  });
+  return themes;
+}
 function addDiscoveredToScreener(ticker){
-  if(stocks.find(s=>s.ticker===ticker && s.status==='done')){
+  const themes = discoverThemesFor(ticker);
+  discoverSourceMap[ticker] = { themes, addedAt: Date.now() };   // picked up by finalize() when analysis completes
+  const existing = stocks.find(s=>s.ticker===ticker && s.status==='done');
+  if(existing){
+    // Already analyzed — just tag it (merge theme keys) and jump to it; no re-fetch.
+    const prev = (existing.discoverSource && existing.discoverSource.themes) || [];
+    existing.discoverSource = { themes: [...new Set([...prev, ...themes])], addedAt: (existing.discoverSource && existing.discoverSource.addedAt) || Date.now() };
+    save(); renderTable();
     switchTab('screener');
     setTimeout(()=>{ const s=stocks.find(x=>x.ticker===ticker); if(s) toggleDP(s.id); }, 200);
     return;
@@ -4515,7 +4562,11 @@ function finalize(id, t, result, restricted){
   // The fresh object drops refreshing/_prevSnapshot/lastRefreshError flags.
   const existing = stocks[idx];
   const analysis = existing?.analysis || existing?._savedAnalysis || null;
-  stocks[idx]={id,status:'done',updatedAt:new Date().toLocaleString(),updatedAtTs:Date.now(),...result,analysis};
+  // Carry the "added from Discover" source: a pending tag (just added) wins, else preserve
+  // whatever the stock already had across refreshes.
+  const discoverSource = discoverSourceMap[t] || existing?.discoverSource || null;
+  delete discoverSourceMap[t];
+  stocks[idx]={id,status:'done',updatedAt:new Date().toLocaleString(),updatedAtTs:Date.now(),...result,analysis,discoverSource};
   save(); renderTable();
   document.getElementById('refBtn').disabled = stocks.filter(s=>s.status==='done').length===0;
   const _ab=document.getElementById('aiAllBtn');if(_ab)_ab.disabled=stocks.filter(s=>s.status==='done').length===0;
@@ -6452,9 +6503,15 @@ function renderTable(){
       const trapTag = s.valueTrap
         ? '<span style="display:block;font-size:9px;color:var(--c-red);font-weight:700;margin-top:2px;cursor:help" title="Cheap on Graham value BUT downtrend + shrinking earnings + near 52-week low">⚠ TRAP</span>'
         : '';
+      // "Added from Discover" tag + the theme(s) it came from.
+      let discSrcTag = '';
+      if(s.discoverSource && s.discoverSource.themes && s.discoverSource.themes.length){
+        const titles = s.discoverSource.themes.map(k=>themeMeta(k).title);
+        discSrcTag = `<span class="disc-src-tag" title="Added from Discover — ${esc(titles.join(', '))}">📡 ${esc(titles.join(' · '))}</span>`;
+      }
       return`<tr onclick="toggleDP(${s.id})" class="${isExpanded?'row-expanded':''}">
         <td style="width:24px;padding:10px 4px;color:var(--text-faint);font-size:11px;text-align:center"><span class="caret ${isExpanded?'open':''}">▶</span></td>
-        <td class="tkr">${tkrMark}${s.ticker}</td>
+        <td class="tkr">${tkrMark}${s.ticker}${discSrcTag?`<br>${discSrcTag}`:''}</td>
         <td style="color:var(--text-tertiary);max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:13px">${esc(s.companyName)||'—'}</td>
         <td style="font-size:14px;font-weight:600">${pxHtml}</td>
         <td style="font-size:13px">${fairHtml}</td>
@@ -6613,6 +6670,7 @@ function buildExpandRow(s){
   const colCount = 19; // number of table columns (added Fair + Entry + Catalyst)
 
   return `<tr class="expand-row"><td colspan="${colCount}"><div class="expand-inner">
+    ${(s.discoverSource && s.discoverSource.themes && s.discoverSource.themes.length) ? `<div style="font-size:11px;font-weight:600;color:var(--c-purple);background:rgba(139,92,246,.10);border:1px solid rgba(139,92,246,.35);border-radius:8px;padding:6px 10px;margin-bottom:10px">📡 Added from Discover — ${esc(s.discoverSource.themes.map(k=>themeMeta(k).title).join(' · '))}</div>` : ''}
     <div class="expand-head">
       <span class="expand-tkr">${s.ticker}</span>
       <span class="expand-nm">${esc(s.companyName)}</span>
