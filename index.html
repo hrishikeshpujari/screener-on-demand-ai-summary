@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v8.2 — build 2026-06-13 — data-confidence interlock, fair-value band + MoS gate, catalyst clock + value-trap, portfolio construction + crowding/correlation -->
+<!-- v8.3 — build 2026-06-15 — Discover reliability (per-ticker failure tracking + transient-rate-limit retry pass), theme filter lists all scanned themes w/ counts; v8.2: data-confidence interlock, fair-value band + MoS gate, catalyst clock + value-trap, portfolio construction + crowding/correlation -->
 <html lang="en" data-design="material">
 <head>
 <meta charset="UTF-8">
@@ -3911,16 +3911,22 @@ function _themeBtn(key, isAI){
   const scanning = r && r.scanning;
   const interrupted = r && r.interrupted && !scanning;
   const count = (r && r.results && r.results.length) || 0;
+  const failCount = (r && r.failed && r.failed.length) || 0;
+  const wasScanned = r && r.scannedAt && !scanning;
   const err = r && r.error;
   let sub = '';
   if(scanning) sub = `⏳ ${scanning}`;
   else if(err) sub = '⚠ failed — retry';
   else if(interrupted) sub = `⚠ ${count} · re-run`;
-  else if(count) sub = `✓ ${count} found`;
+  else if(count) sub = `✓ ${count} found${failCount?` · ${failCount} failed`:''}`;
+  else if(wasScanned) sub = failCount ? `⚠ 0 found · ${failCount} failed — retry` : '0 matched — retry';
   else sub = isAI ? 'tap to discover' : `scan ${meta.tickers.length}`;
   const cls = scanning ? 'disc-theme-btn scanning' : (count||interrupted) ? 'disc-theme-btn done' : 'disc-theme-btn';
   const onclick = isAI ? `aiDiscover('${key}')` : `scanDiscover('${key}')`;
-  const tip = (meta.desc || meta.prompt || '').replace(/"/g,'&quot;');
+  // Tooltip lists the names that couldn't be fetched (rate-limit / no-history / not-found),
+  // so "targets keep failing" is visible and the user knows a re-run will retry them.
+  const failList = (r && r.failed && r.failed.length) ? `\nCouldn't fetch: ${r.failed.slice(0,30).join(', ')}${r.failed.length>30?'…':''}` : '';
+  const tip = ((meta.desc || meta.prompt || '') + failList).replace(/"/g,'&quot;');
   return `<button class="${cls}" onclick="${onclick}" ${scanning?'disabled':''} title="${tip}">
     <span class="disc-tb-title">${meta.icon} ${meta.title}</span>
     <span class="disc-tb-sub">${sub}</span>
@@ -3957,7 +3963,14 @@ function renderDiscover(){
   const resultKeys = Object.keys(discoverResults).filter(k=>discoverResults[k] && discoverResults[k].results && discoverResults[k].results.length);
   const anyScanning = Object.values(discoverResults).some(r=>r && r.scanning);
   const sel = (v,cur)=>v===cur?'selected':'';
-  const themeOpts = `<option value="all">All themes</option>` + resultKeys.map(k=>`<option value="${k}" ${sel(k,discFilter.theme)}>${themeMeta(k).icon} ${themeMeta(k).title}</option>`).join('');
+  // List EVERY scanned theme (not only ones with matches) so a failed / 0-match scan no longer
+  // silently disappears from the filter. Show the match count so it's clear which have results.
+  const scannedKeys = Object.keys(discoverResults).filter(k=>discoverResults[k] && discoverResults[k].scannedAt && !discoverResults[k].scanning);
+  const themeOpts = `<option value="all">All themes</option>` + scannedKeys.map(k=>{
+    const cnt = (discoverResults[k].results||[]).length;
+    const fc = (discoverResults[k].failed||[]).length;
+    return `<option value="${k}" ${sel(k,discFilter.theme)}>${themeMeta(k).icon} ${themeMeta(k).title} (${cnt}${fc?`, ${fc} failed`:''})</option>`;
+  }).join('');
 
   el.innerHTML = `
     <div class="disc-controls">
@@ -4038,45 +4051,71 @@ async function scanDiscover(category){
   renderDiscover();
 
   const matches = [];
+  const failed = [];               // {ticker, reason}: 'fundamentals'|'no-history'|'rate-limit'|'error'
   const tickers = cat.tickers;
+  let scanned = 0, cancelled = false;
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  // Fetch + score + filter ONE ticker. Records WHY it failed instead of silently dropping it,
+  // so the same names don't keep vanishing invisibly. Returns {calledApi}.
+  async function processTicker(t){
+    const existing = stocks.find(s => s.ticker===t && s.status==='done');
+    if(existing){
+      const m = filterDiscover(category, existing); if(m) matches.push(m);
+      return { calledApi:false };
+    }
+    let fh = null;
+    try { fh = await fetchFinnhub(t); } catch(e){ fh = null; }
+    if(!fh){ failed.push({ ticker:t, reason:'fundamentals' }); return { calledApi:false }; }
+    let hist = null;
+    try { hist = await fetchPriceHistory(t); }
+    catch(e){
+      const transient = /rate.?limit|credit|429|network|timeout|failed to fetch/i.test(e.message||'');
+      failed.push({ ticker:t, reason: transient ? 'rate-limit' : 'no-history' });
+      return { calledApi:true };
+    }
+    if(!hist || hist.length < 50){ failed.push({ ticker:t, reason:'no-history' }); return { calledApi:true }; }
+    const stockData = computeStock(t, fh, hist);
+    cachePriceHistory(t, hist);
+    const m = filterDiscover(category, stockData); if(m) matches.push(m);
+    return { calledApi:true };
+  }
 
   try {
+    // ── Main pass ──
     for(let i=0; i<tickers.length; i++){
-      // Allow cancellation mid-scan
-      if(busyOp !== `discover-${category}`) break;
+      if(busyOp !== `discover-${category}`){ cancelled = true; break; }
       const t = tickers[i];
-      const progressMsg = `🔭 Scanning ${cat.title}: ${i+1}/${tickers.length} · ${t} · ${matches.length} matches`;
+      scanned++;
       discoverResults[category].scanning = `${i+1}/${tickers.length} · ${t}`;
       discoverResults[category].interrupted = false;
+      // Surface matches AS they're found (not only at the end).
+      discoverResults[category].results = matches.slice().sort((a,b)=>(b.totalScore||0)-(a.totalScore||0)).slice(0,20);
       saveDiscoverResults();
-      showProgress(progressMsg);
+      showProgress(`🔭 Scanning ${cat.title}: ${i+1}/${tickers.length} · ${t} · ${matches.length} matches`);
       renderDiscover();
+      let r = { calledApi:false };
+      try { r = await processTicker(t); } catch(e){ failed.push({ ticker:t, reason:'error' }); console.warn('Scan error', t, e.message); }
+      if(r.calledApi && i < tickers.length-1) await sleep(8000); // Twelve Data 8/min pacing
+    }
 
-      try {
-        // Check if already in screener — reuse data
-        const existing = stocks.find(s => s.ticker===t && s.status==='done');
-        let stockData;
-        if(existing){
-          stockData = existing;
-        } else {
-          const fh = await fetchFinnhub(t);
-          if(!fh) continue;
-          const hist = await fetchPriceHistory(t);
-          if(!hist || hist.length<50) continue;
-          stockData = computeStock(t, fh, hist);
-          cachePriceHistory(t, hist);   // local, non-synced daily-close cache for correlation
-        }
-
-        // Apply category-specific filters
-        const match = filterDiscover(category, stockData);
-        if(match) matches.push(match);
-      } catch(e) {
-        console.warn('Scan failed for', t, e.message);
-      }
-
-      // Rate limit pace — Twelve Data 8/min, only sleep if we actually called it
-      if(!stocks.find(s=>s.ticker===t && s.status==='done') && i<tickers.length-1){
-        await new Promise(r=>setTimeout(r, 8000)); // 8s gap = 7.5 calls/min, safe under 8/min limit
+    // ── Retry pass — only the TRANSIENT (rate-limit) failures, after letting the budget recover.
+    // This is what recovers the names that "keep failing": a single 429 no longer drops them.
+    const retry = failed.filter(f => f.reason==='rate-limit').map(f => f.ticker);
+    if(!cancelled && retry.length && busyOp === `discover-${category}`){
+      for(let i=failed.length-1; i>=0; i--){ if(failed[i].reason==='rate-limit') failed.splice(i,1); } // re-added if they fail again
+      showProgress(`🔭 ${cat.title}: letting the rate limit recover before retrying ${retry.length}…`);
+      await sleep(20000);
+      for(let i=0; i<retry.length; i++){
+        if(busyOp !== `discover-${category}`){ cancelled = true; break; }
+        const t = retry[i];
+        discoverResults[category].scanning = `retry ${i+1}/${retry.length} · ${t}`;
+        saveDiscoverResults();
+        showProgress(`🔭 Retrying ${cat.title}: ${i+1}/${retry.length} · ${t}`);
+        renderDiscover();
+        let r = { calledApi:false };
+        try { r = await processTicker(t); } catch(e){ failed.push({ ticker:t, reason:'error' }); }
+        if(r.calledApi && i < retry.length-1) await sleep(10000); // extra spacing on the retry pass
       }
     }
   } finally {
@@ -4084,10 +4123,12 @@ async function scanDiscover(category){
     hideProgress();
   }
 
-  // Sort by total score desc
   matches.sort((a,b) => (b.totalScore||0) - (a.totalScore||0));
-
-  discoverResults[category] = { results: matches.slice(0, 20), scannedAt: Date.now(), scanning: null };
+  discoverResults[category] = {
+    results: matches.slice(0, 20), scannedAt: Date.now(), scanning: null,
+    interrupted: cancelled, scanned, matched: matches.length,
+    failed: failed.map(f => f.ticker), failedDetail: failed,
+  };
   saveDiscoverResults();
   renderDiscover();
 }
@@ -4689,18 +4730,28 @@ function parseFinnhubResponse(t, quote, profile, metricResp, extras){
 async function fetchPriceHistory(t){
 
   // Primary: Twelve Data — free tier, 800 calls/day, 8 calls/min
+  let rateLimited = false;
   if(keys[2]){
     for(let attempt=0; attempt<3; attempt++){
       try {
         const url = `https://api.twelvedata.com/time_series?symbol=${t}&interval=1day&outputsize=250&apikey=${keys[2]}`;
         const r = await fetch(url);
+        if(r.status === 429){ rateLimited = true; if(attempt<2){ await new Promise(rs=>setTimeout(rs, 8000*(attempt+1))); continue; } break; }
         if(r.ok){
           const d = await r.json();
-          // Check for API-level errors (rate limit returns HTTP 200 with error body)
-          if(d.code === 429 || (d.status === 'error' && d.code >= 400)){
-            console.warn(`Twelve Data rate limit for ${t} (attempt ${attempt+1}): ${d.message}`);
-            if(attempt < 2) await new Promise(r=>setTimeout(r, 8000 * (attempt+1))); // wait 8s, 16s
-            continue;
+          // Twelve Data returns rate limits as HTTP 200 with an error body. Distinguish a
+          // TRANSIENT rate-limit (retry) from a PERMANENT "symbol not found" (don't waste retries).
+          if(d.status === 'error' || d.code){
+            const msg = (d.message||'').toLowerCase();
+            const rl = d.code === 429 || /limit|credit|run out|too many|exceed/.test(msg);
+            if(rl){
+              rateLimited = true;
+              console.warn(`Twelve Data rate-limited for ${t} (attempt ${attempt+1}): ${d.message}`);
+              if(attempt < 2){ await new Promise(rs=>setTimeout(rs, 8000*(attempt+1))); continue; } // 8s, 16s
+            } else {
+              console.warn(`Twelve Data no data for ${t}: ${d.message}`); // e.g. symbol not found
+            }
+            break;
           }
           if(d.values && d.values.length >= 50){
             const history = d.values.reverse().map(h => ({
@@ -4714,11 +4765,13 @@ async function fetchPriceHistory(t){
             console.log(`Twelve Data OK for ${t}: ${history.length} days`);
             return history;
           }
+          break; // values present but < 50 bars — permanent for this symbol, no retry
         }
       } catch(e) {
-        console.warn(`Twelve Data failed for ${t}:`, e.message);
+        console.warn(`Twelve Data fetch error for ${t} (attempt ${attempt+1}):`, e.message);
+        if(attempt < 2){ await new Promise(rs=>setTimeout(rs, 5000)); continue; } // transient network — retry
       }
-      break; // non-rate-limit failure, don't retry
+      break;
     }
   }
 
@@ -4745,7 +4798,7 @@ async function fetchPriceHistory(t){
     }
   }
 
-  throw new Error('No price history available from any source');
+  throw new Error(rateLimited ? 'rate-limited — Twelve Data budget exhausted, will retry' : 'No price history available');
 }
 
 // ── Compute EMA for a given period from price history ──
