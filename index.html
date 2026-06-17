@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v8.3 — build 2026-06-15 — Discover reliability (per-ticker failure tracking + transient-rate-limit retry pass), theme filter lists all scanned themes w/ counts, clear discoveries (per-theme ✕ + clear-all), "added from Discover" source tag on screener rows; v8.2: data-confidence interlock, fair-value band + MoS gate, catalyst clock + value-trap, portfolio construction + crowding/correlation -->
+<!-- v8.3 — build 2026-06-15 — Discover reliability (per-ticker failure tracking + transient-rate-limit retry pass), theme filter lists all scanned themes w/ counts, clear discoveries (per-theme ✕ + clear-all), "added from Discover" source tag on screener rows, clearable custom-search chip; v8.2: data-confidence interlock, fair-value band + MoS gate, catalyst clock + value-trap, portfolio construction + crowding/correlation -->
 <html lang="en" data-design="material">
 <head>
 <meta charset="UTF-8">
@@ -3963,6 +3963,19 @@ function _themeBtn(key, isAI){
   </button>`;
 }
 function setDiscFilter(field, value){ discFilter[field]=value; renderDiscover(); }
+// The custom text-box search lives under one 'aiCustom' slot and has no theme chip, so it had
+// no ✕. Render it as its own clearable chip so it can be cleared without "Clear all".
+function customDiscoverChip(){
+  const cr = discoverResults['aiCustom'];
+  if(!cr) return '';
+  const cnt = (cr.results||[]).length, fc = (cr.failed||[]).length;
+  const sub = cr.scanning ? `⏳ ${cr.scanning}` : cr.error ? '⚠ failed — re-run' : `✓ ${cnt} found${fc?` · ${fc} failed`:''}`;
+  const x = cr.scanning ? '' : `<span class="disc-tb-clear" onclick="event.stopPropagation(); clearDiscover('aiCustom')" title="Clear this custom search">✕</span>`;
+  return `<div style="margin-top:12px">
+    <div class="disc-ctrl-label" style="margin-bottom:6px">🔭 Your custom search</div>
+    <span class="disc-theme-btn ${cr.scanning?'scanning':(cnt?'done':'')}" style="cursor:default">${x}<span class="disc-tb-title">🔭 ${esc((cr.themeTitle||'Custom').slice(0,48))}</span><span class="disc-tb-sub">${sub}</span></span>
+  </div>`;
+}
 
 function renderDiscover(){
   loadDiscoverResults();
@@ -4012,6 +4025,7 @@ function renderDiscover(){
         <input id="discCustom" class="disc-custom-input" value="${prevCustom.replace(/"/g,'&quot;')}" placeholder="…or describe your own: e.g. profitable cybersecurity small-caps with a moat" />
         <button class="disc-custom-btn" onclick="aiDiscover('aiCustom', document.getElementById('discCustom').value)" ${anyScanning?'disabled':''}>🔭 Discover</button>
       </div>
+      ${customDiscoverChip()}
       <div class="disc-ctrl-label" style="margin-top:16px">📋 Curated universes <span class="disc-ctrl-hint">— fixed ~50-name large-cap lists · ~7 min each</span></div>
       <div class="disc-theme-row">${Object.keys(DISCOVER_UNIVERSES).map(k=>_themeBtn(k,false)).join('')}</div>
     </div>
