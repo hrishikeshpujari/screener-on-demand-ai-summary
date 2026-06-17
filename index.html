@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v8.3 — build 2026-06-15 — Discover reliability (per-ticker failure tracking + transient-rate-limit retry pass), theme filter lists all scanned themes w/ counts, clear discoveries (per-theme ✕ + clear-all), "added from Discover" source tag on screener rows, clearable custom-search chip, strip Claude web-search &lt;cite&gt; tags from AI summaries; v8.2: data-confidence interlock, fair-value band + MoS gate, catalyst clock + value-trap, portfolio construction + crowding/correlation -->
+<!-- v8.3 — build 2026-06-15 — Discover reliability (per-ticker failure tracking + transient-rate-limit retry pass), theme filter lists all scanned themes w/ counts, clear discoveries (per-theme ✕ + clear-all), "added from Discover" source tag on screener rows, clearable custom-search chip, strip Claude web-search &lt;cite&gt; tags from AI summaries, AI Investment Committee (Graham/Buffett/Lynch + hedge-fund manager) per-stock + portfolio review, invest-vs-trade entry split; v8.2: data-confidence interlock, fair-value band + MoS gate, catalyst clock + value-trap, portfolio construction + crowding/correlation -->
 <html lang="en" data-design="material">
 <head>
 <meta charset="UTF-8">
@@ -211,6 +211,11 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
 .an-block{background:var(--surface-deep);border:1px solid var(--border-default);border-radius:8px;padding:12px 16px;margin-bottom:8px;overflow:hidden}
 .an-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:6px}
 .an-txt{font-size:13px;color:var(--text-secondary);line-height:1.75;word-wrap:break-word;overflow-wrap:break-word;white-space:normal}
+.committee-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin-top:4px}
+.committee-card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:9px 11px}
+.committee-name{font-size:11.5px;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:5px}
+.committee-score{font-size:9px;font-weight:700;color:var(--text-faint);background:var(--bg-input);border-radius:5px;padding:0 4px}
+.committee-txt{font-size:12px;color:var(--text-secondary);line-height:1.55;word-wrap:break-word;overflow-wrap:break-word}
 .ai-btn{background:linear-gradient(135deg,var(--c-indigo) 0%,var(--c-purple) 100%);color:#fff;border:none;padding:11px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:transform .15s,opacity .15s}
 .ai-btn:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(79,110,247,.4)}
 .ai-btn:disabled{opacity:.5;cursor:not-allowed}
@@ -3444,33 +3449,54 @@ async function reviewPortfolio(){
   const btn = document.getElementById('reviewBtn');
   btn.disabled = true; btn.textContent = '🧠 Reviewing…';
 
-  // Build context of all positions
+  // Build context of all positions + the real portfolio-risk picture (Stage 4/5 data).
+  const stockPos = positions.filter(p=>p.type==='stock');
+  let stats = { positions:[], totalEquity:0, invested:0, cash:0, priced:0, top5Pct:0, effectiveN:0, sectorWeights:{}, weightedMoS:null, weightedBeta:null, betaCoverage:0 };
+  try { stats = computePortfolioStats(stockPos); } catch(e){ console.warn('portfolio stats', e); }
+  let corr = null; try { corr = computeCorrelationMatrix([...new Set(stockPos.map(p=>p.ticker))]); } catch(e){ console.warn('corr', e); }
+  const wOf = t => { const r = (stats.positions||[]).find(x=>x.ticker===t); return r ? r.weight*100 : null; };
+
   const posContext = positions.map(p=>{
     const s = getScreenerData(p.ticker);
+    const sc = s ? `${s.totalScore}/32 ${s.overallSignal} (G${s.graham?.score} B${s.buffett?.score} L${s.lynch?.score} T${s.technical?.score})` : 'NOT LOADED — refresh first';
+    const val = (s && s.fairPrice) ? ` · fair $${s.fairPrice.toFixed(0)}, MoS ${s.marginOfSafety!=null?(s.marginOfSafety*100).toFixed(0)+'%':'n/a'}${s.fairValueReliable===false?' (FV unreliable)':''}` : '';
     if(p.type==='stock'){
-      const pnl = computeStockPnL(p);
-      return `STOCK: ${p.ticker} · ${p.shares}sh · entry $${p.entryPrice} · current ${pnl?.currentPrice?'$'+pnl.currentPrice.toFixed(2):'unknown'} · P&L ${pnl?`${pnl.pnlPct.toFixed(1)}%`:'unknown'} · Screener: ${s?s.totalScore+'/32 '+s.overallSignal:'not loaded'}`;
+      const pnl = computeStockPnL(p); const w = wOf(p.ticker);
+      return `STOCK ${p.ticker} · ${p.shares}sh @ $${p.entryPrice} · ${pnl?`P&L ${pnl.pnlPct.toFixed(1)}%`:'P&L unknown'}${w!=null?` · ${w.toFixed(1)}% of NAV`:''}${s?.sector?' · '+s.sector:''} · ${sc}${val}`;
     } else {
       const pnl = computeOptionPnL(p);
-      return `OPTION: ${p.ticker} $${p.strike}${p.optType[0].toUpperCase()} exp ${p.expiry} · ${p.contracts}x · paid $${p.premium}/sh · ${pnl.daysToExpiry}d left · ${pnl.itm?'ITM':'OTM'} · stock ${pnl.currentPrice?'$'+pnl.currentPrice.toFixed(2):'unknown'} · Screener: ${s?s.totalScore+'/32 '+s.overallSignal:'not loaded'}`;
+      return `OPTION ${p.ticker} $${p.strike}${p.optType[0].toUpperCase()} exp ${p.expiry} · ${p.contracts}x @ $${p.premium}/sh · ${pnl.daysToExpiry}d left · ${pnl.itm?'ITM':'OTM'} · underlying ${sc}`;
     }
   }).join('\n');
 
+  const sectorStr = Object.entries(stats.sectorWeights||{}).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${k} ${(v*100).toFixed(0)}%${v>0.30&&k!=='Cash'?'⚠':''}`).join(', ') || 'n/a';
+  const clusterStr = (corr&&corr.clusters&&corr.clusters.length) ? corr.clusters.map(c=>`{${c.tickers.join('+')} ~${c.avgCorr!=null?c.avgCorr.toFixed(2):'?'}}`).join(', ') : 'none >0.7';
+  const portStats = stockPos.length ? `
+PORTFOLIO RISK (computed):
+NAV $${Math.round(stats.totalEquity).toLocaleString()} ($${Math.round(stats.invested).toLocaleString()} invested${stats.cash>0?` + $${Math.round(stats.cash).toLocaleString()} cash`:''}) · ${stockPos.length} stock positions
+Concentration: top-5 ${(stats.top5Pct*100).toFixed(0)}% of NAV · ${stats.effectiveN.toFixed(1)} effective bets (HHI) of ${stats.priced} held
+Sector exposure: ${sectorStr}  (⚠ = over 30%)
+Weighted margin of safety ${stats.weightedMoS!=null?(stats.weightedMoS*100).toFixed(0)+'%':'n/a'} · weighted beta ${stats.weightedBeta!=null?stats.weightedBeta.toFixed(2):'n/a'} (${(stats.betaCoverage*100).toFixed(0)}% of NAV has a beta)
+Correlation: avg pairwise ${corr&&corr.avgPairwise!=null?corr.avgPairwise.toFixed(2):'n/a'} → ~${corr?corr.effectiveBets.toFixed(1):'?'} truly-independent bets · clusters: ${clusterStr}${corr&&corr.missing&&corr.missing.length?` · no price cache for ${corr.missing.join(', ')} (refresh to include)`:''}` : '';
+
   const today = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
-  const prompt = `Today's date: ${today}. When discussing earnings or upcoming events, reference real upcoming quarters relative to today.
+  const prompt = `Today's date: ${today}. Reference real upcoming quarters relative to today.
 
-Review my investment portfolio and give me a prioritized action plan.
+You are an INVESTMENT COMMITTEE managing this portfolio: Benjamin GRAHAM (safety + margin of safety), Warren BUFFETT (quality/moat, hold wonderful businesses forever at fair prices), Peter LYNCH (growth at a reasonable price, know what you own), and a HEDGE-FUND MANAGER who runs the book as a whole (position sizing, concentration, correlation, hedges, catalysts, when to trim). Ground EVERYTHING in the numbers below — never invent scores, fair values, or weights. The value investors judge price-vs-value; the manager judges construction/risk.
 
-CURRENT POSITIONS:
+POSITIONS:
 ${posContext}
+${portStats}
 
-Provide a clear, prioritized review in this structure:
-1. URGENT (positions needing immediate attention — options near expiry, stop losses hit, severe signal deterioration)
-2. WATCH (positions to monitor closely this week)  
-3. HOLDS (positions looking fine, no action needed)
-4. OVERALL ASSESSMENT (1-2 sentences on portfolio balance, concentration risk, or missing opportunities)
+Deliver a prioritized, specific action plan:
 
-Be specific with tickers and price levels. Don't hedge everything — give direct recommendations.`;
+1. 🔴 TRIM / EXIT — names to cut or reduce. Each: ticker, why (price above fair value / negative MoS, deteriorating score, option near expiry, single name >10% of NAV, or one of a correlated cluster), and roughly how much to trim.
+2. 🟢 ADD / ACCUMULATE — names to add to. Each: ticker, why (quality at a discount, positive MoS, underweight a thin sleeve), and the price to accumulate below.
+3. 🛡️ MANAGER'S RISK OVERLAY — concentration (any name >10% / sector >30%), correlation clusters that mean fewer independent bets than holdings, weighted beta, earnings within ~2 weeks. Give concrete hedges, stops, or trims to fix it.
+4. ✅ HOLD — fine as-is.
+5. 👥 COMMITTEE TAKE — one line each from Graham, Buffett, Lynch and the manager on the book overall (cheap/safe? quality? growthy? well-constructed?).
+
+Be direct and specific with tickers and prices; don't hedge every sentence. This is educational analysis of what each style would suggest — not personalized financial advice.`;
 
   // Add to chat as a system-initiated message
   chatHistory.push({role:'user', content:'🧠 Portfolio Review (auto-generated)'});
@@ -5862,23 +5888,34 @@ FCF: $${s.buffett?.fcfMillions?.toFixed?.(0)}M · FCF Margin: ${s.buffett?.fcfMa
 Revenue Growth 5yr: ${s.buffett?.revenueGrowth5yr?.toFixed?.(1)}% · EPS Growth YoY: ${s.lynch?.epsGrowthYoy?.toFixed?.(1)}%
 PEG: ${s.lynch?.peg?.toFixed?.(2)} · Dividend Yield: ${s.graham?.dividendYield?.toFixed?.(2)}%
 
+VALUATION (price vs value):
+Fair value $${s.fairPrice?s.fairPrice.toFixed(2):'n/a'}${s.fairValueBand?` (range $${s.fairValueBand.bear?.toFixed?.(0)}–$${s.fairValueBand.bull?.toFixed?.(0)}${s.fairValueBand.wide?', WIDE/low-confidence':''})`:''} · Margin of safety ${s.marginOfSafety!=null?(s.marginOfSafety*100).toFixed(0)+'%':'n/a'}${s.fairValueReliable===false?' — FAIR VALUE UNRELIABLE, do not anchor on it':''}${s.verdictNote?` · note: ${s.verdictNote}`:''}
+Lynch category: ${['—','Slow grower','Stalwart','Fast grower','Cyclical','Turnaround','Asset play'][s.lynch?.lynchCategory||0]||'—'}
+52-week range: $${s.week52Low?.toFixed?.(0)||'?'}–$${s.week52High?.toFixed?.(0)||'?'} · Beta: ${s.beta?.toFixed?.(2)||'n/a'}
+
 TECHNICAL:
 ${s.technical?.summary}
 Trend: ${s.technical?.trendDirection} · Recent pattern: ${s.technical?.recentPattern}
-Support: $${s.technical?.supportLevel?.toFixed?.(2)} · Resistance: $${s.technical?.resistanceLevel?.toFixed?.(2)}
+Support: $${s.technical?.supportLevel?.toFixed?.(2)} · Resistance: $${s.technical?.resistanceLevel?.toFixed?.(2)} · Brooks trade entry: $${s.entryPrice?s.entryPrice.toFixed(2):'wait'}
 
 OPTIONS: Verdict is ${s.options?.verdict} — ${s.options?.verdictReason}
 
 Output ONLY valid JSON, no text before or after:
-{"thesis":"","bullCase":"","bearCase":"","riskFactors":"","entryStrategy":"","catalysts":"","sectorContext":""}
+{"thesis":"","grahamView":"","buffettView":"","lynchView":"","riskManagerView":"","bullCase":"","bearCase":"","riskFactors":"","accumulationZone":"","entryStrategy":"","catalysts":"","sectorContext":""}
 
 Write with depth, real numbers from the data above, and specificity. CRITICAL: For catalysts, sectorContext, and any reference to recent events/earnings, USE WEB SEARCH to find verified information. Do NOT make up dates or events. If web search returns nothing relevant, say so explicitly rather than fabricating.
 
-- thesis: 3-4 sentences. Core investment case grounded in the scores above. State plainly whether this is PROVEN durable quality (Buffett-style: already-high, stable returns on capital behind a defended moat, bought at a fair price) or EMERGING future quality (Lefebvre/GVD-style: a smaller company on track to become dominant) — and name the actual compounding engine.
-- bullCase: 2-3 sentences. The FORWARD-quality case, not just today's numbers: is the moat WIDENING or merely present? Is there reinvestment runway — can it redeploy earnings at high returns (high ROIC with room to reinvest), or is growth tapped out? Is the revenue/earnings growth durable and structural rather than a one-off? Search the web for evidence (market-share trend, capacity, management's capital-allocation record).
+An INVESTMENT COMMITTEE of four reviews this stock. Each speaks in their own voice, LEADS WITH A STANCE IN CAPS, stays grounded in the scores/valuation above (never contradict or invent the math — a 2/8 Graham score is NOT "great value"), and is TIGHT (1-2 sentences). The three value investors judge PRICE-VS-VALUE (not charts); the risk manager judges sizing/timing/risk.
+- thesis: 3-4 sentences. Core investment case grounded in the scores above. State plainly whether this is PROVEN durable quality (Buffett-style: already-high, stable returns on capital behind a defended moat, bought at a fair price) or EMERGING future quality — and name the actual compounding engine.
+- grahamView: AS Benjamin Graham. STANCE (BUY / WAIT / AVOID). Judge ONLY safety + cheapness by his defensive tests (adequate size, P/E, P/E×P/B≤22.5, current ratio, low debt, earnings stability) and whether there is a real MARGIN OF SAFETY vs the fair value above. He will not overpay for quality.
+- buffettView: AS Warren Buffett. STANCE (BUY / WAIT / HOLD / AVOID). Is it a wonderful business with a durable moat and high returns on capital (ROE/ROIC/gross & net margin/FCF) you'd own forever — and is the PRICE fair? He'd rather wait for a fair price on a great business than overpay.
+- lynchView: AS Peter Lynch. STANCE. Use its Lynch CATEGORY above and judge by THAT category's yardstick — growth at a reasonable price (PEG / dividend-adjusted), a story you can understand, balance-sheet sanity.
+- riskManagerView: AS a hedge-fund risk manager. STANCE on SIZING & TIMING (not the business): given the trend, where price sits in its 52-week range, beta, and any near-term catalyst — how big a position, when to enter/add, and the stop or hedge. This is the TRADE lens, the counterweight to the three investors.
+- bullCase: 2-3 sentences. The FORWARD-quality case: is the moat WIDENING? reinvestment runway (high ROIC with room to redeploy)? durable structural growth? Search the web for evidence.
 - bearCase: 2-3 sentences. Concrete risks based on the data + verified recent concerns (search the web).
-- riskFactors: 2-3 sentences. Focus on QUALITY-TREND cracks — is quality quietly deteriorating? Check whether returns on capital are rolling over; whether a strong ROE is real operating performance or just leverage/buybacks (return on TANGIBLE capital is what matters, not headline ROE); whether growth is decelerating against its own history; margin compression; share dilution or rising debt. Name the earliest sign the thesis would break.
-- entryStrategy: 2-3 sentences. Based on the technical levels above, when and how to enter.
+- riskFactors: 2-3 sentences. QUALITY-TREND cracks — returns on capital rolling over, an ROE that is leverage/buybacks not operations, decelerating growth vs its own history, margin compression, dilution/rising debt. Name the earliest sign the thesis would break.
+- accumulationZone: 1-2 sentences. The INVESTOR's entry — the price at/below which it offers a margin of safety (use the fair value + MoS above): "Accumulate below $Y; full value ~$Z." Ignore short-term charts. If fair value is unreliable, say accumulation can't be price-anchored yet.
+- entryStrategy: 1-2 sentences. The TRADER's entry — based on the technical levels (EMA pullback / support), when and how to TIME a position. Explicitly DISTINCT from the accumulation zone (timing, not value).
 - catalysts: 1-2 sentences. SEARCH THE WEB for actual upcoming earnings dates, product launches, or events. Cite the specific date/event found. If nothing found, say "No specific near-term catalysts identified — check ${s.ticker} IR page."
 - sectorContext: 1-2 sentences. SEARCH THE WEB for how peers in the same sector are currently performing. Reference real recent peer comparisons.`;
 
@@ -5905,7 +5942,7 @@ Write with depth, real numbers from the data above, and specificity. CRITICAL: F
     const analysis = parseJSON(txt);
     // Strip Claude's inline web-search <cite> tags from every field so the STORED (and synced)
     // analysis is clean, not just the display.
-    ['thesis','bullCase','bearCase','riskFactors','entryStrategy','catalysts','sectorContext'].forEach(k=>{
+    ['thesis','grahamView','buffettView','lynchView','riskManagerView','bullCase','bearCase','riskFactors','accumulationZone','entryStrategy','catalysts','sectorContext'].forEach(k=>{
       if(typeof analysis[k] === 'string') analysis[k] = stripCites(analysis[k]);
     });
     s.analysis = analysis;
@@ -6588,13 +6625,23 @@ function buildAnalysisHtml(s){
     // whose localStorage holds the API keys + gist token. stripCites() first removes
     // Claude's inline <cite> web-search markers so they don't render as raw text.
     const f = v => esc(stripCites(v));
+    // Investment Committee — each persona's stance, grounded in the framework's own /8 score.
+    const committee = [
+      ['🏦','Graham','var(--c-amber)', an.grahamView, s.graham?.score],
+      ['🎩','Buffett','var(--c-purple)', an.buffettView, s.buffett?.score],
+      ['🔍','Lynch','var(--c-green)', an.lynchView, s.lynch?.score],
+      ['🛡️','Risk Manager','var(--accent-info)', an.riskManagerView, s.technical?.score],
+    ].filter(c => c[3]);
+    const committeeHtml = committee.length ? `<div class="an-block"><div class="an-lbl">👥 Investment Committee</div><div class="committee-grid">${committee.map(([ic,nm,col,txt,sc])=>`<div class="committee-card"><div class="committee-name" style="color:${col}">${ic} ${nm}${sc!=null?` <span class="committee-score">${sc}/8</span>`:''}</div><div class="committee-txt">${f(txt)}</div></div>`).join('')}</div></div>` : '';
     return [
       `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:11px;color:${streaming?'var(--accent-ai)':'var(--text-muted)'}">${streaming?'<span class="spin" style="width:10px;height:10px"></span> Streaming AI analysis…':'AI analysis — based on pure-math scores'}</div>${streaming?'':`<button class="ai-btn-sm" onclick="s=stocks.find(x=>x.id===${s.id});if(s){s.analysis=null;renderTable();fetchSummary(${s.id});}">↻ Regenerate</button>`}</div>`,
       an.thesis?`<div class="an-block"><div class="an-lbl">📋 Investment Thesis</div><div class="an-txt">${f(an.thesis)}</div></div>`:'',
+      committeeHtml,
       an.bullCase?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-buy)">🐂 Bull Case</div><div class="an-txt">${f(an.bullCase)}</div></div>`:'',
       an.bearCase?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-sell)">🐻 Bear Case</div><div class="an-txt">${f(an.bearCase)}</div></div>`:'',
       an.riskFactors?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-hold)">⚠️ Key Risks</div><div class="an-txt">${f(an.riskFactors)}</div></div>`:'',
-      an.entryStrategy?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-info)">🎯 Entry Strategy</div><div class="an-txt">${f(an.entryStrategy)}</div></div>`:'',
+      an.accumulationZone?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-buy)">💰 Accumulation Zone <span style="font-weight:400;color:var(--text-faint)">— investor, price vs value</span></div><div class="an-txt">${f(an.accumulationZone)}</div></div>`:'',
+      an.entryStrategy?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-info)">🎯 Trade Entry <span style="font-weight:400;color:var(--text-faint)">— trader, technical timing</span></div><div class="an-txt">${f(an.entryStrategy)}</div></div>`:'',
       an.catalysts?`<div class="an-block"><div class="an-lbl">⚡ Catalysts</div><div class="an-txt">${f(an.catalysts)}</div></div>`:'',
       an.sectorContext?`<div class="an-block"><div class="an-lbl">🏭 Sector Context</div><div class="an-txt">${f(an.sectorContext)}</div></div>`:'',
     ].filter(Boolean).join('');
