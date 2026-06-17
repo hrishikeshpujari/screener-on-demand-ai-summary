@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v8.3 — build 2026-06-15 — Discover reliability (per-ticker failure tracking + transient-rate-limit retry pass), theme filter lists all scanned themes w/ counts, clear discoveries (per-theme ✕ + clear-all), "added from Discover" source tag on screener rows, clearable custom-search chip; v8.2: data-confidence interlock, fair-value band + MoS gate, catalyst clock + value-trap, portfolio construction + crowding/correlation -->
+<!-- v8.3 — build 2026-06-15 — Discover reliability (per-ticker failure tracking + transient-rate-limit retry pass), theme filter lists all scanned themes w/ counts, clear discoveries (per-theme ✕ + clear-all), "added from Discover" source tag on screener rows, clearable custom-search chip, strip Claude web-search &lt;cite&gt; tags from AI summaries; v8.2: data-confidence interlock, fair-value band + MoS gate, catalyst clock + value-trap, portfolio construction + crowding/correlation -->
 <html lang="en" data-design="material">
 <head>
 <meta charset="UTF-8">
@@ -3901,7 +3901,7 @@ async function aiDiscover(themeKey, customQuery){
       if(busyOp !== `discover-${themeKey}`) break;
       const t = String(cand[i].ticker).toUpperCase().trim().replace(/[^A-Z.\-]/g,'');
       if(!t){ continue; }
-      const aiReason = cand[i].reason || '';
+      const aiReason = stripCites(cand[i].reason || '');
       discoverResults[themeKey].scanning = `${i+1}/${cand.length} · ${t}`;
       saveDiscoverResults();
       showProgress(`🔭 Validating ${t} (${i+1}/${cand.length}) · ${matches.length} kept`);
@@ -5903,6 +5903,11 @@ Write with depth, real numbers from the data above, and specificity. CRITICAL: F
       }
     });
     const analysis = parseJSON(txt);
+    // Strip Claude's inline web-search <cite> tags from every field so the STORED (and synced)
+    // analysis is clean, not just the display.
+    ['thesis','bullCase','bearCase','riskFactors','entryStrategy','catalysts','sectorContext'].forEach(k=>{
+      if(typeof analysis[k] === 'string') analysis[k] = stripCites(analysis[k]);
+    });
     s.analysis = analysis;
     save();
     // Final render: full table update so the row's visible state syncs
@@ -6565,6 +6570,9 @@ function toggleDP(id){
 function closeDP(){ activeDP = null; renderTable(); }
 
 // Build the AI analysis section HTML. Used by both buildExpandRow and updateAnalysisOnly (for streaming).
+// Remove Claude web-search citation tags (<cite index="6-1">…</cite>) but KEEP the cited text.
+// Claude emits these inline when web search is on; we don't map them to sources, so strip them.
+function stripCites(v){ return v == null ? '' : String(v).replace(/<\/?cite\b[^>]*>/gi, ''); }
 function buildAnalysisHtml(s){
   const an = s.analysis || {};
   if(an.generating){
@@ -6577,16 +6585,18 @@ function buildAnalysisHtml(s){
     const streaming = an._streaming;
     // esc() every model-derived field: web_search can pull attacker-controlled
     // text into these, and they're injected straight into innerHTML in a WebView
-    // whose localStorage holds the API keys + gist token.
+    // whose localStorage holds the API keys + gist token. stripCites() first removes
+    // Claude's inline <cite> web-search markers so they don't render as raw text.
+    const f = v => esc(stripCites(v));
     return [
       `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:11px;color:${streaming?'var(--accent-ai)':'var(--text-muted)'}">${streaming?'<span class="spin" style="width:10px;height:10px"></span> Streaming AI analysis…':'AI analysis — based on pure-math scores'}</div>${streaming?'':`<button class="ai-btn-sm" onclick="s=stocks.find(x=>x.id===${s.id});if(s){s.analysis=null;renderTable();fetchSummary(${s.id});}">↻ Regenerate</button>`}</div>`,
-      an.thesis?`<div class="an-block"><div class="an-lbl">📋 Investment Thesis</div><div class="an-txt">${esc(an.thesis)}</div></div>`:'',
-      an.bullCase?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-buy)">🐂 Bull Case</div><div class="an-txt">${esc(an.bullCase)}</div></div>`:'',
-      an.bearCase?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-sell)">🐻 Bear Case</div><div class="an-txt">${esc(an.bearCase)}</div></div>`:'',
-      an.riskFactors?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-hold)">⚠️ Key Risks</div><div class="an-txt">${esc(an.riskFactors)}</div></div>`:'',
-      an.entryStrategy?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-info)">🎯 Entry Strategy</div><div class="an-txt">${esc(an.entryStrategy)}</div></div>`:'',
-      an.catalysts?`<div class="an-block"><div class="an-lbl">⚡ Catalysts</div><div class="an-txt">${esc(an.catalysts)}</div></div>`:'',
-      an.sectorContext?`<div class="an-block"><div class="an-lbl">🏭 Sector Context</div><div class="an-txt">${esc(an.sectorContext)}</div></div>`:'',
+      an.thesis?`<div class="an-block"><div class="an-lbl">📋 Investment Thesis</div><div class="an-txt">${f(an.thesis)}</div></div>`:'',
+      an.bullCase?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-buy)">🐂 Bull Case</div><div class="an-txt">${f(an.bullCase)}</div></div>`:'',
+      an.bearCase?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-sell)">🐻 Bear Case</div><div class="an-txt">${f(an.bearCase)}</div></div>`:'',
+      an.riskFactors?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-hold)">⚠️ Key Risks</div><div class="an-txt">${f(an.riskFactors)}</div></div>`:'',
+      an.entryStrategy?`<div class="an-block"><div class="an-lbl" style="color:var(--accent-info)">🎯 Entry Strategy</div><div class="an-txt">${f(an.entryStrategy)}</div></div>`:'',
+      an.catalysts?`<div class="an-block"><div class="an-lbl">⚡ Catalysts</div><div class="an-txt">${f(an.catalysts)}</div></div>`:'',
+      an.sectorContext?`<div class="an-block"><div class="an-lbl">🏭 Sector Context</div><div class="an-txt">${f(an.sectorContext)}</div></div>`:'',
     ].filter(Boolean).join('');
   }
   return `<div style="text-align:center;padding:20px;background:var(--bg-surface);border-radius:8px;border:1px dashed var(--border-strong)"><div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">No AI summary yet</div><button class="ai-btn" onclick="fetchSummary(${s.id})">🧠 Generate AI Summary</button><div style="font-size:11px;color:var(--text-faint);margin-top:8px">Uses pure-math scores as input · ~15 seconds</div></div>`;
