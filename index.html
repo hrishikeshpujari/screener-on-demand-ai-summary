@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v8.3 — build 2026-06-15 — Discover reliability (per-ticker failure tracking + transient-rate-limit retry pass), theme filter lists all scanned themes w/ counts, clear discoveries (per-theme ✕ + clear-all), "added from Discover" source tag on screener rows, clearable custom-search chip, strip Claude web-search &lt;cite&gt; tags from AI summaries, AI Investment Committee (Graham/Buffett/Lynch + hedge-fund manager) per-stock + portfolio review, invest-vs-trade entry split; v8.2: data-confidence interlock, fair-value band + MoS gate, catalyst clock + value-trap, portfolio construction + crowding/correlation -->
+<!-- v8.5 — build 2026-06-17 — NEW Macro · Sector Rotation tab: relative strength of 11 SPDR sector ETFs + SMH (semis/AI) vs SPY → RRG quadrants (leading/weakening/lagging/improving), money-flow rail, RRG scatter, portfolio overlay (your sectorWeights mapped onto the rotation), and an AI "explain this rotation" web-search narrative grounded in the computed numbers. Reuses fetchPriceHistory + viss_pxcache (cached ~18h, 8/min paced). v8.4: committee card text wraps in expanded rows (table-cell nowrap inheritance); portfolio review + AI chat render markdown via renderMarkdown(). v8.3: Discover reliability (per-ticker failure tracking + transient-rate-limit retry pass), theme filter lists all scanned themes w/ counts, clear discoveries (per-theme ✕ + clear-all), "added from Discover" source tag on screener rows, clearable custom-search chip, strip Claude web-search &lt;cite&gt; tags from AI summaries, AI Investment Committee (Graham/Buffett/Lynch + hedge-fund manager) per-stock + portfolio review, invest-vs-trade entry split; v8.2: data-confidence interlock, fair-value band + MoS gate, catalyst clock + value-trap, portfolio construction + crowding/correlation -->
 <html lang="en" data-design="material">
 <head>
 <meta charset="UTF-8">
@@ -212,10 +212,10 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
 .an-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:6px}
 .an-txt{font-size:13px;color:var(--text-secondary);line-height:1.75;word-wrap:break-word;overflow-wrap:break-word;white-space:normal}
 .committee-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin-top:4px}
-.committee-card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:9px 11px}
-.committee-name{font-size:11.5px;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:5px}
-.committee-score{font-size:9px;font-weight:700;color:var(--text-faint);background:var(--bg-input);border-radius:5px;padding:0 4px}
-.committee-txt{font-size:12px;color:var(--text-secondary);line-height:1.55;word-wrap:break-word;overflow-wrap:break-word}
+.committee-card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:9px 11px;min-width:0}
+.committee-name{font-size:11.5px;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:5px;white-space:normal}
+.committee-score{font-size:9px;font-weight:700;color:var(--text-faint);background:var(--bg-input);border-radius:5px;padding:0 4px;flex-shrink:0}
+.committee-txt{font-size:12px;color:var(--text-secondary);line-height:1.55;word-wrap:break-word;overflow-wrap:break-word;white-space:normal}
 .ai-btn{background:linear-gradient(135deg,var(--c-indigo) 0%,var(--c-purple) 100%);color:#fff;border:none;padding:11px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:transform .15s,opacity .15s}
 .ai-btn:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(79,110,247,.4)}
 .ai-btn:disabled{opacity:.5;cursor:not-allowed}
@@ -287,6 +287,58 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
 .chat-msg.user{background:var(--bg-surface-2);color:var(--text-secondary);border:1px solid var(--border-strong);align-self:flex-end}
 .chat-msg.ai{background:var(--surface-deep);color:var(--text-secondary);border:1px solid var(--border-default);align-self:flex-start}
 .chat-msg.ai.loading{color:var(--text-faint)}
+/* Markdown rendered inside AI chat / portfolio-review bubbles */
+.md-body>:first-child{margin-top:0}
+.md-body>:last-child{margin-bottom:0}
+.md-body .md-h{font-weight:700;color:var(--text-primary);line-height:1.35;margin:12px 0 5px}
+.md-body .md-h1{font-size:15px}
+.md-body .md-h2{font-size:14px}
+.md-body .md-h3{font-size:13px}
+.md-body .md-h4{font-size:12.5px;color:var(--text-secondary)}
+.md-body .md-p{margin:6px 0}
+.md-body .md-ul,.md-body .md-ol{margin:6px 0;padding-left:20px}
+.md-body .md-ul li,.md-body .md-ol li{margin:3px 0}
+.md-body .md-hr{border:none;border-top:1px solid var(--border-default);margin:11px 0}
+.md-body strong{color:var(--text-primary);font-weight:700}
+.md-body em{font-style:italic}
+.md-body code{background:var(--bg-input);border-radius:4px;padding:1px 5px;font-size:11.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.md-body .md-table-wrap{overflow-x:auto;margin:8px 0;border-radius:6px;border:1px solid var(--border-default)}
+.md-body .md-table{border-collapse:collapse;width:100%;font-size:11.5px}
+.md-body .md-table th,.md-body .md-table td{border:1px solid var(--border-default);padding:5px 8px;text-align:left;white-space:normal;vertical-align:top}
+.md-body .md-table th{background:var(--bg-input);color:var(--text-muted);font-weight:700;white-space:nowrap}
+/* Sector rotation (Macro tab) */
+.rot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.rot-card{background:var(--surface-deep);border:1px solid var(--border-default);border-radius:10px;padding:14px 16px;min-width:0}
+.rot-card-h{font-size:12px;color:var(--text-muted);margin-bottom:10px}
+.rot-sub{font-size:11px;font-weight:700;letter-spacing:.03em;margin-bottom:4px}
+.rot-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-default)}
+.rot-row:last-child{border-bottom:none}
+.rot-row-l{display:flex;align-items:center;gap:8px;min-width:0}
+.rot-name{font-size:13px;color:var(--text-primary)}
+.rot-badge{font-size:10px;font-weight:700;padding:1px 7px;border-radius:6px;white-space:nowrap;flex-shrink:0}
+.rot-lead{background:var(--accent-buy-bg);color:var(--c-green)}
+.rot-impr{background:rgba(59,130,246,.14);color:var(--accent-info)}
+.rot-weak{background:rgba(245,158,11,.14);color:var(--c-amber)}
+.rot-lag{background:var(--accent-sell-bg);color:var(--c-red)}
+.rot-flow{font-size:12px;font-weight:600;white-space:nowrap}
+.rot-none{font-size:12px;color:var(--text-faint);padding:4px 0}
+.rot-dot-lbl{font-size:9px;fill:var(--text-secondary)}
+.rot-overlay{background:var(--surface-deep);border:1px solid var(--border-default);border-radius:10px;padding:12px 16px;margin-top:12px}
+.rot-overlay-empty{color:var(--text-faint);font-size:12px}
+.rot-overlay-h{font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:8px}
+.rot-overlay-bars{display:flex;flex-wrap:wrap;gap:18px;font-size:12px;color:var(--text-secondary)}
+.rot-overlay-bars b{color:var(--text-primary)}
+.rot-ob-lbl{font-size:12px}
+.rot-overlay-verdict{font-size:12px;color:var(--text-secondary);margin-top:8px}
+.rot-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:10px;font-size:10px;color:var(--text-faint)}
+.rot-btn{padding:7px 14px;background:var(--surface-card);border:1px solid var(--border-strong);border-radius:7px;color:var(--text-tertiary);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+.rot-btn:hover{color:var(--text-primary);border-color:var(--c-indigo)}
+.rot-btn-ai{background:linear-gradient(135deg,var(--c-indigo),var(--c-purple));color:#fff;border:none}
+.rot-btn:disabled{opacity:.6;cursor:not-allowed}
+.rot-empty{font-size:13px;color:var(--text-muted);padding:24px;text-align:center;background:var(--surface-deep);border:1px dashed var(--border-strong);border-radius:10px}
+.rot-loading{font-size:12px;color:var(--text-muted);padding:12px;display:flex;align-items:center;gap:8px}
+.rot-narr{background:var(--surface-deep);border:1px solid var(--border-default);border-radius:10px;padding:14px 16px}
+.rot-err{font-size:12px;color:var(--c-red);padding:10px}
 .port-chat-input{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--border-default);background:var(--bg-input)}
 .port-chat-input input{flex:1;padding:10px 13px;background:var(--surface-card);border:1px solid var(--border-strong);border-radius:8px;color:var(--text-primary);font-size:13px;font-family:inherit}
 .port-chat-input input:focus{outline:none;border-color:var(--c-indigo)}
@@ -1783,6 +1835,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   <button class="app-tab active" id="navScreener" onclick="switchTab('screener')">📊 Screener</button>
   <button class="app-tab" id="navPortfolio" onclick="switchTab('portfolio')">💼 Portfolio</button>
   <button class="app-tab" id="navDiscover" onclick="switchTab('discover')">🔭 Discover</button>
+  <button class="app-tab" id="navMacro" onclick="switchTab('macro')">🧭 Macro</button>
 </div>
 
 <!-- Global progress bar — visible from any tab when an operation is running -->
@@ -2456,6 +2509,18 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   <div id="discoverCategories" style="display:flex;flex-direction:column;gap:14px"></div>
 </div>
 
+<div id="tabMacro" style="display:none">
+  <div style="margin-bottom:18px;display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
+    <div style="flex:1;min-width:200px">
+      <h2 style="font-size:18px;font-weight:700;color:var(--text-primary);margin-bottom:6px">🧭 Macro · Sector Rotation</h2>
+      <p style="font-size:12px;color:var(--text-muted);line-height:1.7">Relative strength of the 11 S&amp;P sector ETFs (plus a semis/AI basket) versus the S&amp;P 500 shows where money is rotating. "Money flow" here is <b>price-based relative strength</b> — there is no fund-flows feed; the AI read adds the macro <i>why</i> and any reported dollar flows. Cached ~daily to respect the price-API limit.</p>
+    </div>
+    <button id="rotExplainBtn" class="rot-btn rot-btn-ai" onclick="explainRotation()">🧠 Explain this rotation</button>
+  </div>
+  <div id="rotationView"></div>
+  <div id="rotationNarrative" style="margin-top:14px"></div>
+</div>
+
 </div><!-- end .screener-page -->
 
 <!-- ══ DEVICE SYNC MODAL ══ -->
@@ -2848,11 +2913,14 @@ function switchTab(tab){
   document.getElementById('tabScreener').style.display = tab==='screener'?'block':'none';
   document.getElementById('tabPortfolio').style.display = tab==='portfolio'?'block':'none';
   document.getElementById('tabDiscover').style.display = tab==='discover'?'block':'none';
+  document.getElementById('tabMacro').style.display = tab==='macro'?'block':'none';
   document.getElementById('navScreener').classList.toggle('active', tab==='screener');
   document.getElementById('navPortfolio').classList.toggle('active', tab==='portfolio');
   document.getElementById('navDiscover').classList.toggle('active', tab==='discover');
+  document.getElementById('navMacro').classList.toggle('active', tab==='macro');
   if(tab==='portfolio'){ loadPositions(); renderPortfolio(); fetchMissingPrices(); }
   if(tab==='discover'){ renderDiscover(); }
+  if(tab==='macro'){ openMacro(); }
 }
 
 // ── Modal ──
@@ -3274,6 +3342,220 @@ function renderCrowding(stockPos){
   el.innerHTML = wrap(`<div style="font-size:13px;color:var(--text-secondary)">${headline}</div>${clusterHtml}${missingHtml}`);
 }
 
+// ══════════════════════════════════════════════════════════════
+// SECTOR ROTATION (Macro tab) — relative strength of sector ETFs vs SPY.
+// "Money flow" is PROXIED by price relative strength (we have no fund-flows feed);
+// the AI narrative layer adds the macro why + any reported flows, grounded in these numbers.
+// Reuses fetchPriceHistory + the local viss_pxcache (same infra as correlation).
+// ══════════════════════════════════════════════════════════════
+const ROTATION_BENCH = 'SPY';
+const SECTOR_ETFS = [
+  {sym:'XLK',  sector:'Tech',             label:'Technology'},
+  {sym:'SMH',  sector:'Semis / AI',       label:'Semiconductors / AI', theme:true},
+  {sym:'XLC',  sector:'Comm Services',    label:'Communication'},
+  {sym:'XLY',  sector:'Consumer Disc',    label:'Consumer Disc.'},
+  {sym:'XLP',  sector:'Consumer Staples', label:'Consumer Staples'},
+  {sym:'XLV',  sector:'Healthcare',       label:'Health Care'},
+  {sym:'XLF',  sector:'Financials',       label:'Financials'},
+  {sym:'XLE',  sector:'Energy',           label:'Energy'},
+  {sym:'XLI',  sector:'Industrials',      label:'Industrials'},
+  {sym:'XLB',  sector:'Materials',        label:'Materials'},
+  {sym:'XLU',  sector:'Utilities',        label:'Utilities'},
+  {sym:'XLRE', sector:'Real Estate',      label:'Real Estate'},
+];
+// coarseSector() bucket → the ETF representing it (for the portfolio overlay).
+const SECTOR_TO_ETF = { 'Tech':'XLK','Comm Services':'XLC','Consumer Disc':'XLY','Consumer Staples':'XLP','Healthcare':'XLV','Financials':'XLF','Energy':'XLE','Industrials':'XLI','Materials':'XLB','Utilities':'XLU','Real Estate':'XLRE' };
+const ROTATION_TTL = 18*60*60*1000; // 18h — refetch at most ~once/day
+
+function fmtRel(x){ return (x>=0?'+':'') + (x*100).toFixed(1) + '%'; }
+function retN(closes, n){
+  if(!Array.isArray(closes) || closes.length <= n) return null;
+  const a=closes[closes.length-1-n], b=closes[closes.length-1];
+  return (a>0 && isFinite(a) && isFinite(b)) ? (b/a - 1) : null;
+}
+function quadMeta(q){
+  return ({
+    leading:   {label:'leading',   cls:'rot-lead', color:'var(--c-green)'},
+    weakening: {label:'weakening', cls:'rot-weak', color:'var(--c-amber)'},
+    lagging:   {label:'lagging',   cls:'rot-lag',  color:'var(--c-red)'},
+    improving: {label:'improving', cls:'rot-impr', color:'var(--accent-info)'},
+  })[q] || {label:q, cls:'rot-impr', color:'var(--text-muted)'};
+}
+// Age (ms) of the OLDEST cached symbol in the rotation set; null if any are missing.
+function rotationCacheAge(){
+  let cache={}; try{ cache=JSON.parse(localStorage.getItem('viss_pxcache')||'{}')||{}; }catch(e){}
+  const syms=[ROTATION_BENCH, ...SECTOR_ETFS.map(e=>e.sym)];
+  const tss=syms.map(s=>cache[s]&&Array.isArray(cache[s].closes)&&cache[s].closes.length>=70?cache[s].ts:null).filter(v=>v!=null);
+  if(tss.length < syms.length) return null;
+  return Date.now() - Math.min(...tss);
+}
+// strength = 3-mo relative return vs SPY (x-axis); momentum = is the 1-mo relative pace
+// beating the 3-mo monthly average (y-axis). Quadrant from the signs of both.
+function computeRotation(){
+  let cache={}; try{ cache=JSON.parse(localStorage.getItem('viss_pxcache')||'{}')||{}; }catch(e){}
+  const spy = cache[ROTATION_BENCH] && cache[ROTATION_BENCH].closes;
+  if(!Array.isArray(spy) || spy.length<70) return { ready:false, rows:[], missing:[ROTATION_BENCH] };
+  const spy63=retN(spy,63), spy21=retN(spy,21), spy5=retN(spy,5);
+  const rows=[], missing=[];
+  SECTOR_ETFS.forEach(e=>{
+    const cl = cache[e.sym] && cache[e.sym].closes;
+    if(!Array.isArray(cl) || cl.length<70){ missing.push(e.sym); return; }
+    const r63=retN(cl,63), r21=retN(cl,21), r5=retN(cl,5);
+    if(r63==null||r21==null||spy63==null||spy21==null){ missing.push(e.sym); return; }
+    const strength = r63 - spy63;          // 3-mo relative return
+    const rel21    = r21 - spy21;          // 1-mo relative return
+    const momentum = rel21 - strength/3;   // 1-mo pace vs the 3-mo monthly average
+    const weekly   = (r5!=null && spy5!=null) ? (r5 - spy5) : null;
+    let quad;
+    if(strength>=0 && momentum>=0) quad='leading';
+    else if(strength>=0 && momentum<0) quad='weakening';
+    else if(strength<0 && momentum<0) quad='lagging';
+    else quad='improving';
+    rows.push({ sym:e.sym, label:e.label, sector:e.sector, theme:!!e.theme, strength, momentum, weekly, r63, r21, quad });
+  });
+  rows.sort((a,b)=> b.momentum - a.momentum); // money-flow direction = momentum
+  const tss=[ROTATION_BENCH,...rows.map(r=>r.sym)].map(s=>cache[s]&&cache[s].ts).filter(Boolean);
+  return { ready: rows.length>=4, rows, missing, asOf: tss.length?Math.min(...tss):null };
+}
+// Fetch the sector-ETF set (only missing/stale symbols), throttled to Twelve Data's 8/min.
+async function loadRotationData(force){
+  if(!keys[2]) return { ok:false, reason:'Add a Twelve Data API key to load sector prices.' };
+  if(!force){ const age=rotationCacheAge(); if(age!=null && age<ROTATION_TTL) return { ok:true, fromCache:true }; }
+  if(busyOp){ const proceed = await confirmInterruptBusy(); if(!proceed) return { ok:false, reason:'busy' }; busyOp=null; }
+  busyOp='rotation';
+  const syms=[ROTATION_BENCH, ...SECTOR_ETFS.map(e=>e.sym)];
+  let cache={}; try{ cache=JSON.parse(localStorage.getItem('viss_pxcache')||'{}')||{}; }catch(e){}
+  const need = syms.filter(s=> force || !cache[s] || !(cache[s].closes && cache[s].closes.length>=70) || (Date.now()-(cache[s].ts||0))>=ROTATION_TTL);
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  let fetched=0;
+  try {
+    for(let i=0;i<need.length;i++){
+      if(busyOp!=='rotation'){ break; }
+      const s=need[i];
+      showProgress(`🧭 Loading sector data: ${i+1}/${need.length} · ${s}`);
+      let hist=null; try{ hist=await fetchPriceHistory(s); }catch(e){ hist=null; }
+      if(hist && hist.length>=50){ cachePriceHistory(s, hist); fetched++; }
+      if(i<need.length-1) await sleep(8000); // Twelve Data 8/min pacing
+    }
+  } finally { busyOp=null; hideProgress(); }
+  return { ok:true, fetched };
+}
+async function openMacro(){
+  try{ loadPositions(); }catch(e){}
+  renderRotation();
+  const age=rotationCacheAge();
+  if(age==null || age>=ROTATION_TTL){
+    const res=await loadRotationData(false);
+    if(!res.ok && res.reason && res.reason!=='busy'){ const el=document.getElementById('rotationView'); if(el && !el.children.length) el.innerHTML=`<div class="rot-empty">${esc(res.reason)}</div>`; }
+    renderRotation();
+  }
+}
+async function refreshRotation(){
+  const res=await loadRotationData(true);
+  if(!res.ok && res.reason && res.reason!=='busy') appAlert(res.reason);
+  renderRotation();
+}
+function buildRotationSvg(rows){
+  const W=320,H=250, x0=30,x1=300,y0=20,y1=210;
+  const cx=(x0+x1)/2, cy=(y0+y1)/2;
+  const maxS=Math.max(0.02,...rows.map(r=>Math.abs(r.strength)));
+  const maxM=Math.max(0.01,...rows.map(r=>Math.abs(r.momentum)));
+  const clamp=v=>Math.max(-1,Math.min(1,v));
+  const sx=v=> cx + clamp(v/maxS)*((x1-x0)/2 - 12);
+  const sy=v=> cy - clamp(v/maxM)*((y1-y0)/2 - 12);
+  const rect=(x,y,w,h,fill)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}"/>`;
+  const bg = rect(cx,y0,x1-cx,cy-y0,'rgba(34,197,94,.06)')
+           + rect(x0,y0,cx-x0,cy-y0,'rgba(59,130,246,.06)')
+           + rect(x0,cy,cx-x0,y1-cy,'rgba(239,68,68,.06)')
+           + rect(cx,cy,x1-cx,y1-cy,'rgba(245,158,11,.06)');
+  const axes=`<line x1="${cx}" y1="${y0}" x2="${cx}" y2="${y1}" stroke="var(--border-strong)" stroke-width="1"/><line x1="${x0}" y1="${cy}" x2="${x1}" y2="${cy}" stroke="var(--border-strong)" stroke-width="1"/>`;
+  const ql=(x,y,a,c,t)=>`<text x="${x}" y="${y}" text-anchor="${a}" font-size="10" fill="${c}">${t}</text>`;
+  const labels = ql(x0+4,y0+11,'start','var(--accent-info)','improving') + ql(x1-4,y0+11,'end','var(--c-green)','leading') + ql(x0+4,y1-4,'start','var(--c-red)','lagging') + ql(x1-4,y1-4,'end','var(--c-amber)','weakening');
+  const dots = rows.map(r=>{
+    const x=sx(r.strength), y=sy(r.momentum), q=quadMeta(r.quad);
+    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.5" fill="${q.color}"><title>${esc(r.label)} — ${q.label} (3mo vs SPY ${fmtRel(r.strength)})</title></circle><text x="${(x+6).toFixed(1)}" y="${(y+3).toFixed(1)}" class="rot-dot-lbl">${esc(r.sym)}</text>`;
+  }).join('');
+  const caps=`<text x="${x1}" y="${H-6}" text-anchor="end" font-size="10" fill="var(--text-faint)">relative strength →</text><text x="12" y="${cy}" text-anchor="middle" font-size="10" fill="var(--text-faint)" transform="rotate(-90 12 ${cy})">momentum ↑</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:420px;display:block;margin:0 auto" role="img" aria-label="Sector relative-rotation quadrant">${bg}${axes}${labels}${dots}${caps}</svg>`;
+}
+function buildRotationOverlay(rows){
+  let stockPos=[]; try{ stockPos=(typeof positions!=='undefined'?positions:[]).filter(p=>p.type==='stock'); }catch(e){}
+  if(!stockPos.length) return `<div class="rot-overlay rot-overlay-empty">Add portfolio positions to see how your book sits versus the rotation.</div>`;
+  let stats; try{ stats=computePortfolioStats(stockPos); }catch(e){ return ''; }
+  const byEtf={}; rows.forEach(r=>byEtf[r.sym]=r);
+  const quadW={leading:0,weakening:0,lagging:0,improving:0,unmapped:0};
+  Object.entries(stats.sectorWeights||{}).forEach(([sec,w])=>{
+    if(sec==='Cash'){ quadW.unmapped+=w; return; }
+    const etf=SECTOR_TO_ETF[sec], r=etf?byEtf[etf]:null;
+    if(r) quadW[r.quad]+=w; else quadW.unmapped+=w;
+  });
+  const inflowW=quadW.leading+quadW.improving, outflowW=quadW.weakening+quadW.lagging;
+  const wp=w=>Math.round(w*100);
+  const verdict = outflowW>inflowW*1.2 ? 'positioned <b style="color:var(--c-red)">against</b> the current rotation'
+    : inflowW>outflowW*1.2 ? 'positioned <b style="color:var(--c-green)">with</b> the current rotation'
+    : 'roughly balanced versus the rotation';
+  return `<div class="rot-overlay">
+    <div class="rot-overlay-h">📊 Your book vs the rotation</div>
+    <div class="rot-overlay-bars">
+      <div><span class="rot-ob-lbl" style="color:var(--c-green)">leading / improving</span> <b>${wp(inflowW)}%</b></div>
+      <div><span class="rot-ob-lbl" style="color:var(--c-red)">weakening / lagging</span> <b>${wp(outflowW)}%</b></div>
+      ${quadW.unmapped>0?`<div><span class="rot-ob-lbl" style="color:var(--text-faint)">cash / unmapped</span> <b>${wp(quadW.unmapped)}%</b></div>`:''}
+    </div>
+    <div class="rot-overlay-verdict">You're ${verdict}.</div>
+  </div>`;
+}
+function renderRotation(){
+  const el=document.getElementById('rotationView'); if(!el) return;
+  if(!keys[2]){ el.innerHTML=`<div class="rot-empty">Add a Twelve Data API key to load sector prices.</div>`; return; }
+  const data=computeRotation();
+  if(!data.ready){
+    const miss = data.missing&&data.missing.length ? ` (waiting on ${esc(data.missing.slice(0,6).join(', '))}${data.missing.length>6?'…':''})` : '';
+    el.innerHTML=`<div class="rot-empty">No sector data cached yet${miss}.<br><button class="rot-btn" style="margin-top:10px" onclick="refreshRotation()">↻ Load sector data</button></div>`;
+    return;
+  }
+  const rows=data.rows;
+  const inflow = rows.filter(r=>r.momentum>=0);
+  const outflow = rows.filter(r=>r.momentum<0);
+  const rowHtml = r => {
+    const q=quadMeta(r.quad);
+    const wk = r.weekly!=null ? fmtRel(r.weekly)+'/wk' : '—';
+    return `<div class="rot-row"><div class="rot-row-l"><span class="rot-name">${esc(r.label)}</span><span class="rot-badge ${q.cls}">${q.label}</span></div><span class="rot-flow" style="color:${r.momentum>=0?'var(--c-green)':'var(--c-red)'}">${wk}</span></div>`;
+  };
+  const railHtml = `<div class="rot-card"><div class="rot-card-h">Money flow — by relative-strength momentum</div><div class="rot-sub" style="color:var(--c-green)">▲ flowing in</div>${inflow.length?inflow.map(rowHtml).join(''):'<div class="rot-none">— none —</div>'}<div class="rot-sub" style="color:var(--c-red);margin-top:12px">▼ flowing out</div>${outflow.length?outflow.map(rowHtml).join(''):'<div class="rot-none">— none —</div>'}</div>`;
+  const quadHtml = `<div class="rot-card"><div class="rot-card-h">Relative rotation — strength vs momentum</div>${buildRotationSvg(rows)}</div>`;
+  const overlay = buildRotationOverlay(rows);
+  const asOf = data.asOf ? new Date(data.asOf).toLocaleString() : '—';
+  el.innerHTML = `<div class="rot-grid">${railHtml}${quadHtml}</div>${overlay}<div class="rot-foot"><span>Computed from sector-ETF prices vs SPY · cached ${esc(asOf)}</span><button class="rot-btn" onclick="refreshRotation()">↻ Refresh</button></div>`;
+}
+async function explainRotation(){
+  const data=computeRotation();
+  if(!data.ready){ appAlert('Load sector data first (open the Macro tab and let it fetch, or hit Refresh).'); return; }
+  if(!keys[0]){ appAlert('Add an Anthropic API key for the AI read.'); return; }
+  const box=document.getElementById('rotationNarrative');
+  const btn=document.getElementById('rotExplainBtn');
+  if(btn){ btn.disabled=true; btn.textContent='🧠 Reading the tape…'; }
+  if(box) box.innerHTML='<div class="rot-loading"><span class="spin"></span> Searching for the macro driver…</div>';
+  const today=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const rank=data.rows.map(r=>`${r.label}: ${r.quad}, 3-mo vs SPY ${fmtRel(r.strength)}, momentum ${r.momentum>=0?'rising':'falling'}, 1-wk vs SPY ${r.weekly!=null?fmtRel(r.weekly):'n/a'}`).join('\n');
+  const prompt=`Today is ${today}. Below is a COMPUTED sector-rotation snapshot — the relative strength of each US sector ETF versus the S&P 500 (SPY), already calculated from price data. Do NOT recompute or contradict these numbers; explain them.
+
+${rank}
+
+Quadrants: leading = strong & strengthening (money in); weakening = strong but losing momentum (money starting to leave); lagging = weak & weakening (money out); improving = weak but strengthening (money returning).
+
+In 3 short parts, grounded ONLY in the data above plus web search for the macro WHY:
+1. 🔄 THE ROTATION — one or two sentences naming which sectors money is rotating OUT of and INTO right now, using the actual sectors and quadrant moves above (e.g. tech weakening → staples improving).
+2. 🌍 THE DRIVER — SEARCH THE WEB for the current macro reason (rates, growth scare, risk-on/off, a specific catalyst this week). Cite what you find; if nothing concrete, state whether the price action implies risk-on or risk-off and why.
+3. 💵 REAL FLOWS — SEARCH THE WEB for any actually-reported recent sector/ETF fund-flow figures. If found, give the numbers and source; if not, say "No verified dollar-flow figures found — the above is price-based relative strength, not reported fund flows."
+
+Be specific and tight. This is educational market analysis, not personalized financial advice.`;
+  try {
+    const txt=await callAnthropic(prompt, true, 3, { maxTokens:1100 });
+    if(box) box.innerHTML=`<div class="rot-narr md-body">${renderMarkdown(txt)}</div>`;
+  } catch(e){ if(box) box.innerHTML=`<div class="rot-err">⚠ ${esc(e.message)}</div>`; }
+  if(btn){ btn.disabled=false; btn.textContent='🧠 Explain this rotation'; }
+}
+
 // ── Render ──
 function renderPortfolio(){
   loadPositions();
@@ -3566,10 +3848,77 @@ async function sendChat(){
   sendBtn.disabled = false;
 }
 
+// Minimal, SECURITY-CONSCIOUS markdown → HTML for AI chat / portfolio review.
+// esc() runs on EVERY model-derived span before any tag is added, so model text
+// can never inject HTML (the WebView's localStorage holds the API keys + gist
+// token). We only emit our own controlled tags around already-escaped text.
+function renderMarkdown(raw){
+  if(raw == null) return '';
+  const lines = String(raw).replace(/\r\n/g,'\n').split('\n');
+  const inline = txt => esc(txt)
+    .replace(/\*\*([^*]+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/`([^`]+?)`/g,'<code>$1</code>')
+    .replace(/(^|[\s(])\*([^*\n]+?)\*(?=[\s).,;:!?]|$)/g,'$1<em>$2</em>');
+  const splitRow = s => s.trim().replace(/^\|/,'').replace(/\|$/,'').split('|').map(c=>c.trim());
+  const isSep = s => /\|/.test(s) && /^[\s|:-]+$/.test(s) && s.includes('-');
+  const out = [];
+  let i = 0;
+  while(i < lines.length){
+    const t = lines[i].trim();
+    if(t === ''){ i++; continue; }
+    // horizontal rule
+    if(/^(-{3,}|\*{3,}|_{3,}|—{2,})$/.test(t)){ out.push('<hr class="md-hr">'); i++; continue; }
+    // heading
+    const h = t.match(/^(#{1,6})\s+(.*)$/);
+    if(h){ const lvl = Math.min(h[1].length,4); out.push(`<div class="md-h md-h${lvl}">${inline(h[2])}</div>`); i++; continue; }
+    // table (GitHub style): a row with pipes followed by a separator row
+    if(t.includes('|') && i+1 < lines.length && isSep(lines[i+1])){
+      const header = splitRow(t); i += 2;
+      const rows = [];
+      while(i < lines.length && lines[i].includes('|') && lines[i].trim() !== ''){ rows.push(splitRow(lines[i])); i++; }
+      let tbl = '<div class="md-table-wrap"><table class="md-table"><thead><tr>'
+        + header.map(c=>`<th>${inline(c)}</th>`).join('') + '</tr></thead><tbody>'
+        + rows.map(r=>'<tr>'+header.map((_,ci)=>`<td>${inline(r[ci]||'')}</td>`).join('')+'</tr>').join('')
+        + '</tbody></table></div>';
+      out.push(tbl); continue;
+    }
+    // unordered list
+    if(/^[-*+]\s+/.test(t)){
+      const items = [];
+      while(i < lines.length && /^\s*[-*+]\s+/.test(lines[i])){ items.push(inline(lines[i].replace(/^\s*[-*+]\s+/,''))); i++; }
+      out.push('<ul class="md-ul">'+items.map(x=>`<li>${x}</li>`).join('')+'</ul>'); continue;
+    }
+    // ordered list
+    if(/^\d+[.)]\s+/.test(t)){
+      const items = [];
+      while(i < lines.length && /^\s*\d+[.)]\s+/.test(lines[i])){ items.push(inline(lines[i].replace(/^\s*\d+[.)]\s+/,''))); i++; }
+      out.push('<ol class="md-ol">'+items.map(x=>`<li>${x}</li>`).join('')+'</ol>'); continue;
+    }
+    // paragraph (gather consecutive plain lines)
+    const para = [];
+    while(i < lines.length){
+      const lt = lines[i].trim();
+      if(lt === '' || /^(#{1,6})\s/.test(lt) || /^[-*+]\s/.test(lt) || /^\d+[.)]\s/.test(lt)
+         || /^(-{3,}|\*{3,}|_{3,}|—{2,})$/.test(lt)
+         || (lt.includes('|') && i+1 < lines.length && isSep(lines[i+1]))) break;
+      para.push(inline(lt)); i++;
+    }
+    out.push('<p class="md-p">'+para.join('<br>')+'</p>');
+  }
+  return out.join('');
+}
+
 function renderChat(){
   const el = document.getElementById('chatMsgs');
   if(!chatHistory.length){ el.innerHTML=''; return; }
-  el.innerHTML = chatHistory.map(m=>`<div class="chat-msg ${m.role}">${esc(m.content).replace(/\n/g,'<br>')}</div>`).join('');
+  el.innerHTML = chatHistory.map(m=>{
+    const cls = m.role === 'user' ? 'user' : 'ai';
+    // User turns are short plain text; AI turns get full markdown rendering.
+    const body = m.role === 'user'
+      ? esc(m.content).replace(/\n/g,'<br>')
+      : renderMarkdown(m.content);
+    return `<div class="chat-msg ${cls} md-body">${body}</div>`;
+  }).join('');
   el.scrollTop = el.scrollHeight;
 }
 function clearChat(){ chatHistory=[]; renderChat(); }
