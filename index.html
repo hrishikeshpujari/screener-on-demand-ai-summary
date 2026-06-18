@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v8.5 — build 2026-06-17 — NEW Macro · Sector Rotation tab: relative strength of 11 SPDR sector ETFs + SMH (semis/AI) vs SPY → RRG quadrants (leading/weakening/lagging/improving), money-flow rail, RRG scatter, portfolio overlay (your sectorWeights mapped onto the rotation), and an AI "explain this rotation" web-search narrative grounded in the computed numbers. Reuses fetchPriceHistory + viss_pxcache (cached ~18h, 8/min paced). v8.4: committee card text wraps in expanded rows (table-cell nowrap inheritance); portfolio review + AI chat render markdown via renderMarkdown(). v8.3: Discover reliability (per-ticker failure tracking + transient-rate-limit retry pass), theme filter lists all scanned themes w/ counts, clear discoveries (per-theme ✕ + clear-all), "added from Discover" source tag on screener rows, clearable custom-search chip, strip Claude web-search &lt;cite&gt; tags from AI summaries, AI Investment Committee (Graham/Buffett/Lynch + hedge-fund manager) per-stock + portfolio review, invest-vs-trade entry split; v8.2: data-confidence interlock, fair-value band + MoS gate, catalyst clock + value-trap, portfolio construction + crowding/correlation -->
+<!-- v8.6 — build 2026-06-17 — Discover cards now show a plain-language "Why" reason: discoverReason() builds a grounded explanation (gate passed + standout numbers) per curated theme; aiDiscoverReason() keeps Claude's thematic rationale and appends the validating screener math. v8.5: NEW Macro · Sector Rotation tab: relative strength of 11 SPDR sector ETFs + SMH (semis/AI) vs SPY → RRG quadrants (leading/weakening/lagging/improving), money-flow rail, RRG scatter, portfolio overlay (your sectorWeights mapped onto the rotation), and an AI "explain this rotation" web-search narrative grounded in the computed numbers. Reuses fetchPriceHistory + viss_pxcache (cached ~18h, 8/min paced). v8.4: committee card text wraps in expanded rows (table-cell nowrap inheritance); portfolio review + AI chat render markdown via renderMarkdown(). v8.3: Discover reliability (per-ticker failure tracking + transient-rate-limit retry pass), theme filter lists all scanned themes w/ counts, clear discoveries (per-theme ✕ + clear-all), "added from Discover" source tag on screener rows, clearable custom-search chip, strip Claude web-search &lt;cite&gt; tags from AI summaries, AI Investment Committee (Graham/Buffett/Lynch + hedge-fund manager) per-stock + portfolio review, invest-vs-trade entry split; v8.2: data-confidence interlock, fair-value band + MoS gate, catalyst clock + value-trap, portfolio construction + crowding/correlation -->
 <html lang="en" data-design="material">
 <head>
 <meta charset="UTF-8">
@@ -685,7 +685,8 @@ tbody tr { transition: background 0.15s ease; }
 .disc-card-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
 .disc-tag{font-size:9.5px;color:var(--text-tertiary);background:var(--bg-surface-2);border:1px solid var(--border-default);border-radius:999px;padding:1px 7px}
 .disc-src-tag{display:inline-block;margin-top:3px;font-size:8.5px;font-weight:600;color:var(--c-purple);background:rgba(139,92,246,.14);border:1px solid rgba(139,92,246,.42);border-radius:6px;padding:0 5px;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis;cursor:help}
-.disc-card-reason{font-size:11px;color:var(--accent-ai);line-height:1.5}
+.disc-card-reason{font-size:11px;color:var(--accent-ai);line-height:1.5;white-space:normal}
+.disc-why-lbl{display:inline-block;font-size:8px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--accent-ai);background:rgba(167,139,250,.14);border-radius:4px;padding:0 5px;margin-right:6px;vertical-align:1px}
 
 /* ══════════════════════════════════════════════════════════
    PORTFOLIO POLISH (continued)
@@ -4185,6 +4186,34 @@ function discoverMatchObj(s, reason){
     trend:s.technical?.trendDirection, reason: reason || s.oneLiner || '',
   };
 }
+// Plain-language "why this surfaced" for a CURATED-universe match — grounded in the exact
+// gate it passed (see filterDiscover) plus the standout numbers behind it. The fair-value gap
+// is already shown separately on the card, so it isn't repeated here.
+function discoverReason(category, s){
+  const t = s.technical||{}, b = s.buffett||{}, g = s.graham||{};
+  const n = (v,d=0,suf='')=> (v!=null && isFinite(v)) ? (+v).toFixed(d)+suf : '?';
+  const trend = t.trendDirection || 'trend n/a';
+  const pat = t.recentPattern ? ` (${t.recentPattern})` : '';
+  switch(category){
+    case 'breakout':
+      return `Broke out above its 20-day EMA in an ${trend}${pat} — technical setup ${n(t.score)}/8, momentum turning up.`;
+    case 'quality':
+      return `Buffett-quality ${n(b.score)}/8: ${n(b.roe,0,'%')} ROE${b.roic!=null?`, ${n(b.roic,0,'%')} ROIC`:''}, ${n(b.grossMargin,0,'%')} gross margin — signs of a durable moat.`;
+    case 'ltOptions':
+      return `BUY-rated and in a confirmed ${trend} (Tech ${n(t.score)}/8) — a clean base for a 6-12 month call.`;
+    case 'stOptions':
+      return `High momentum: Tech ${n(t.score)}/8, ${t.breakoutRecent?'recent breakout':'strong-trend bars'} above the 20-EMA — a near-term mover.`;
+    case 'dca':
+      return `Dividend quality: ${n(g.dividendYield,1,'%')} yield, positive 5-yr revenue growth, Graham ${n(g.score)}/8 · ${n(s.totalScore)}/32 overall — accumulate on weakness.`;
+  }
+  return s.oneLiner || '';
+}
+// AI-theme reason — keep Claude's thematic rationale, then add the screener evidence that VALIDATED it.
+function aiDiscoverReason(s, aiReason){
+  const roe = s.buffett && s.buffett.roe!=null && isFinite(s.buffett.roe) ? `, ${s.buffett.roe.toFixed(0)}% ROE` : '';
+  const evid = `screener confirms ${s.totalScore}/32 ${s.overallSignal}${roe}`;
+  return aiReason ? `Fits theme: ${aiReason}. (${evid})` : `Surfaced because ${evid}.`;
+}
 
 
 function loadDiscoverResults(){
@@ -4291,7 +4320,7 @@ async function aiDiscover(themeKey, customQuery){
           sd = computeStock(t, fh, hist); calledApi=true;
         }
         if(sd && sd.totalScore!=null && sd.overallSignal!=='SELL'){
-          matches.push(discoverMatchObj(sd, aiReason));
+          matches.push(discoverMatchObj(sd, aiDiscoverReason(sd, aiReason)));
         } else { skipped++; }
         if(calledApi && i<cand.length-1) await new Promise(r=>setTimeout(r,8000)); // Twelve Data 8/min pacing
       } catch(e){ skipped++; console.warn('AI discover validate failed', t, e.message); }
@@ -4444,7 +4473,7 @@ function discoverCard(m){
       ${gapHtml}
     </div>
     ${tags?`<div class="disc-card-tags">${tags}</div>`:''}
-    ${m.reason?`<div class="disc-card-reason">${esc(m.reason)}</div>`:''}
+    ${m.reason?`<div class="disc-card-reason"><span class="disc-why-lbl">Why</span>${esc(m.reason)}</div>`:''}
   </div>`;
 }
 
@@ -4566,35 +4595,35 @@ function filterDiscover(category, s){
     case 'breakout':
       // Strong technical setup
       if(s.technical?.score >= 6 && s.technical?.breakoutRecent && s.technical?.priceVsEma20==='above') {
-        return {...base, reason: `Recent breakout · ${s.technical?.trendDirection}`};
+        return {...base, reason: discoverReason('breakout', s)};
       }
       return null;
 
     case 'quality':
       // Buffett quality
       if(s.buffett?.score >= 6 && s.buffett?.roe >= 15) {
-        return {...base, reason: `ROE ${s.buffett.roe.toFixed(0)}% · GM ${s.buffett.grossMargin?.toFixed(0)}%`};
+        return {...base, reason: discoverReason('quality', s)};
       }
       return null;
 
     case 'ltOptions':
       // BUY signal + uptrend + earnings not imminent
       if(s.overallSignal==='BUY' && s.technical?.trendDirection==='uptrend' && s.technical?.score>=6) {
-        return {...base, reason: `BUY + uptrend + Tech ${s.technical.score}/8`};
+        return {...base, reason: discoverReason('ltOptions', s)};
       }
       return null;
 
     case 'stOptions':
       // High momentum, breaking out, near-term catalyst
       if(s.technical?.score>=5 && (s.technical?.breakoutRecent || s.technical?.strongTrendBars) && s.technical?.priceVsEma20==='above') {
-        return {...base, reason: `Strong momentum · Tech ${s.technical.score}/8`};
+        return {...base, reason: discoverReason('stOptions', s)};
       }
       return null;
 
     case 'dca':
       // Quality value + dividend
       if(s.graham?.score>=5 && s.graham?.dividendYield>2 && s.buffett?.revenueGrowth5yr>0 && s.totalScore>=18) {
-        return {...base, reason: `Div ${s.graham.dividendYield.toFixed(1)}% · Graham ${s.graham.score}/8`};
+        return {...base, reason: discoverReason('dca', s)};
       }
       return null;
   }
