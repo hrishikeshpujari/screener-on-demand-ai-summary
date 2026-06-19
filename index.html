@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v8.6 — build 2026-06-17 — Discover cards now show a plain-language "Why" reason: discoverReason() builds a grounded explanation (gate passed + standout numbers) per curated theme; aiDiscoverReason() keeps Claude's thematic rationale and appends the validating screener math. v8.5: NEW Macro · Sector Rotation tab: relative strength of 11 SPDR sector ETFs + SMH (semis/AI) vs SPY → RRG quadrants (leading/weakening/lagging/improving), money-flow rail, RRG scatter, portfolio overlay (your sectorWeights mapped onto the rotation), and an AI "explain this rotation" web-search narrative grounded in the computed numbers. Reuses fetchPriceHistory + viss_pxcache (cached ~18h, 8/min paced). v8.4: committee card text wraps in expanded rows (table-cell nowrap inheritance); portfolio review + AI chat render markdown via renderMarkdown(). v8.3: Discover reliability (per-ticker failure tracking + transient-rate-limit retry pass), theme filter lists all scanned themes w/ counts, clear discoveries (per-theme ✕ + clear-all), "added from Discover" source tag on screener rows, clearable custom-search chip, strip Claude web-search &lt;cite&gt; tags from AI summaries, AI Investment Committee (Graham/Buffett/Lynch + hedge-fund manager) per-stock + portfolio review, invest-vs-trade entry split; v8.2: data-confidence interlock, fair-value band + MoS gate, catalyst clock + value-trap, portfolio construction + crowding/correlation -->
+<!-- v8.8 — build 2026-06-17 — distorted-EPS fair-value fix + GROWTH lens: fairValueReliable now goes false when trailing EPS is distorted (P/E≥80) or true growth exceeds the formula's cap (gSrc>20), so the Graham model stops manufacturing fake huge "overvaluations" off depressed trailing EPS (ELF -474% MoS, NVDA-style -1066% MoS). New GROWTH lens (price/sales vs a growth+margin-scaled fair P/S, on CLEAN revenue not distorted EPS) credits quality growers; a SELL that's a quality grower at a cheap P/S lifts to HOLD ("Growth, not value"). Third 🌱 Growth card joins the Investor/Trader banner. v8.7: symmetric valuation signal + two-lens verdict: the margin-of-safety gate now UPGRADES a HOLD to BUY when a quality business trades at a real reliable discount ("Quality at a discount") — mirror of the existing "great company, wrong price" downgrade, so a META-style quality-at-a-discount no longer stays HOLD just because momentum is weak. Adds momentum-blind investorSignal (BUY/HOLD/AVOID) + timing traderSignal (GO/WAIT/AVOID), shown as a two-lens banner in the expanded row. v8.6: Discover cards now show a plain-language "Why" reason: discoverReason() builds a grounded explanation (gate passed + standout numbers) per curated theme; aiDiscoverReason() keeps Claude's thematic rationale and appends the validating screener math. v8.5: NEW Macro · Sector Rotation tab: relative strength of 11 SPDR sector ETFs + SMH (semis/AI) vs SPY → RRG quadrants (leading/weakening/lagging/improving), money-flow rail, RRG scatter, portfolio overlay (your sectorWeights mapped onto the rotation), and an AI "explain this rotation" web-search narrative grounded in the computed numbers. Reuses fetchPriceHistory + viss_pxcache (cached ~18h, 8/min paced). v8.4: committee card text wraps in expanded rows (table-cell nowrap inheritance); portfolio review + AI chat render markdown via renderMarkdown(). v8.3: Discover reliability (per-ticker failure tracking + transient-rate-limit retry pass), theme filter lists all scanned themes w/ counts, clear discoveries (per-theme ✕ + clear-all), "added from Discover" source tag on screener rows, clearable custom-search chip, strip Claude web-search &lt;cite&gt; tags from AI summaries, AI Investment Committee (Graham/Buffett/Lynch + hedge-fund manager) per-stock + portfolio review, invest-vs-trade entry split; v8.2: data-confidence interlock, fair-value band + MoS gate, catalyst clock + value-trap, portfolio construction + crowding/correlation -->
 <html lang="en" data-design="material">
 <head>
 <meta charset="UTF-8">
@@ -339,6 +339,15 @@ tbody td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
 .rot-loading{font-size:12px;color:var(--text-muted);padding:12px;display:flex;align-items:center;gap:8px}
 .rot-narr{background:var(--surface-deep);border:1px solid var(--border-default);border-radius:10px;padding:14px 16px}
 .rot-err{font-size:12px;color:var(--c-red);padding:10px}
+/* Two-lens (investor vs trader) banner in the expanded row */
+.lens-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;margin:8px 0}
+.lens{display:flex;align-items:baseline;gap:8px;background:var(--surface-deep);border:1px solid var(--border-default);border-left-width:3px;border-radius:8px;padding:8px 12px;white-space:normal;min-width:0}
+.lens-k{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.lens-v{font-size:14px;font-weight:800}
+.lens-d{font-size:10.5px;color:var(--text-faint);margin-left:auto;text-align:right}
+.lens-pos{border-left-color:var(--c-green)} .lens-pos .lens-v{color:var(--c-green)}
+.lens-neu{border-left-color:var(--c-amber)} .lens-neu .lens-v{color:var(--c-amber)}
+.lens-neg{border-left-color:var(--c-red)} .lens-neg .lens-v{color:var(--c-red)}
 .port-chat-input{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--border-default);background:var(--bg-input)}
 .port-chat-input input{flex:1;padding:10px 13px;background:var(--surface-card);border:1px solid var(--border-strong);border-radius:8px;color:var(--text-primary);font-size:13px;font-family:inherit}
 .port-chat-input input:focus{outline:none;border-color:var(--c-indigo)}
@@ -5988,9 +5997,17 @@ function computeStock(ticker, fmp, history){
              : (fmp.epsGrowthYoy || 0);
   const gFellBackToYoY = !_haveLongGrowth;   // only YoY EPS left → noisy, mark value unreliable
   const growthRate = Math.max(0, Math.min(12, gSrc));
-  // Trust the fair value only with positive REAL earnings, a real book value, and a
-  // multi-year growth input. Loss-makers / imputed EPS / YoY-only growth → not reliable.
-  const fairValueReliable = (eps != null && eps > 0) && !fmp.epsTTMImputed && (bvps != null) && !gFellBackToYoY;
+  // Trust the fair value only with positive REAL earnings, a real book value, and a multi-year
+  // growth input. Loss-makers / imputed EPS / YoY-only growth → not reliable. ALSO unreliable when
+  // trailing EPS is DISTORTED: at an extreme trailing P/E, one-off-charged / depressed EPS makes the
+  // Graham fair value (EPS × multiple) meaningless and manufactures a fake-precise bear case
+  // (e.g. ELF: ~$0.40 depressed EPS × 25 ≈ $11 "fair" → −474% MoS). And when true growth blows past
+  // the formula's 12% cap, the fair value structurally UNDER-credits the business (e.g. a 50% grower
+  // pinned at a 25× ceiling → fake huge "overvaluation"). In both cases, don't anchor a verdict on it.
+  const epsDistorted = (fmp.pe != null && fmp.pe >= 80);
+  const growthExceedsModel = (gSrc != null && gSrc > 20);
+  const fairValueReliable = (eps != null && eps > 0) && !fmp.epsTTMImputed && (bvps != null) && !gFellBackToYoY
+                            && !epsDistorted && !growthExceedsModel;
 
   let fairPrice = null, fairValueBand = null;
   if(eps != null && eps > 0){
@@ -6045,12 +6062,60 @@ function computeStock(ticker, fmp, history){
     && (fmp.epsGrowthYoy != null ? fmp.epsGrowthYoy < 0 : true)
     && _bottomQuartile;
   if(valueTrap){ _dropTier(); flags.push('VALUE TRAP RISK'); }
-  // Margin-of-safety BUY gate (single rule for now; can later tighten to a 10–15% MoS floor):
-  // keep BUY only when price ≤ reliable base fair value; else cap at HOLD.
+  // ── Two lenses: an INVESTOR verdict (business quality + price-vs-value, momentum-blind) and a
+  //    TRADER verdict (trend + technical timing). The blended overallSignal can mislabel a quality
+  //    name bought on weakness; these separate "good business at a good price?" from "is the timing
+  //    right?". The investor lens is what the margin-of-safety upgrade below keys on. ──
+  let investorSignal;
+  if(valueTrap) investorSignal = 'AVOID';                                                                                              // Graham-cheap but a falling knife
+  else if(fairValueReliable && marginOfSafety != null && marginOfSafety >= 0.15 && fundamentalScore >= 15) investorSignal = 'BUY';     // quality at a real discount
+  else if(!fairValueReliable && fundamentalScore >= 18) investorSignal = 'HOLD';                                                        // strong quality, price can't be trusted
+  else if(fairValueReliable && marginOfSafety != null && marginOfSafety >= -0.10 && fundamentalScore >= 13) investorSignal = 'HOLD';   // quality near fair value
+  else investorSignal = 'AVOID';                                                                                                        // weak quality or badly overpriced
+  let traderSignal;
+  if(technical.trendDirection === 'uptrend' && technical.score >= 6) traderSignal = 'GO';
+  else if(technical.trendDirection === 'downtrend' || technical.score <= 2) traderSignal = 'AVOID';
+  else traderSignal = 'WAIT';
+
+  // GROWTH lens — credits premium growth compounders the Graham value model structurally can't
+  // (it caps growth at 12% and runs off trailing EPS). Priced on PRICE/SALES — revenue isn't
+  // distorted by one-off charges the way trailing EPS is — against a fair P/S that scales with
+  // growth and gross margin (high-margin growth warrants a higher multiple). null = not a growth
+  // story → the value lens governs. This is what gives a name like ELF its due.
+  const _revG = (fmp.revenueGrowth5yr != null && fmp.revenueGrowth5yr !== 0) ? fmp.revenueGrowth5yr
+              : (fmp.salesGrowthYoy != null ? fmp.salesGrowthYoy : null);
+  const _ps = (fmp.marketCap > 0 && fmp.revenue > 0) ? fmp.marketCap / fmp.revenue : null;
+  let growthSignal = null;
+  if(_revG != null && _revG >= 12){
+    const _gm = (fmp.grossMargin != null && fmp.grossMargin > 0) ? fmp.grossMargin : 40;
+    const _fairPS = Math.max(0.8, (_revG / 10) * (_gm / 40));   // e.g. 40% growth × 71% GM → ~7.1× "cheap" P/S
+    const _qOK = (fmp.grossMargin == null || fmp.grossMargin >= 30) && buffett.score >= 3;   // not junk growth
+    if(!_qOK) growthSignal = 'AVOID';
+    else if(_ps == null) growthSignal = 'WATCH';                 // a grower we can't price on sales
+    else if(_ps <= _fairPS) growthSignal = 'BUY';               // genuinely cheap for the growth
+    else if(_ps <= _fairPS * 3) growthSignal = 'HOLD';          // priced for the growth (wide band — quality compounders carry premium multiples)
+    else growthSignal = 'EXPENSIVE';                            // rich even for the growth
+  }
+
+  // Margin-of-safety verdict gate — now SYMMETRIC:
+  //  • DOWNGRADE a BUY trading above reliable fair value ("great company, wrong price")
+  //  • UPGRADE a HOLD the investor lens rates a value buy — a quality business at a real, reliable
+  //    discount shouldn't be stuck at HOLD just because momentum is weak. valueTrap + the investor
+  //    quality bar already guard against catching a falling knife.
   if(overallSignal === 'BUY' && fairValueReliable && marginOfSafety != null && marginOfSafety < 0){
     overallSignal = 'HOLD'; verdictNote = 'Great company, wrong price';
+  } else if(overallSignal === 'HOLD' && investorSignal === 'BUY'){
+    overallSignal = 'BUY'; verdictNote = 'Quality at a discount';
+    if(confidence === 'LOW') confidence = 'MEDIUM';   // a reliable value buy is more than a low-confidence hold
+  } else if(overallSignal === 'SELL' && growthSignal === 'BUY' && !valueTrap){
+    // A high-quality grower at a reasonable price-to-sales isn't a hard SELL just because the VALUE
+    // frameworks score it low (capped growth + distorted trailing EPS). Lift to HOLD — not BUY — and
+    // point at the Growth lens. (This is the ELF case: SELL on value, BUY on growth.)
+    overallSignal = 'HOLD'; verdictNote = 'Growth, not value — see Growth lens';
   } else if(!fairValueReliable){
-    verdictNote = 'Fair value unreliable';
+    verdictNote = epsDistorted ? 'Fair value unreliable — trailing earnings distorted (high P/E)'
+                : growthExceedsModel ? 'Fair value unreliable — growth exceeds the value model'
+                : 'Fair value unreliable';
   }
   // No-catalyst flag (Stage 3): cheap/BUY-ish but no scheduled earnings inside the 90-day data horizon.
   const noCatalyst = (overallSignal === 'BUY' || (marginOfSafety != null && marginOfSafety > 0))
@@ -6177,7 +6242,9 @@ function computeStock(ticker, fmp, history){
 
   // One-liner (template, not AI)
   const oneLiner = overallSignal === 'BUY'
-    ? `Strong ${totalScore}/32 score with ${technical.trendDirection} technicals — review detail tabs for full breakdown.`
+    ? (verdictNote === 'Quality at a discount'
+        ? `Value buy — strong fundamentals (${fundamentalScore}/24) at ~${Math.round(marginOfSafety*100)}% below fair value; weak momentum (${technical.trendDirection}) is the caveat, not the thesis.`
+        : `Strong ${totalScore}/32 score with ${technical.trendDirection} technicals — review detail tabs for full breakdown.`)
     : overallSignal === 'HOLD'
     ? `Moderate ${totalScore}/32 score — ${graham.score>=5?'Graham value':buffett.score>=5?'Buffett quality':lynch.score>=5?'Lynch growth':'mixed'} signals, wait for better setup.`
     : `Weak ${totalScore}/32 score — fails most framework criteria, avoid new positions.`;
@@ -6205,6 +6272,7 @@ function computeStock(ticker, fmp, history){
     currentPrice: price, priceIsLive: true, hasFMP: true, error: null,
     graham, buffett, lynch, technical, options,
     fundamentalScore, totalScore, overallSignal, confidence, flags, oneLiner,
+    investorSignal, traderSignal, growthSignal,  // ← three-lens verdicts (value / timing / growth)
     fairPrice, entryPrice,  // ← NEW
     // Stage 1–3 additive fields (all null-guarded by readers)
     fairValueBand, fairValueReliable, marginOfSafety, downsideToBear,
@@ -7049,6 +7117,17 @@ function buildExpandRow(s){
     `<span class="pill" style="color:${sc(ta?.score,8)}">${ta?.signal||'—'} Technical ${ta?.score??0}/8</span>`,
   ].filter(Boolean).join('');
 
+  // Lens banner — INVESTOR (business + price), TRADER (trend + timing), and GROWTH (price-vs-sales for
+  // growers; hidden for non-growers). See computeStock. EXPENSIVE is a negative growth read.
+  const lensTone = sig => (sig==='BUY'||sig==='GO') ? 'pos' : (sig==='AVOID'||sig==='EXPENSIVE') ? 'neg' : 'neu';
+  const mosTxt = (s.marginOfSafety!=null && s.fairValueReliable!==false) ? ` · ${s.marginOfSafety>=0?'+':''}${Math.round(s.marginOfSafety*100)}% vs fair` : (s.fairValueReliable===false ? ' · fair value n/a' : '');
+  const grDesc = 'price-to-sales' + (s.buffett && s.buffett.revenueGrowth5yr != null ? ` · ${Math.round(s.buffett.revenueGrowth5yr)}%/yr rev` : '');
+  const lensHtml = (s.investorSignal || s.traderSignal || s.growthSignal) ? `<div class="lens-row">
+    <div class="lens lens-${lensTone(s.investorSignal)}"><span class="lens-k">🏛 Investor</span><span class="lens-v">${s.investorSignal||'—'}</span><span class="lens-d">business${mosTxt}</span></div>
+    <div class="lens lens-${lensTone(s.traderSignal)}"><span class="lens-k">📈 Trader</span><span class="lens-v">${s.traderSignal||'—'}</span><span class="lens-d">trend · ${esc(ta?.trendDirection||'—')}</span></div>
+    ${s.growthSignal ? `<div class="lens lens-${lensTone(s.growthSignal)}"><span class="lens-k">🌱 Growth</span><span class="lens-v">${s.growthSignal}</span><span class="lens-d">${grDesc}</span></div>` : ''}
+  </div>` : '';
+
   // AI analysis section
   let analysisHtml = buildAnalysisHtml(s);
 
@@ -7130,6 +7209,7 @@ function buildExpandRow(s){
       <button class="expand-close" onclick="closeDP()">✕ Close</button>
     </div>
     <div class="pills">${pills}</div>
+    ${lensHtml}
     ${s.oneLiner?`<div class="liner">${s.oneLiner}</div>`:''}
     ${ta?.summary?`<div class="liner" style="border-color:#4f6ef722;font-size:12px">${ta.summary}</div>`:''}
     <div class="tabs">
