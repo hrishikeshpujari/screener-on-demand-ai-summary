@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v8.8 — build 2026-06-17 — distorted-EPS fair-value fix + GROWTH lens: fairValueReliable now goes false when trailing EPS is distorted (P/E≥80) or true growth exceeds the formula's cap (gSrc>20), so the Graham model stops manufacturing fake huge "overvaluations" off depressed trailing EPS (ELF -474% MoS, NVDA-style -1066% MoS). New GROWTH lens (price/sales vs a growth+margin-scaled fair P/S, on CLEAN revenue not distorted EPS) credits quality growers; a SELL that's a quality grower at a cheap P/S lifts to HOLD ("Growth, not value"). Third 🌱 Growth card joins the Investor/Trader banner. v8.7: symmetric valuation signal + two-lens verdict: the margin-of-safety gate now UPGRADES a HOLD to BUY when a quality business trades at a real reliable discount ("Quality at a discount") — mirror of the existing "great company, wrong price" downgrade, so a META-style quality-at-a-discount no longer stays HOLD just because momentum is weak. Adds momentum-blind investorSignal (BUY/HOLD/AVOID) + timing traderSignal (GO/WAIT/AVOID), shown as a two-lens banner in the expanded row. v8.6: Discover cards now show a plain-language "Why" reason: discoverReason() builds a grounded explanation (gate passed + standout numbers) per curated theme; aiDiscoverReason() keeps Claude's thematic rationale and appends the validating screener math. v8.5: NEW Macro · Sector Rotation tab: relative strength of 11 SPDR sector ETFs + SMH (semis/AI) vs SPY → RRG quadrants (leading/weakening/lagging/improving), money-flow rail, RRG scatter, portfolio overlay (your sectorWeights mapped onto the rotation), and an AI "explain this rotation" web-search narrative grounded in the computed numbers. Reuses fetchPriceHistory + viss_pxcache (cached ~18h, 8/min paced). v8.4: committee card text wraps in expanded rows (table-cell nowrap inheritance); portfolio review + AI chat render markdown via renderMarkdown(). v8.3: Discover reliability (per-ticker failure tracking + transient-rate-limit retry pass), theme filter lists all scanned themes w/ counts, clear discoveries (per-theme ✕ + clear-all), "added from Discover" source tag on screener rows, clearable custom-search chip, strip Claude web-search &lt;cite&gt; tags from AI summaries, AI Investment Committee (Graham/Buffett/Lynch + hedge-fund manager) per-stock + portfolio review, invest-vs-trade entry split; v8.2: data-confidence interlock, fair-value band + MoS gate, catalyst clock + value-trap, portfolio construction + crowding/correlation -->
+<!-- v8.9 — build 2026-06-20 — WEEKLY higher-timeframe MA cloud + short-term-options PUT path: the technical section now also computes a weekly 10/30 EMA "cloud" — daily history (~250 bars ≈ 50 weeks) is resampled into weekly bars IN MEMORY (zero extra API calls), so a name shows its higher-timeframe trend (bull when 10w EMA > 30w EMA) and a "fresh long/short" when the 10 has just crossed the 30. This is CONTEXT ONLY — it never touches the /8 daily Al-Brooks score or the /32 total. Shown as a 2nd grid in the Technical tab + appended to the trend summary line. The Short-term Options discover filter is now multi-timeframe + two-sided: a fresh weekly long surfaces a name as a CALL even when the daily hasn't broken out yet (early entry, e.g. AMC — confirmed: its weekly 10/30 crossed long this week), a clean daily breakout = CALL, a clean daily downtrend = PUT (CALL/PUT badge on the card). Also: AI Discovery sourcing maxTokens 2000→4000 + auto-retry once on empty parse (fixes truncated-JSON "failed" on first try). v8.8 — distorted-EPS fair-value fix + GROWTH lens: fairValueReliable now goes false when trailing EPS is distorted (P/E≥80) or true growth exceeds the formula's cap (gSrc>20), so the Graham model stops manufacturing fake huge "overvaluations" off depressed trailing EPS (ELF -474% MoS, NVDA-style -1066% MoS). New GROWTH lens (price/sales vs a growth+margin-scaled fair P/S, on CLEAN revenue not distorted EPS) credits quality growers; a SELL that's a quality grower at a cheap P/S lifts to HOLD ("Growth, not value"). Third 🌱 Growth card joins the Investor/Trader banner. v8.7: symmetric valuation signal + two-lens verdict: the margin-of-safety gate now UPGRADES a HOLD to BUY when a quality business trades at a real reliable discount ("Quality at a discount") — mirror of the existing "great company, wrong price" downgrade, so a META-style quality-at-a-discount no longer stays HOLD just because momentum is weak. Adds momentum-blind investorSignal (BUY/HOLD/AVOID) + timing traderSignal (GO/WAIT/AVOID), shown as a two-lens banner in the expanded row. v8.6: Discover cards now show a plain-language "Why" reason: discoverReason() builds a grounded explanation (gate passed + standout numbers) per curated theme; aiDiscoverReason() keeps Claude's thematic rationale and appends the validating screener math. v8.5: NEW Macro · Sector Rotation tab: relative strength of 11 SPDR sector ETFs + SMH (semis/AI) vs SPY → RRG quadrants (leading/weakening/lagging/improving), money-flow rail, RRG scatter, portfolio overlay (your sectorWeights mapped onto the rotation), and an AI "explain this rotation" web-search narrative grounded in the computed numbers. Reuses fetchPriceHistory + viss_pxcache (cached ~18h, 8/min paced). v8.4: committee card text wraps in expanded rows (table-cell nowrap inheritance); portfolio review + AI chat render markdown via renderMarkdown(). v8.3: Discover reliability (per-ticker failure tracking + transient-rate-limit retry pass), theme filter lists all scanned themes w/ counts, clear discoveries (per-theme ✕ + clear-all), "added from Discover" source tag on screener rows, clearable custom-search chip, strip Claude web-search &lt;cite&gt; tags from AI summaries, AI Investment Committee (Graham/Buffett/Lynch + hedge-fund manager) per-stock + portfolio review, invest-vs-trade entry split; v8.2: data-confidence interlock, fair-value band + MoS gate, catalyst clock + value-trap, portfolio construction + crowding/correlation -->
 <html lang="en" data-design="material">
 <head>
 <meta charset="UTF-8">
@@ -691,6 +691,9 @@ tbody tr { transition: background 0.15s ease; }
 .disc-gap.pos{color:var(--c-green)}
 .disc-gap.neg{color:var(--c-red)}
 .disc-gap.neu{color:var(--text-muted)}
+.disc-dir{font-size:9px;font-weight:700;border:1px solid;border-radius:4px;padding:1px 5px;vertical-align:middle;letter-spacing:.3px;margin-left:3px}
+.disc-dir.pos{color:var(--c-green);border-color:var(--c-green)}
+.disc-dir.neg{color:var(--c-red);border-color:var(--c-red)}
 .disc-card-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
 .disc-tag{font-size:9.5px;color:var(--text-tertiary);background:var(--bg-surface-2);border:1px solid var(--border-default);border-radius:999px;padding:1px 7px}
 .disc-src-tag{display:inline-block;margin-top:3px;font-size:8.5px;font-weight:600;color:var(--c-purple);background:rgba(139,92,246,.14);border:1px solid rgba(139,92,246,.42);border-radius:6px;padding:0 5px;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis;cursor:help}
@@ -4210,8 +4213,14 @@ function discoverReason(category, s){
       return `Buffett-quality ${n(b.score)}/8: ${n(b.roe,0,'%')} ROE${b.roic!=null?`, ${n(b.roic,0,'%')} ROIC`:''}, ${n(b.grossMargin,0,'%')} gross margin — signs of a durable moat.`;
     case 'ltOptions':
       return `BUY-rated and in a confirmed ${trend} (Tech ${n(t.score)}/8) — a clean base for a 6-12 month call.`;
-    case 'stOptions':
+    case 'stOptions': {
+      const wk = t.weekly;
+      if(wk && !wk.insufficient && wk.freshLong)
+        return `Weekly 10/30 EMA cloud turned long${wk.crossWeeksAgo!=null?` ${wk.crossWeeksAgo}w ago`:''} — higher-timeframe bull signal${t.trendDirection==='downtrend'?'; daily still basing, so this is an early entry':''}. Daily Tech ${n(t.score)}/8.`;
+      if(t.trendDirection==='downtrend')
+        return `Clean downtrend below the 20-EMA, lower lows in motion — bearish momentum play (puts). Tech ${n(t.score)}/8.`;
       return `High momentum: Tech ${n(t.score)}/8, ${t.breakoutRecent?'recent breakout':'strong-trend bars'} above the 20-EMA — a near-term mover.`;
+    }
     case 'dca':
       return `Dividend quality: ${n(g.dividendYield,1,'%')} yield, positive 5-yr revenue growth, Graham ${n(g.score)}/8 · ${n(s.totalScore)}/32 overall — accumulate on weakness.`;
   }
@@ -4293,9 +4302,16 @@ async function aiDiscover(themeKey, customQuery){
   try {
     const today = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long'});
     const prompt = `Today is ${today}. Suggest 20 US-listed stock tickers (NYSE/Nasdaq) that fit this theme:\n"${themeDesc}"\n\nFavor under-followed small- and mid-cap names over mega-caps. Only real, currently-listed US tickers. Avoid OTC/pink-sheet names. Return ONLY valid JSON, no preamble:\n{"tickers":[{"ticker":"XYZ","reason":"<max 8 words why it fits>"}]}`;
-    const raw = await callAnthropic(prompt, true, 3, {}); // web search ON for current names
+    const raw = await callAnthropic(prompt, true, 3, {maxTokens: 4000}); // web search ON; higher budget prevents JSON truncation
     const parsed = parseJSON(raw);
     cand = (parsed.tickers||[]).filter(x=>x && x.ticker).slice(0,22);
+    if(!cand.length){
+      // First response was likely truncated before the tickers array completed — retry once
+      showProgress('🔭 AI sourcing: first response was incomplete, retrying…');
+      const raw2 = await callAnthropic(prompt, true, 2, {maxTokens: 4000});
+      const parsed2 = parseJSON(raw2);
+      cand = (parsed2.tickers||[]).filter(x=>x && x.ticker).slice(0,22);
+    }
   } catch(e){
     busyOp=null; hideProgress();
     discoverResults[themeKey] = { results:[], scannedAt:Date.now(), scanning:null, source:'ai', themeTitle, error:'AI sourcing failed: '+e.message };
@@ -4470,7 +4486,7 @@ function discoverCard(m){
   const tags = (m.themes||[]).map(k=>{const tm=themeMeta(k);return `<span class="disc-tag">${tm.icon} ${tm.title}</span>`;}).join('');
   return `<div class="disc-card" onclick="addDiscoveredToScreener('${m.ticker}')">
     <div class="disc-card-top">
-      <div class="disc-card-tkr">${m.ticker}${tier?` <span class="disc-cap">${tier}</span>`:''}</div>
+      <div class="disc-card-tkr">${m.ticker}${tier?` <span class="disc-cap">${tier}</span>`:''}${m.direction?` <span class="disc-dir ${m.direction==='PUT'?'neg':'pos'}">${m.direction}</span>`:''}</div>
       <span class="badge ${sigCls}" style="font-size:10px;padding:2px 8px">${m.signal||'—'}</span>
     </div>
     <div class="disc-card-name">${esc(m.companyName)}</div>
@@ -4622,12 +4638,22 @@ function filterDiscover(category, s){
       }
       return null;
 
-    case 'stOptions':
-      // High momentum, breaking out, near-term catalyst
-      if(s.technical?.score>=5 && (s.technical?.breakoutRecent || s.technical?.strongTrendBars) && s.technical?.priceVsEma20==='above') {
-        return {...base, reason: discoverReason('stOptions', s)};
-      }
+    case 'stOptions': {
+      const wk = s.technical?.weekly;
+      // Higher-timeframe lead: weekly 10/30 cloud just turned long → CALL even if the daily
+      // hasn't broken out yet (the early-entry case, e.g. AMC). A fresh weekly long overrides
+      // a daily-downtrend PUT read — the higher timeframe sets the bias.
+      const weeklyLong = !!(wk && !wk.insufficient && wk.freshLong);
+      // Daily bullish momentum/breakout for calls.
+      const bullish = s.technical?.score>=5 && (s.technical?.breakoutRecent || s.technical?.strongTrendBars) && s.technical?.priceVsEma20==='above';
+      // Clean daily downtrend for puts — but stand down if the weekly just flipped long.
+      const bearish = s.technical?.trendDirection==='downtrend' && s.technical?.priceVsEma20==='below' && s.technical?.noClimax && !s.technical?.tradingRange;
+      if(weeklyLong || bullish)
+        return {...base, direction:'CALL', reason: discoverReason('stOptions', s)};
+      if(bearish)
+        return {...base, direction:'PUT', reason: discoverReason('stOptions', s)};
       return null;
+    }
 
     case 'dca':
       // Quality value + dividend
@@ -5292,6 +5318,63 @@ function computeEMA(prices, period){
   return ema;
 }
 
+// ── Weekly higher-timeframe MA cloud (10/30 EMA) ──
+// Resamples the existing DAILY history into weekly bars (a new week starts when the bar's
+// weekday is <= the previous bar's — i.e. Monday after Friday, holiday-safe), so it costs
+// ZERO extra API calls. The 10/30 EMA "cloud" is a higher-timeframe trend filter: bull when
+// the 10-week EMA sits above the 30-week EMA, and a fresh "long signal" when the 10 has just
+// crossed up through the 30. This is CONTEXT ONLY — it never touches the /8 daily Al-Brooks
+// score or the /32 total (those stay daily-calibrated). ~250 daily bars ≈ 50 weeks, enough
+// for a 30-week EMA plus ~20 weeks of cross history.
+function computeWeeklyMA(history){
+  if(!history || history.length < 40) return { insufficient:true };
+  // Daily → weekly close series (last trading day's close = that week's close).
+  const weeklyClose = [];
+  let prevDow = null;
+  for(const h of history){
+    if(h == null || h.date == null || h.close == null) continue;
+    const dow = new Date(h.date + 'T00:00:00Z').getUTCDay(); // 0=Sun..6=Sat
+    if(prevDow == null || dow <= prevDow) weeklyClose.push(h.close); // new week
+    else weeklyClose[weeklyClose.length-1] = h.close;               // same week → overwrite
+    prevDow = dow;
+  }
+  const weeks = weeklyClose.length;
+  if(weeks < 32) return { insufficient:true, weeks };
+  // Full EMA series (need the path, not just the endpoint, to detect the cross).
+  const emaSeries = (prices, period) => {
+    const out = new Array(prices.length).fill(null);
+    if(prices.length < period) return out;
+    const k = 2/(period+1);
+    let e = prices.slice(0,period).reduce((s,p)=>s+p,0)/period; out[period-1] = e;
+    for(let i=period;i<prices.length;i++){ e = prices[i]*k + e*(1-k); out[i] = e; }
+    return out;
+  };
+  const e10 = emaSeries(weeklyClose, 10);
+  const e30 = emaSeries(weeklyClose, 30);
+  const last = weeks - 1;
+  const ema10 = e10[last], ema30 = e30[last];
+  if(ema10 == null || ema30 == null) return { insufficient:true, weeks };
+  const cloud = ema10 > ema30 ? 'bull' : 'bear';
+  // Most-recent sign flip of (10 - 30).
+  let cross = null, crossWeeksAgo = null;
+  for(let i=last; i>0; i--){
+    if(e10[i]==null || e30[i]==null || e10[i-1]==null || e30[i-1]==null) break;
+    const now = e10[i]-e30[i], prev = e10[i-1]-e30[i-1];
+    if(now >= 0 && prev < 0){ cross='bullish'; crossWeeksAgo=last-i; break; }
+    if(now < 0 && prev >= 0){ cross='bearish'; crossWeeksAgo=last-i; break; }
+  }
+  // 10-week EMA slope over ~4 weeks → trend label.
+  const back = e10[Math.max(0,last-4)];
+  const slope = (back!=null && back!==0) ? (ema10-back)/Math.abs(back) : 0;
+  const trend = cloud==='bull' && slope > 0.005 ? 'up'
+              : cloud==='bear' && slope < -0.005 ? 'down' : 'flat';
+  return {
+    weeks, ema10, ema30, cloud, cross, crossWeeksAgo, trend,
+    freshLong:  cloud==='bull' && cross==='bullish' && crossWeeksAgo!=null && crossWeeksAgo <= 8,
+    freshShort: cloud==='bear' && cross==='bearish' && crossWeeksAgo!=null && crossWeeksAgo <= 8,
+  };
+}
+
 // ── Al Brooks technical analysis from real price history ──
 function analyzeTechnicals(history){
   if(!history || history.length < 50){
@@ -5299,7 +5382,7 @@ function analyzeTechnicals(history){
             priceVsEma20:'?', priceVsEma50:'?', higherHighsLows:false,
             breakoutRecent:false, pullbackToEma:false, strongTrendBars:false,
             tradingRange:false, ema20:null, ema50:null, ema200:null,
-            supportLevel:null, resistanceLevel:null, summary:''};
+            supportLevel:null, resistanceLevel:null, weekly:{insufficient:true}, summary:''};
   }
 
   const closes = history.map(h=>h.close);
@@ -5411,7 +5494,12 @@ function analyzeTechnicals(history){
   // Signal text
   const signal = score >= 6 ? 'STRONG' : score >= 4 ? 'MIXED' : 'WEAK';
 
-  const summary = `${trendDirection.toUpperCase()} | EMA20=$${ema20.toFixed(2)}${ema50?', EMA50=$'+ema50.toFixed(2):''} | ${score}/8 Al Brooks criteria met`;
+  // Higher-timeframe context (does NOT feed the /8 daily score) — weekly 10/30 EMA cloud.
+  const weekly = computeWeeklyMA(history);
+  const wkTag = (weekly && !weekly.insufficient)
+    ? ` | Weekly 10/30: ${weekly.cloud==='bull'?'▲ bull':'▼ bear'}${weekly.freshLong?' (fresh long)':weekly.freshShort?' (fresh short)':''}`
+    : '';
+  const summary = `${trendDirection.toUpperCase()} | EMA20=$${ema20.toFixed(2)}${ema50?', EMA50=$'+ema50.toFixed(2):''} | ${score}/8 Al Brooks criteria met${wkTag}`;
 
   return {
     trendDirection,
@@ -5422,6 +5510,7 @@ function analyzeTechnicals(history){
     tradingRange,
     supportLevel, resistanceLevel,
     ema20, ema50, ema200,
+    weekly,
     recentPattern: breakoutRecent ? 'breakout' : pullbackToEma ? 'pullback' : uptrend ? 'trending' : downtrend ? 'falling' : 'consolidating',
     score, signal, summary,
   };
@@ -7192,6 +7281,18 @@ function buildExpandRow(s){
     ta.resistanceLevel?mb('Resistance','$'+parseFloat(ta.resistanceLevel).toFixed(2),true,true):'',
   ].filter(Boolean).join(''):'<p style="color:var(--text-faint);font-size:13px;padding:10px">Technical data not available — price history required.</p>';
 
+  // Weekly higher-timeframe MA cloud (10/30 EMA) — derived from the same daily history, no extra fetch.
+  const wk = ta?.weekly;
+  const wkBoxes = (wk && !wk.insufficient) ? [
+    mb('10/30 Cloud', wk.cloud==='bull'?'Bullish · 10w > 30w':'Bearish · 10w < 30w', wk.cloud==='bull'),
+    wk.cross?mb('Last cross',(wk.cross==='bullish'?'▲ Long':'▼ Short')+(wk.crossWeeksAgo!=null?` · ${wk.crossWeeksAgo}w ago`:''),wk.cross==='bullish'):'',
+    mb('Weekly trend', wk.trend==='up'?'Rising':wk.trend==='down'?'Falling':'Flat', wk.trend==='up'),
+    wk.freshLong?mb('Signal','🟢 Fresh long',true):wk.freshShort?mb('Signal','🔴 Fresh short',false):'',
+    mb('EMA 10 (weekly)','$'+f(wk.ema10,'',2),true,true),
+    mb('EMA 30 (weekly)','$'+f(wk.ema30,'',2),true,true),
+    mb('Weeks of data',String(wk.weeks),true,true),
+  ].filter(Boolean).join('') : '';
+
   // Options tab content
   const opHtml = buildOptionsHTML(s);
 
@@ -7224,7 +7325,7 @@ function buildExpandRow(s){
     <div class="tc" id="etc-gr-${s.id}"><div class="slbl">Graham — 1pt each <span class="ltag">●LIVE via Finnhub</span></div><div class="mgrid">${grHtml}</div></div>
     <div class="tc" id="etc-bf-${s.id}"><div class="slbl">Buffett — 1pt each <span class="ltag">●LIVE via Finnhub</span></div><div class="mgrid">${bfHtml}</div></div>
     <div class="tc" id="etc-lc-${s.id}"><div class="slbl">Lynch — 1pt each <span class="ltag">●LIVE via Finnhub</span></div><div class="mgrid">${lcHtml}</div></div>
-    <div class="tc" id="etc-ta-${s.id}"><div class="slbl">Al Brooks Technical <span class="ltag">●LIVE via Twelve Data</span></div><div class="mgrid">${taHtml}</div></div>
+    <div class="tc" id="etc-ta-${s.id}"><div class="slbl">Al Brooks Technical — daily <span class="ltag">●LIVE via Twelve Data</span></div><div class="mgrid">${taHtml}</div>${wkBoxes?`<div class="slbl" style="margin-top:14px">Higher timeframe — weekly 10/30 EMA cloud <span class="ltag" style="background:rgba(79,110,247,.14);color:var(--accent-info)">derived, no extra fetch</span></div><div class="mgrid">${wkBoxes}</div>`:''}</div>
     <div class="tc" id="etc-op-${s.id}">${opHtml}</div>
   </div></td></tr>`;
 }
