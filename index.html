@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v8.9 — build 2026-06-20 — WEEKLY higher-timeframe MA cloud + short-term-options PUT path: the technical section now also computes a weekly 10/30 EMA "cloud" — daily history (~250 bars ≈ 50 weeks) is resampled into weekly bars IN MEMORY (zero extra API calls), so a name shows its higher-timeframe trend (bull when 10w EMA > 30w EMA) and a "fresh long/short" when the 10 has just crossed the 30. This is CONTEXT ONLY — it never touches the /8 daily Al-Brooks score or the /32 total. Shown as a 2nd grid in the Technical tab + appended to the trend summary line. The Short-term Options discover filter is now multi-timeframe + two-sided: a fresh weekly long surfaces a name as a CALL even when the daily hasn't broken out yet (early entry, e.g. AMC — confirmed: its weekly 10/30 crossed long this week), a clean daily breakout = CALL, a clean daily downtrend = PUT (CALL/PUT badge on the card). Also: AI Discovery sourcing maxTokens 2000→4000 + auto-retry once on empty parse (fixes truncated-JSON "failed" on first try). v8.8 — distorted-EPS fair-value fix + GROWTH lens: fairValueReliable now goes false when trailing EPS is distorted (P/E≥80) or true growth exceeds the formula's cap (gSrc>20), so the Graham model stops manufacturing fake huge "overvaluations" off depressed trailing EPS (ELF -474% MoS, NVDA-style -1066% MoS). New GROWTH lens (price/sales vs a growth+margin-scaled fair P/S, on CLEAN revenue not distorted EPS) credits quality growers; a SELL that's a quality grower at a cheap P/S lifts to HOLD ("Growth, not value"). Third 🌱 Growth card joins the Investor/Trader banner. v8.7: symmetric valuation signal + two-lens verdict: the margin-of-safety gate now UPGRADES a HOLD to BUY when a quality business trades at a real reliable discount ("Quality at a discount") — mirror of the existing "great company, wrong price" downgrade, so a META-style quality-at-a-discount no longer stays HOLD just because momentum is weak. Adds momentum-blind investorSignal (BUY/HOLD/AVOID) + timing traderSignal (GO/WAIT/AVOID), shown as a two-lens banner in the expanded row. v8.6: Discover cards now show a plain-language "Why" reason: discoverReason() builds a grounded explanation (gate passed + standout numbers) per curated theme; aiDiscoverReason() keeps Claude's thematic rationale and appends the validating screener math. v8.5: NEW Macro · Sector Rotation tab: relative strength of 11 SPDR sector ETFs + SMH (semis/AI) vs SPY → RRG quadrants (leading/weakening/lagging/improving), money-flow rail, RRG scatter, portfolio overlay (your sectorWeights mapped onto the rotation), and an AI "explain this rotation" web-search narrative grounded in the computed numbers. Reuses fetchPriceHistory + viss_pxcache (cached ~18h, 8/min paced). v8.4: committee card text wraps in expanded rows (table-cell nowrap inheritance); portfolio review + AI chat render markdown via renderMarkdown(). v8.3: Discover reliability (per-ticker failure tracking + transient-rate-limit retry pass), theme filter lists all scanned themes w/ counts, clear discoveries (per-theme ✕ + clear-all), "added from Discover" source tag on screener rows, clearable custom-search chip, strip Claude web-search &lt;cite&gt; tags from AI summaries, AI Investment Committee (Graham/Buffett/Lynch + hedge-fund manager) per-stock + portfolio review, invest-vs-trade entry split; v8.2: data-confidence interlock, fair-value band + MoS gate, catalyst clock + value-trap, portfolio construction + crowding/correlation -->
+<!-- v9.0 — build 2026-06-20 — AI-SOURCED dynamic Discover themes: the two themes whose candidate universe genuinely rotates (🚀 Breaking Out, ⚡ Short-term Options) now pull a FRESH ~24-ticker list from the web each scan (one cheap Haiku web-search call in scanDiscover, gated on `cat.aiSource`) instead of a fixed 49-name list — so a name like AMC surfaces when its setup is live, not just if it happened to be hardcoded. The screener still re-validates every sourced name's technicals + CALL/PUT direction + weekly 10/30 cloud; sourcing falls back to the static `tickers` list if there's no Anthropic key or the call fails (scan never hard-fails on sourcing). The STABLE-universe themes (💎 Quality, 🎯 LT Options, 💰 DCA Value) deliberately stay on curated lists — those are slow-changing blue-chip sets where a hand-picked list beats AI variance, and under-followed small-cap discovery in those styles is already covered by the 4 AI_THEMES buttons (smallQuality/moaty/garp/deepValue). Button shows '🔭 AI scan' / '✓ N found · AI'. v8.9 — WEEKLY higher-timeframe MA cloud + short-term-options PUT path: the technical section now also computes a weekly 10/30 EMA "cloud" — daily history (~250 bars ≈ 50 weeks) is resampled into weekly bars IN MEMORY (zero extra API calls), so a name shows its higher-timeframe trend (bull when 10w EMA > 30w EMA) and a "fresh long/short" when the 10 has just crossed the 30. This is CONTEXT ONLY — it never touches the /8 daily Al-Brooks score or the /32 total. Shown as a 2nd grid in the Technical tab + appended to the trend summary line. The Short-term Options discover filter is now multi-timeframe + two-sided: a fresh weekly long surfaces a name as a CALL even when the daily hasn't broken out yet (early entry, e.g. AMC — confirmed: its weekly 10/30 crossed long this week), a clean daily breakout = CALL, a clean daily downtrend = PUT (CALL/PUT badge on the card). Also: AI Discovery sourcing maxTokens 2000→4000 + auto-retry once on empty parse (fixes truncated-JSON "failed" on first try). v8.8 — distorted-EPS fair-value fix + GROWTH lens: fairValueReliable now goes false when trailing EPS is distorted (P/E≥80) or true growth exceeds the formula's cap (gSrc>20), so the Graham model stops manufacturing fake huge "overvaluations" off depressed trailing EPS (ELF -474% MoS, NVDA-style -1066% MoS). New GROWTH lens (price/sales vs a growth+margin-scaled fair P/S, on CLEAN revenue not distorted EPS) credits quality growers; a SELL that's a quality grower at a cheap P/S lifts to HOLD ("Growth, not value"). Third 🌱 Growth card joins the Investor/Trader banner. v8.7: symmetric valuation signal + two-lens verdict: the margin-of-safety gate now UPGRADES a HOLD to BUY when a quality business trades at a real reliable discount ("Quality at a discount") — mirror of the existing "great company, wrong price" downgrade, so a META-style quality-at-a-discount no longer stays HOLD just because momentum is weak. Adds momentum-blind investorSignal (BUY/HOLD/AVOID) + timing traderSignal (GO/WAIT/AVOID), shown as a two-lens banner in the expanded row. v8.6: Discover cards now show a plain-language "Why" reason: discoverReason() builds a grounded explanation (gate passed + standout numbers) per curated theme; aiDiscoverReason() keeps Claude's thematic rationale and appends the validating screener math. v8.5: NEW Macro · Sector Rotation tab: relative strength of 11 SPDR sector ETFs + SMH (semis/AI) vs SPY → RRG quadrants (leading/weakening/lagging/improving), money-flow rail, RRG scatter, portfolio overlay (your sectorWeights mapped onto the rotation), and an AI "explain this rotation" web-search narrative grounded in the computed numbers. Reuses fetchPriceHistory + viss_pxcache (cached ~18h, 8/min paced). v8.4: committee card text wraps in expanded rows (table-cell nowrap inheritance); portfolio review + AI chat render markdown via renderMarkdown(). v8.3: Discover reliability (per-ticker failure tracking + transient-rate-limit retry pass), theme filter lists all scanned themes w/ counts, clear discoveries (per-theme ✕ + clear-all), "added from Discover" source tag on screener rows, clearable custom-search chip, strip Claude web-search &lt;cite&gt; tags from AI summaries, AI Investment Committee (Graham/Buffett/Lynch + hedge-fund manager) per-stock + portfolio review, invest-vs-trade entry split; v8.2: data-confidence interlock, fair-value band + MoS gate, catalyst clock + value-trap, portfolio construction + crowding/correlation -->
 <html lang="en" data-design="material">
 <head>
 <meta charset="UTF-8">
@@ -4135,6 +4135,9 @@ const DISCOVER_UNIVERSES = {
     icon: '🚀',
     title: 'Breaking Out',
     desc: 'Strong technical momentum — recent breakouts above key EMAs. Best for swing trades.',
+    // Dynamic universe — AI sources fresh names each scan (the screener still re-validates the
+    // technicals on daily bars). Falls back to `tickers` if there's no Anthropic key / the call fails.
+    aiSource: 'US-listed stocks (NYSE/Nasdaq) that are breaking out to new highs or showing strong upside momentum RIGHT NOW — recent breakouts above key moving averages, heavy volume, fresh 52-week highs. Span all market caps and sectors, not just mega-caps; include liquid mid- and small-caps. Only real, currently-listed, liquid US tickers; no OTC/pink-sheet names.',
     tickers: ['AAPL','MSFT','NVDA','GOOG','META','AMZN','AMD','AVGO','ORCL','CRM','NFLX','TSLA','UBER','PLTR','SHOP','SNOW','SQ','COIN','ROKU','ANET','MDB','DDOG','NET','ZS','CRWD','PANW','FTNT','NOW','TEAM','OKTA','HUBS','ESTC','S','GTLB','CFLT','U','RBLX','APP','DASH','ABNB','HOOD','SOFI','ARKK','TQQQ','SOXL','SMH','XLK','QQQ','IWM']
   },
   quality: {
@@ -4153,6 +4156,9 @@ const DISCOVER_UNIVERSES = {
     icon: '⚡',
     title: 'Short-term Options',
     desc: 'High-momentum names with near-term catalysts. Best for weekly/monthly options.',
+    // The MOST dynamic theme — catalysts rotate weekly, so AI sourcing matters most here.
+    // The screener re-validates and tags each as a CALL or PUT (incl. the weekly 10/30 cloud).
+    aiSource: 'US-listed stocks with high near-term momentum or an imminent catalyst RIGHT NOW — earnings within ~2 weeks, FDA/product/legal/regulatory events, unusual options activity, elevated implied volatility, or a sharp recent trend (up OR down). Good for weekly/monthly options. Span all market caps including high-volume small- and mid-caps and active meme/momentum names; must be liquid with an active options market. Only real, currently-listed US tickers; no OTC/pink-sheet names.',
     tickers: ['NVDA','TSLA','AMD','META','GOOG','AMZN','MSFT','AAPL','NFLX','PLTR','COIN','HOOD','ROKU','U','RBLX','SOFI','RIVN','LCID','SNAP','PINS','UBER','DKNG','SHOP','BABA','PYPL','SQ','SPOT','ZM','PTON','CVNA','GME','AMC','BB','WISH','SPY','QQQ','IWM','TQQQ','SQQQ','SOXL','SOXS','UVXY','VIX','AAOI','ARM','MARA','RIOT','MSTR','SMCI']
   },
   dca: {
@@ -4372,9 +4378,9 @@ function _themeBtn(key, isAI){
   if(scanning) sub = `⏳ ${scanning}`;
   else if(err) sub = '⚠ failed — retry';
   else if(interrupted) sub = `⚠ ${count} · re-run`;
-  else if(count) sub = `✓ ${count} found${failCount?` · ${failCount} failed`:''}`;
+  else if(count) sub = `✓ ${count} found${r.aiSourced?' · AI':''}${failCount?` · ${failCount} failed`:''}`;
   else if(wasScanned) sub = failCount ? `⚠ 0 found · ${failCount} failed — retry` : '0 matched — retry';
-  else sub = isAI ? 'tap to discover' : `scan ${meta.tickers.length}`;
+  else sub = isAI ? 'tap to discover' : (meta.aiSource ? '🔭 AI scan' : `scan ${meta.tickers.length}`);
   const cls = scanning ? 'disc-theme-btn scanning' : (count||interrupted) ? 'disc-theme-btn done' : 'disc-theme-btn';
   const onclick = isAI ? `aiDiscover('${key}')` : `scanDiscover('${key}')`;
   // Tooltip lists the names that couldn't be fetched (rate-limit / no-history / not-found),
@@ -4527,7 +4533,34 @@ async function scanDiscover(category){
 
   const matches = [];
   const failed = [];               // {ticker, reason}: 'fundamentals'|'no-history'|'rate-limit'|'error'
-  const tickers = cat.tickers;
+  let tickers = cat.tickers;
+  let aiSourced = false;
+
+  // Dynamic themes (breakout, stOptions) pull a FRESH candidate list from the web each scan
+  // instead of a fixed universe — catalysts/breakouts rotate, so the list should too. One cheap
+  // Haiku web-search call; the screener still re-validates every name's technicals + CALL/PUT.
+  // Falls back to the static `tickers` if there's no Anthropic key or the call fails, so the
+  // scan never hard-fails on sourcing.
+  if(cat.aiSource && keys[0]){
+    discoverResults[category].scanning = 'AI sourcing…';
+    saveDiscoverResults(); renderDiscover();
+    showProgress(`🔭 ${cat.title}: AI sourcing fresh candidates…`);
+    try {
+      const today = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long'});
+      const prompt = `Today is ${today}. List 24 US-listed stock tickers that fit this theme:\n"${cat.aiSource}"\n\nReturn ONLY valid JSON, no preamble:\n{"tickers":["XYZ","ABC"]}`;
+      const raw = await callAnthropic(prompt, true, 3, { maxTokens: 1500 }); // Haiku default + web search ON
+      const parsed = parseJSON(raw);
+      const list = Array.isArray(parsed.tickers) ? parsed.tickers : [];
+      const clean = [...new Set(list
+        .map(t => (t && typeof t === 'object') ? t.ticker : t)      // tolerate {ticker,...} shape
+        .map(t => String(t||'').toUpperCase().trim().replace(/[^A-Z.\-]/g,''))
+        .filter(t => t && t.length <= 6))];
+      if(clean.length >= 8){ tickers = clean; aiSourced = true; }   // sane result → use it; else fall back
+      else console.warn('AI sourcing returned too few tickers, using static list');
+    } catch(e){ console.warn('AI sourcing failed, using static list:', e.message); }
+    if(busyOp !== `discover-${category}`){ busyOp=null; hideProgress(); return; } // cancelled mid-source
+  }
+
   let scanned = 0, cancelled = false;
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -4602,7 +4635,7 @@ async function scanDiscover(category){
   discoverResults[category] = {
     results: matches.slice(0, 20), scannedAt: Date.now(), scanning: null,
     interrupted: cancelled, scanned, matched: matches.length,
-    failed: failed.map(f => f.ticker), failedDetail: failed,
+    failed: failed.map(f => f.ticker), failedDetail: failed, aiSourced,
   };
   saveDiscoverResults();
   renderDiscover();
