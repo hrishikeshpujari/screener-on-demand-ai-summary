@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v11.0 — build 2026-06-24 — UI v2: FULL APP REDESIGN (render layer only — every engine and the /8 //32 scoring byte-identical; classic app preserved at screener_classic_v10.4_backup.html + screener-4.4.apk). Hybrid of the four mocked directions: (A) app shell — ONE <nav id=appNav> (reusing nav* ids so switchTab is untouched): fixed BOTTOM BAR on phone, fixed LEFT RAIL ≥900px (with 📚 brand + live SPY regime chip via updateNavRegime); labels Stocks/Discover/Positions/Macro. (C) verdict-first CARDS — renderTable (name kept, ~30 callers) now renders into #cardList: ticker/price/live-dot, signal badge + /32 + T/8, "% vs fair", entry, earnings-soon, verdict sentence (verdictNote||oneLiner), three-lens chips, 🗓 weekly-long + ⚠ trap + 📡 discover chips, ★ promote on watchlist cards; old 19-col table hidden (#tw display:none, legacy renderer parked as renderTable_legacyTable). (D) BY-ACTION LANES toggle — stockLane(): avoid = valueTrap/SELL; watch = fresh weekly-10/30 long (even on SELL — the AMC case, never outranks a trap); ready = BUY at entry OR reliable MoS≥15% (the discount IS the thesis); wait = BUY above entry / HOLD with entry; persisted viss_ui_group. (B) COMPACT density toggle (srow rows; viss_ui_density) + sort select (adds getSortVal 'mos'). DETAIL: buildExpandRow inner extracted as buildDetailInner (ALL etab-/etc- ids preserved so eswTab/rerenderVal/AI streaming work) mounted in #detailPane inside #stocksSplit — phone: fixed full-screen overlay (z640, body.detail-open, ← Back + ↻ Reload + 🗑 Remove topbar); desktop: persistent sticky right pane in a 2-col master-detail grid. eswTab selector → '#detailPane .expand-inner'. Modals lifted above the overlay (.modal-overlay z700, appConfirm/appAlert z760). Verified live at 375px AND 1280px (nav position/direction, sections, lanes incl. AMC→Watch + AAPL→Ready, detail overlay + valuation tab + football field, zero horizontal overflow). Guide Start-Here + Fair&Entry updated for cards. v10.4 — (a) Renamed the 💼 nav tab "Portfolio" → "Positions" (real holdings/P&L) to disambiguate from the new 📁 Portfolio SECTION on the Screener tab — visible labels only (nav tab, guide tab/section, Review Positions button, Positions AI Assistant, onboarding cross-refs); internal ids (navPortfolio/tabPortfolio/switchTab('portfolio')/renderPortfolio/etc.) UNCHANGED. (b) "★ Move to Portfolio" button on Watchlist rows: promoteToPortfolio(id) clears the stock's discoverSource so isWatch() → false and it regroups into the 📁 Portfolio section (persisted via save(); stays analyzed). Star renders only on watchlist rows (isWatch(s) in renderStockRow). Both verified live in mobile preview. v10.3 — (a) MOBILE TEXT WRAPPING fix: the expanded stock row inherited white-space:nowrap from the global `tbody td` rule, so long text (valuation reverse-DCF line, reliability notes, committee/AI prose) overflowed horizontally instead of wrapping; `.expand-row>td` + `.expand-inner` now set white-space:normal so all text children wrap at phone width (verified 0 horizontal overflow at 375px), while badges/pills keep their own nowrap. (b) MACRO AI now gives BOOK-AWARE TRADE SUGGESTIONS: explainRotation() maps the user's actual positions onto the rotation (reusing the overlay's sectorWeights→SECTOR_TO_ETF→quadrant mapping) and adds a 4th '🎯 WHAT IT MEANS FOR THIS BOOK' section — trim/watch candidates in fading sectors + rotate-into ideas (named ETFs) for leading/improving sectors the book is light on; with no positions it suggests which sector ETFs the rotation favors long vs avoid. Framed general/educational (no personalized advice); maxTokens 1100→1500. v10.2 — Valuation review fixes (from a 7-agent adversarial review; the integrity check confirmed the /8 and /32 scores are byte-untouched): (1) FCFF sensitivity grid now net-debt-bridges each cell so the spot cell equals the Base box and shading is on the equity basis; (2) bear/base/bull now built with an ADDITIVE growth spread (|g1|*0.4) so a negative growth override can't print Bear>Bull; ordered by value; (3) terminal growth clamped to r-0.01 up front so the forward value and reverse-DCF use the same gTerm; (4) FMP fetch rejects non-positive trailing FCF with a clear message (no silent no-op) + flags a missing balance sheet (net debt n/a); (5) the '⬆ Upgrade to real DCF' button no longer gated on eps0>0 (loss-makers with positive FCF can now upgrade); (6) emptying an assumption input reverts to default instead of storing 0, and a cleared override drops its entry (no dangling _src); (7) AI-refine MERGES overrides; (8) FMP year esc()'d; (9) getFcffData treats a missing fetchedAt as stale. Re-verified by Node harness (15 checks incl. neg-g1 ordering across -0.10..0.02, gTerm clamp, FCFF bridge) + live browser render. GUIDE: Start Here now lists the optional FMP key + a 🧭 Macro card. v10.1 — Screener list split into two on-page sections: 📁 Portfolio (your tracked/added stocks) on top + 🔭 Watchlist (everything added from Discover) below. renderTable now extracts a renderStockRow() builder and groups `sorted` by isWatch() = whether the stock carries a discoverSource (or a pending discoverSourceMap tag); each non-empty section gets a .sec-head divider row (title + count). Sort/filter order preserved within each section; the separate 💼 Portfolio nav tab (real positions) is unchanged. v10.0 — VALUATION / DCF ENGINE (new 💰 Valuation tab): replaces the crude single-point Graham fair value with a projection-based intrinsic-value RANGE. Phase 1 = earnings-power model (trailing EPS projected 10y with growth fade, discounted at cost of equity via CAPM) → bear/base/bull + a reverse-DCF headline ("market is pricing in X%/yr growth") + a football-field range chart (intrinsic vs Graham vs 52-wk vs price) + market multiples + EPV floor + DDM for payers. Phase 2 = user-editable assumptions (growth/discount/terminal, persisted in viss_val_overrides, synced) + an AI 'Refine assumptions' button (suggest-only: Claude returns ONLY {g1,r,gTerm}+rationale, every value passes a clamp chokepoint and is stamped AI-suggested, never sees a price) + a sensitivity grid. Phase 3 = optional FMP free-tier key (4th key slot, US-only, ~250/day, cached 90d in viss_fcff) → real free-cash-flow FCFF DCF with net-debt bridge, via the '⬆ Upgrade to real cash-flow DCF' button. Honesty bundle: range-not-point, reuses the fairValueReliable gate (dashed bar + ⚠ note), terminal-value-weight warning (>75% = 'multiple in disguise'), provenance labels, reverse-DCF anchor. ALL deterministic; the layer is SEPARATE from the /8 scores and /32 total (new s.val object). Engine (intrinsicPerShare/impliedGrowth/computeValuation) verified by Node harness (37 checks incl. reverse-DCF round-trip + net-debt bridge + UI render edge cases). GUIDE refreshed: new 📐 Valuation/DCF + 🧭 Macro guide tabs; Signals gains the 3-lens explainer; Technical gains the weekly 10/30 cloud; Discover rewritten for AI-sourcing + CALL/PUT. v9.0 — AI-SOURCED dynamic Discover themes: the two themes whose candidate universe genuinely rotates (🚀 Breaking Out, ⚡ Short-term Options) now pull a FRESH ~24-ticker list from the web each scan (one cheap Haiku web-search call in scanDiscover, gated on `cat.aiSource`) instead of a fixed 49-name list — so a name like AMC surfaces when its setup is live, not just if it happened to be hardcoded. The screener still re-validates every sourced name's technicals + CALL/PUT direction + weekly 10/30 cloud; sourcing falls back to the static `tickers` list if there's no Anthropic key or the call fails (scan never hard-fails on sourcing). The STABLE-universe themes (💎 Quality, 🎯 LT Options, 💰 DCA Value) deliberately stay on curated lists — those are slow-changing blue-chip sets where a hand-picked list beats AI variance, and under-followed small-cap discovery in those styles is already covered by the 4 AI_THEMES buttons (smallQuality/moaty/garp/deepValue). Button shows '🔭 AI scan' / '✓ N found · AI'. v8.9 — WEEKLY higher-timeframe MA cloud + short-term-options PUT path: the technical section now also computes a weekly 10/30 EMA "cloud" — daily history (~250 bars ≈ 50 weeks) is resampled into weekly bars IN MEMORY (zero extra API calls), so a name shows its higher-timeframe trend (bull when 10w EMA > 30w EMA) and a "fresh long/short" when the 10 has just crossed the 30. This is CONTEXT ONLY — it never touches the /8 daily Al-Brooks score or the /32 total. Shown as a 2nd grid in the Technical tab + appended to the trend summary line. The Short-term Options discover filter is now multi-timeframe + two-sided: a fresh weekly long surfaces a name as a CALL even when the daily hasn't broken out yet (early entry, e.g. AMC — confirmed: its weekly 10/30 crossed long this week), a clean daily breakout = CALL, a clean daily downtrend = PUT (CALL/PUT badge on the card). Also: AI Discovery sourcing maxTokens 2000→4000 + auto-retry once on empty parse (fixes truncated-JSON "failed" on first try). v8.8 — distorted-EPS fair-value fix + GROWTH lens: fairValueReliable now goes false when trailing EPS is distorted (P/E≥80) or true growth exceeds the formula's cap (gSrc>20), so the Graham model stops manufacturing fake huge "overvaluations" off depressed trailing EPS (ELF -474% MoS, NVDA-style -1066% MoS). New GROWTH lens (price/sales vs a growth+margin-scaled fair P/S, on CLEAN revenue not distorted EPS) credits quality growers; a SELL that's a quality grower at a cheap P/S lifts to HOLD ("Growth, not value"). Third 🌱 Growth card joins the Investor/Trader banner. v8.7: symmetric valuation signal + two-lens verdict: the margin-of-safety gate now UPGRADES a HOLD to BUY when a quality business trades at a real reliable discount ("Quality at a discount") — mirror of the existing "great company, wrong price" downgrade, so a META-style quality-at-a-discount no longer stays HOLD just because momentum is weak. Adds momentum-blind investorSignal (BUY/HOLD/AVOID) + timing traderSignal (GO/WAIT/AVOID), shown as a two-lens banner in the expanded row. v8.6: Discover cards now show a plain-language "Why" reason: discoverReason() builds a grounded explanation (gate passed + standout numbers) per curated theme; aiDiscoverReason() keeps Claude's thematic rationale and appends the validating screener math. v8.5: NEW Macro · Sector Rotation tab: relative strength of 11 SPDR sector ETFs + SMH (semis/AI) vs SPY → RRG quadrants (leading/weakening/lagging/improving), money-flow rail, RRG scatter, portfolio overlay (your sectorWeights mapped onto the rotation), and an AI "explain this rotation" web-search narrative grounded in the computed numbers. Reuses fetchPriceHistory + viss_pxcache (cached ~18h, 8/min paced). v8.4: committee card text wraps in expanded rows (table-cell nowrap inheritance); portfolio review + AI chat render markdown via renderMarkdown(). v8.3: Discover reliability (per-ticker failure tracking + transient-rate-limit retry pass), theme filter lists all scanned themes w/ counts, clear discoveries (per-theme ✕ + clear-all), "added from Discover" source tag on screener rows, clearable custom-search chip, strip Claude web-search &lt;cite&gt; tags from AI summaries, AI Investment Committee (Graham/Buffett/Lynch + hedge-fund manager) per-stock + portfolio review, invest-vs-trade entry split; v8.2: data-confidence interlock, fair-value band + MoS gate, catalyst clock + value-trap, portfolio construction + crowding/correlation -->
+<!-- v11.2 — build 2026-07-01 — VALUATION RELIABILITY, done properly: the projection engine now judges reliability on ITS OWN terms instead of inheriting the Graham gate (computeValuation takes a `flags` object {epsImputed, yoyOnly, epsDistorted, growthExceedsModel}): high growth is FINE (the 10-yr fade model exists for it; >35% adds a "clamped" caveat note), book value is irrelevant, real FCF from FMP statements overrides a distorted/imputed EPS base entirely; unreliable only for: no positive earnings & no FCF, imputed EPS, distorted EPS without FMP data (note points at the FMP key), or 1-yr-only growth history. NEW effectiveGap(s): cards/compact rows/overview now show Graham "% vs fair" when THAT model is reliable, else the engine's "% vs intrinsic" when the ENGINE is reliable — this rescues high-growth names (GOOG/MU/AMD) from "fair value n/a" with an honest number; n/a only when NEITHER model is trustworthy. Valuation tab shows a soft ℹ caveat when reliable-with-note. inputs echo carries flags so render-time recomputes keep the gate. Node harness 10/10 (incl. distorted+FCFF→reliable, legacy no-flags fallback) + live check (28%-grower card flips to "+23% vs intrinsic", banner gone). v11.1 — UI v2 polish: (a) COLLAPSIBLE SIDEBAR (desktop) — «/» toggle in the rail brand collapses 176px→64px icon-only rail (labels wrapped in .nvlbl, body.nav-collapsed, persisted viss_ui_navcol, restored at boot); hidden on phone. (b) OVERVIEW DASHBOARD in the empty detail pane (buildOverviewPane): BUY/HOLD/SELL/avg stat boxes + clickable rows for 🎯 best setup (top BUY w/ tech≥6), 🟢 ready-to-buy lane, 💰 biggest RELIABLE discounts, ⚡ earnings ≤14d, 🗓 fresh weekly-10/30 longs — every row opens that stock's detail. (c) CARD HONESTY FIX: "% vs fair" on cards/compact rows now only shown when fairValueReliable — kills the −1129%-vs-fair nonsense on capped-growth names (screenshot bug); unreliable → "fair value n/a". Verified live at 1280px (collapse widths/persistence, overview sections, row clickthrough, AMD n/a, zero overflow). v11.0 — UI v2: FULL APP REDESIGN (render layer only — every engine and the /8 //32 scoring byte-identical; classic app preserved at screener_classic_v10.4_backup.html + screener-4.4.apk). Hybrid of the four mocked directions: (A) app shell — ONE <nav id=appNav> (reusing nav* ids so switchTab is untouched): fixed BOTTOM BAR on phone, fixed LEFT RAIL ≥900px (with 📚 brand + live SPY regime chip via updateNavRegime); labels Stocks/Discover/Positions/Macro. (C) verdict-first CARDS — renderTable (name kept, ~30 callers) now renders into #cardList: ticker/price/live-dot, signal badge + /32 + T/8, "% vs fair", entry, earnings-soon, verdict sentence (verdictNote||oneLiner), three-lens chips, 🗓 weekly-long + ⚠ trap + 📡 discover chips, ★ promote on watchlist cards; old 19-col table hidden (#tw display:none, legacy renderer parked as renderTable_legacyTable). (D) BY-ACTION LANES toggle — stockLane(): avoid = valueTrap/SELL; watch = fresh weekly-10/30 long (even on SELL — the AMC case, never outranks a trap); ready = BUY at entry OR reliable MoS≥15% (the discount IS the thesis); wait = BUY above entry / HOLD with entry; persisted viss_ui_group. (B) COMPACT density toggle (srow rows; viss_ui_density) + sort select (adds getSortVal 'mos'). DETAIL: buildExpandRow inner extracted as buildDetailInner (ALL etab-/etc- ids preserved so eswTab/rerenderVal/AI streaming work) mounted in #detailPane inside #stocksSplit — phone: fixed full-screen overlay (z640, body.detail-open, ← Back + ↻ Reload + 🗑 Remove topbar); desktop: persistent sticky right pane in a 2-col master-detail grid. eswTab selector → '#detailPane .expand-inner'. Modals lifted above the overlay (.modal-overlay z700, appConfirm/appAlert z760). Verified live at 375px AND 1280px (nav position/direction, sections, lanes incl. AMC→Watch + AAPL→Ready, detail overlay + valuation tab + football field, zero horizontal overflow). Guide Start-Here + Fair&Entry updated for cards. v10.4 — (a) Renamed the 💼 nav tab "Portfolio" → "Positions" (real holdings/P&L) to disambiguate from the new 📁 Portfolio SECTION on the Screener tab — visible labels only (nav tab, guide tab/section, Review Positions button, Positions AI Assistant, onboarding cross-refs); internal ids (navPortfolio/tabPortfolio/switchTab('portfolio')/renderPortfolio/etc.) UNCHANGED. (b) "★ Move to Portfolio" button on Watchlist rows: promoteToPortfolio(id) clears the stock's discoverSource so isWatch() → false and it regroups into the 📁 Portfolio section (persisted via save(); stays analyzed). Star renders only on watchlist rows (isWatch(s) in renderStockRow). Both verified live in mobile preview. v10.3 — (a) MOBILE TEXT WRAPPING fix: the expanded stock row inherited white-space:nowrap from the global `tbody td` rule, so long text (valuation reverse-DCF line, reliability notes, committee/AI prose) overflowed horizontally instead of wrapping; `.expand-row>td` + `.expand-inner` now set white-space:normal so all text children wrap at phone width (verified 0 horizontal overflow at 375px), while badges/pills keep their own nowrap. (b) MACRO AI now gives BOOK-AWARE TRADE SUGGESTIONS: explainRotation() maps the user's actual positions onto the rotation (reusing the overlay's sectorWeights→SECTOR_TO_ETF→quadrant mapping) and adds a 4th '🎯 WHAT IT MEANS FOR THIS BOOK' section — trim/watch candidates in fading sectors + rotate-into ideas (named ETFs) for leading/improving sectors the book is light on; with no positions it suggests which sector ETFs the rotation favors long vs avoid. Framed general/educational (no personalized advice); maxTokens 1100→1500. v10.2 — Valuation review fixes (from a 7-agent adversarial review; the integrity check confirmed the /8 and /32 scores are byte-untouched): (1) FCFF sensitivity grid now net-debt-bridges each cell so the spot cell equals the Base box and shading is on the equity basis; (2) bear/base/bull now built with an ADDITIVE growth spread (|g1|*0.4) so a negative growth override can't print Bear>Bull; ordered by value; (3) terminal growth clamped to r-0.01 up front so the forward value and reverse-DCF use the same gTerm; (4) FMP fetch rejects non-positive trailing FCF with a clear message (no silent no-op) + flags a missing balance sheet (net debt n/a); (5) the '⬆ Upgrade to real DCF' button no longer gated on eps0>0 (loss-makers with positive FCF can now upgrade); (6) emptying an assumption input reverts to default instead of storing 0, and a cleared override drops its entry (no dangling _src); (7) AI-refine MERGES overrides; (8) FMP year esc()'d; (9) getFcffData treats a missing fetchedAt as stale. Re-verified by Node harness (15 checks incl. neg-g1 ordering across -0.10..0.02, gTerm clamp, FCFF bridge) + live browser render. GUIDE: Start Here now lists the optional FMP key + a 🧭 Macro card. v10.1 — Screener list split into two on-page sections: 📁 Portfolio (your tracked/added stocks) on top + 🔭 Watchlist (everything added from Discover) below. renderTable now extracts a renderStockRow() builder and groups `sorted` by isWatch() = whether the stock carries a discoverSource (or a pending discoverSourceMap tag); each non-empty section gets a .sec-head divider row (title + count). Sort/filter order preserved within each section; the separate 💼 Portfolio nav tab (real positions) is unchanged. v10.0 — VALUATION / DCF ENGINE (new 💰 Valuation tab): replaces the crude single-point Graham fair value with a projection-based intrinsic-value RANGE. Phase 1 = earnings-power model (trailing EPS projected 10y with growth fade, discounted at cost of equity via CAPM) → bear/base/bull + a reverse-DCF headline ("market is pricing in X%/yr growth") + a football-field range chart (intrinsic vs Graham vs 52-wk vs price) + market multiples + EPV floor + DDM for payers. Phase 2 = user-editable assumptions (growth/discount/terminal, persisted in viss_val_overrides, synced) + an AI 'Refine assumptions' button (suggest-only: Claude returns ONLY {g1,r,gTerm}+rationale, every value passes a clamp chokepoint and is stamped AI-suggested, never sees a price) + a sensitivity grid. Phase 3 = optional FMP free-tier key (4th key slot, US-only, ~250/day, cached 90d in viss_fcff) → real free-cash-flow FCFF DCF with net-debt bridge, via the '⬆ Upgrade to real cash-flow DCF' button. Honesty bundle: range-not-point, reuses the fairValueReliable gate (dashed bar + ⚠ note), terminal-value-weight warning (>75% = 'multiple in disguise'), provenance labels, reverse-DCF anchor. ALL deterministic; the layer is SEPARATE from the /8 scores and /32 total (new s.val object). Engine (intrinsicPerShare/impliedGrowth/computeValuation) verified by Node harness (37 checks incl. reverse-DCF round-trip + net-debt bridge + UI render edge cases). GUIDE refreshed: new 📐 Valuation/DCF + 🧭 Macro guide tabs; Signals gains the 3-lens explainer; Technical gains the weekly 10/30 cloud; Discover rewritten for AI-sourcing + CALL/PUT. v9.0 — AI-SOURCED dynamic Discover themes: the two themes whose candidate universe genuinely rotates (🚀 Breaking Out, ⚡ Short-term Options) now pull a FRESH ~24-ticker list from the web each scan (one cheap Haiku web-search call in scanDiscover, gated on `cat.aiSource`) instead of a fixed 49-name list — so a name like AMC surfaces when its setup is live, not just if it happened to be hardcoded. The screener still re-validates every sourced name's technicals + CALL/PUT direction + weekly 10/30 cloud; sourcing falls back to the static `tickers` list if there's no Anthropic key or the call fails (scan never hard-fails on sourcing). The STABLE-universe themes (💎 Quality, 🎯 LT Options, 💰 DCA Value) deliberately stay on curated lists — those are slow-changing blue-chip sets where a hand-picked list beats AI variance, and under-followed small-cap discovery in those styles is already covered by the 4 AI_THEMES buttons (smallQuality/moaty/garp/deepValue). Button shows '🔭 AI scan' / '✓ N found · AI'. v8.9 — WEEKLY higher-timeframe MA cloud + short-term-options PUT path: the technical section now also computes a weekly 10/30 EMA "cloud" — daily history (~250 bars ≈ 50 weeks) is resampled into weekly bars IN MEMORY (zero extra API calls), so a name shows its higher-timeframe trend (bull when 10w EMA > 30w EMA) and a "fresh long/short" when the 10 has just crossed the 30. This is CONTEXT ONLY — it never touches the /8 daily Al-Brooks score or the /32 total. Shown as a 2nd grid in the Technical tab + appended to the trend summary line. The Short-term Options discover filter is now multi-timeframe + two-sided: a fresh weekly long surfaces a name as a CALL even when the daily hasn't broken out yet (early entry, e.g. AMC — confirmed: its weekly 10/30 crossed long this week), a clean daily breakout = CALL, a clean daily downtrend = PUT (CALL/PUT badge on the card). Also: AI Discovery sourcing maxTokens 2000→4000 + auto-retry once on empty parse (fixes truncated-JSON "failed" on first try). v8.8 — distorted-EPS fair-value fix + GROWTH lens: fairValueReliable now goes false when trailing EPS is distorted (P/E≥80) or true growth exceeds the formula's cap (gSrc>20), so the Graham model stops manufacturing fake huge "overvaluations" off depressed trailing EPS (ELF -474% MoS, NVDA-style -1066% MoS). New GROWTH lens (price/sales vs a growth+margin-scaled fair P/S, on CLEAN revenue not distorted EPS) credits quality growers; a SELL that's a quality grower at a cheap P/S lifts to HOLD ("Growth, not value"). Third 🌱 Growth card joins the Investor/Trader banner. v8.7: symmetric valuation signal + two-lens verdict: the margin-of-safety gate now UPGRADES a HOLD to BUY when a quality business trades at a real reliable discount ("Quality at a discount") — mirror of the existing "great company, wrong price" downgrade, so a META-style quality-at-a-discount no longer stays HOLD just because momentum is weak. Adds momentum-blind investorSignal (BUY/HOLD/AVOID) + timing traderSignal (GO/WAIT/AVOID), shown as a two-lens banner in the expanded row. v8.6: Discover cards now show a plain-language "Why" reason: discoverReason() builds a grounded explanation (gate passed + standout numbers) per curated theme; aiDiscoverReason() keeps Claude's thematic rationale and appends the validating screener math. v8.5: NEW Macro · Sector Rotation tab: relative strength of 11 SPDR sector ETFs + SMH (semis/AI) vs SPY → RRG quadrants (leading/weakening/lagging/improving), money-flow rail, RRG scatter, portfolio overlay (your sectorWeights mapped onto the rotation), and an AI "explain this rotation" web-search narrative grounded in the computed numbers. Reuses fetchPriceHistory + viss_pxcache (cached ~18h, 8/min paced). v8.4: committee card text wraps in expanded rows (table-cell nowrap inheritance); portfolio review + AI chat render markdown via renderMarkdown(). v8.3: Discover reliability (per-ticker failure tracking + transient-rate-limit retry pass), theme filter lists all scanned themes w/ counts, clear discoveries (per-theme ✕ + clear-all), "added from Discover" source tag on screener rows, clearable custom-search chip, strip Claude web-search &lt;cite&gt; tags from AI summaries, AI Investment Committee (Graham/Buffett/Lynch + hedge-fund manager) per-stock + portfolio review, invest-vs-trade entry split; v8.2: data-confidence interlock, fair-value band + MoS gate, catalyst clock + value-trap, portfolio construction + crowding/correlation -->
 <html lang="en" data-design="material">
 <head>
 <meta charset="UTF-8">
@@ -1933,14 +1933,37 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   #stocksSplit{display:grid;grid-template-columns:minmax(300px,370px) minmax(0,1fr);gap:16px;align-items:start}
   #detailPane{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow-y:auto;border:1px solid var(--border-strong);border-radius:14px}
   .dp-back{display:none}
+  .nvbrand{display:flex;align-items:center;gap:8px}
+  .nvcol{margin-left:auto;background:none;border:1px solid var(--border-default);border-radius:6px;color:var(--text-faint);font-size:11px;padding:2px 7px;cursor:pointer;font-family:inherit;line-height:1.4}
+  .nvcol:hover{color:var(--text-secondary);border-color:var(--border-strong)}
+  body.nav-collapsed #appNav{width:64px;padding:18px 8px}
+  body.nav-collapsed #screenerPage{padding-left:64px}
+  body.nav-collapsed .nvlbl{display:none}
+  body.nav-collapsed .nvitem{justify-content:center;padding:9px 0;gap:0}
+  body.nav-collapsed .nvbrand{flex-direction:column;gap:8px;justify-content:center;padding:2px 0 14px}
+  body.nav-collapsed .nvcol{margin-left:0}
+  body.nav-collapsed .nvspy{display:none}
 }
+.ov-wrap{padding:16px 18px 22px}
+.ov-h{font-size:14px;font-weight:800;color:var(--text-primary);margin-bottom:12px}
+.ov-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px}
+.ov-stat{background:var(--surface-card);border:1px solid var(--border-default);border-radius:10px;padding:10px 6px;text-align:center}
+.ov-sv{font-size:19px;font-weight:800}
+.ov-sl{font-size:9.5px;color:var(--text-faint);font-weight:600;margin-top:2px}
+.ov-sec{font-size:12px;font-weight:800;color:var(--text-primary);margin:16px 0 7px;display:flex;align-items:center;gap:6px}
+.ov-sec .sec-cnt{font-size:10px}
+.ov-row{display:flex;gap:10px;align-items:center;padding:8px 11px;border:1px solid var(--border-default);border-radius:9px;margin-bottom:6px;cursor:pointer;font-size:12px;background:var(--surface-card)}
+.ov-row:hover{border-color:var(--border-strong)}
+.ov-t{font-weight:800;color:var(--text-primary);min-width:52px}
+.ov-n{color:var(--text-tertiary);flex:1;line-height:1.4}
+.ov-c{color:var(--text-faint)}
 </style>
 <nav id="appNav" aria-label="App navigation">
-  <div class="nvbrand">📚 Screener</div>
-  <button class="nvitem active" id="navScreener" onclick="switchTab('screener')"><span class="nvico">📊</span>Stocks</button>
-  <button class="nvitem" id="navDiscover" onclick="switchTab('discover')"><span class="nvico">🔭</span>Discover</button>
-  <button class="nvitem" id="navPortfolio" onclick="switchTab('portfolio')"><span class="nvico">💼</span>Positions</button>
-  <button class="nvitem" id="navMacro" onclick="switchTab('macro')"><span class="nvico">🧭</span>Macro</button>
+  <div class="nvbrand"><span class="nvico">📚</span><span class="nvlbl">Screener</span><button class="nvcol" id="navColBtn" onclick="toggleNavCollapse()" title="Collapse sidebar">«</button></div>
+  <button class="nvitem active" id="navScreener" onclick="switchTab('screener')"><span class="nvico">📊</span><span class="nvlbl">Stocks</span></button>
+  <button class="nvitem" id="navDiscover" onclick="switchTab('discover')"><span class="nvico">🔭</span><span class="nvlbl">Discover</span></button>
+  <button class="nvitem" id="navPortfolio" onclick="switchTab('portfolio')"><span class="nvico">💼</span><span class="nvlbl">Positions</span></button>
+  <button class="nvitem" id="navMacro" onclick="switchTab('macro')"><span class="nvico">🧭</span><span class="nvlbl">Macro</span></button>
   <div class="nvspy" id="navRegime" style="display:none"></div>
 </nav>
 
@@ -2328,7 +2351,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
         <strong style="color:var(--text-primary)">How it stays honest:</strong>
         <ul style="margin:8px 0 0 20px;font-size:12px;color:var(--text-tertiary);line-height:1.7">
           <li>It's a <strong>range</strong>, never a single number — a DCF is only as good as its assumptions.</li>
-          <li>When inputs are weak (distorted/estimated EPS, hyper-growth), a ⚠ banner appears and the intrinsic bar is dashed — the same reliability gate the headline verdict uses.</li>
+          <li>When inputs are weak (distorted or estimated EPS, only 1-yr growth history), a ⚠ banner appears and the intrinsic bar is dashed. This is the engine's <em>own</em> gate — unlike the Graham number it happily handles high growth (that's what the fade model is for), but it's strict about input quality. Stock cards show "% vs intrinsic" from this engine whenever the Graham "% vs fair" isn't trustworthy.</li>
           <li>If &gt;75% of the value is the terminal stub, a warning says so — that's "a multiple in disguise," not a real projection.</li>
           <li>A <strong>sensitivity table</strong> shows how value swings across discount-rate × growth — uncertainty made visible, not a false-precise point.</li>
         </ul>
@@ -6109,7 +6132,20 @@ function computeEPV({ eps0, r }){
 // FCF/share stream + net-debt bridge and takes over as the headline method when present.
 function computeValuation(ctx){
   const { eps0, gSrcPct, beta, price, pe, ps, peg, reliable, reliabilityNote,
-          dividendYieldPct, roePct, bvps, fcff, overrides } = ctx;
+          dividendYieldPct, roePct, bvps, fcff, overrides, flags } = ctx;
+  // The projection engine judges reliability on ITS OWN terms — not Graham's. High growth is
+  // fine (the fade model exists for it, clamped at 35%); book value is irrelevant (no Graham
+  // Number here). What matters is INPUT quality: a real reported EPS base (or real FCF from
+  // statements, which replaces the base entirely) and a multi-year growth history.
+  let valReliable, valNote = '';
+  const f = flags;
+  const hasFcffBase = !!(fcff && fcff.fcfPerShare0 > 0);
+  if(!f){ valReliable = reliable !== false; valNote = reliabilityNote || ''; }   // legacy callers
+  else if(eps0 == null && !hasFcffBase){ valReliable = false; valNote = 'No positive earnings — value this on sales or cash flow, not EPS'; }
+  else if(f.epsImputed && !hasFcffBase){ valReliable = false; valNote = 'Trailing EPS is estimated — treat the range as rough'; }
+  else if(f.epsDistorted && !hasFcffBase){ valReliable = false; valNote = 'Trailing EPS distorted (P/E ≥ 80) — add an FMP key to value on real cash flow instead'; }
+  else if(f.yoyOnly){ valReliable = false; valNote = 'Only 1-yr growth history — the projection input is noisy'; }
+  else { valReliable = true; if(gSrcPct != null && gSrcPct > 35) valNote = 'Growth clamped at 35%/yr — the base case may understate a hyper-grower'; }
   const r0 = valDiscountRate(beta);
   const a = { r: r0, gTerm: Math.min(0.025, r0 - 0.01), g1: valClamp((gSrcPct || 0) / 100, 0, 0.35),
               src: { g1: 'historical', r: 'model', gTerm: 'model' } };
@@ -6147,11 +6183,11 @@ function computeValuation(ctx){
     intrinsic, impliedGrowth: implied, terminalWeight: intrinsic ? intrinsic.terminalWeight : null,
     multiples: { pe: pe ?? null, ps: ps ?? null, peg: peg ?? null },
     mosBase: (baseVal && price > 0) ? (baseVal - price) / baseVal : null,
-    reliable: reliable !== false, reliabilityNote: reliabilityNote || '',
+    reliable: valReliable, reliabilityNote: valNote,
     assumptions: a, fcff: fcffInfo,
     ddm: computeDDM({ price, dividendYieldPct, roePct, r, gTerm }),
     epv: computeEPV({ eps0, r }),
-    inputs: { eps0, gSrcPct, beta, price, pe, ps, peg, reliable, reliabilityNote, dividendYieldPct, roePct, bvps },
+    inputs: { eps0, gSrcPct, beta, price, pe, ps, peg, reliable, reliabilityNote, dividendYieldPct, roePct, bvps, flags },
   };
 }
 // Persisted per-ticker assumption overrides (Phase 2 writes these) and FMP FCFF cache (Phase 3).
@@ -6201,7 +6237,9 @@ function buildValuationHTML(s){
   const box = (lbl, v, tone, sub) => `<div class="mbox mbox-${tone || 'neut'}"><div class="ml">${lbl}</div><div class="mv ${tone || 'neut'}">${v}</div>${sub ? `<div style="font-size:9px;color:var(--text-faint);margin-top:2px">${sub}</div>` : ''}</div>`;
   const intr = val.intrinsic, reliable = val.reliable;
   const methodLbl = val.method === 'fcff' ? 'Discounted free cash flow (FCFF)' : 'Earnings power (capitalized EPS)';
-  const relBanner = !reliable ? `<div style="background:rgba(245,158,11,.10);border:1px solid var(--accent-hold-border);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:11.5px;color:var(--c-amber)">⚠ ${esc(val.reliabilityNote || 'Inputs weak — treat this as a rough range, not a precise value.')}</div>` : '';
+  const relBanner = !reliable
+    ? `<div style="background:rgba(245,158,11,.10);border:1px solid var(--accent-hold-border);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:11.5px;color:var(--c-amber)">⚠ ${esc(val.reliabilityNote || 'Inputs weak — treat this as a rough range, not a precise value.')}</div>`
+    : (val.reliabilityNote ? `<div style="font-size:11px;color:var(--text-faint);margin-bottom:10px">ℹ ${esc(val.reliabilityNote)}</div>` : '');
   // Reverse-DCF headline (the trust anchor)
   const ig = val.impliedGrowth, hist = (val.gSrcPct || 0) / 100;
   let revLine;
@@ -6725,6 +6763,7 @@ function computeStock(ticker, fmp, history){
     eps0: eps, gSrcPct: gSrc, beta: fmp.beta, price,
     pe: fmp.pe, ps: _valPS, peg: fmp.peg,
     reliable: fairValueReliable, reliabilityNote: _valNote,
+    flags: { epsImputed: !!fmp.epsTTMImputed, yoyOnly: gFellBackToYoY, epsDistorted, growthExceedsModel },
     dividendYieldPct: fmp.dividendYield, roePct: fmp.roe, bvps,
     overrides: getValOverrides(ticker), fcff: getFcffData(ticker),
   });
@@ -7618,6 +7657,15 @@ function verdictSentence(s){
   const ol=s.oneLiner||'';
   return ol.length>110 ? ol.slice(0,107)+'…' : ol;
 }
+// The best available price-vs-value gap for a stock: the Graham margin of safety when THAT
+// model is reliable, else the projection engine's upside-to-base when the ENGINE is reliable
+// (its own gate — tolerant of high growth, strict on input quality). null = no honest number.
+function effectiveGap(s){
+  if(s.fairValueReliable!==false && s.marginOfSafety!=null && isFinite(s.marginOfSafety)) return { pct: Math.round(s.marginOfSafety*100), basis: 'fair' };
+  const v=s.val;
+  if(v && v.reliable && v.mosBase!=null && isFinite(v.mosBase)) return { pct: Math.round(v.mosBase*100), basis: 'intrinsic' };
+  return null;
+}
 function laneHead(icon,title,n,sub){ return `<div class="sec-head2"><span>${icon} ${title}</span><span class="sec-cnt">${n}</span>${sub?`<span class="sec-sub">${sub}</span>`:''}</div>`; }
 function buildStockCard(s){
   if(s.status==='loading') return `<div class="scard scard-dim"><div class="scard-top"><span class="scard-tkr"><span class="spin" style="width:11px;height:11px"></span> ${s.ticker}</span><span class="scard-nm" style="max-width:none">${esc(s.step||'Loading…')}</span></div></div>`;
@@ -7625,8 +7673,11 @@ function buildStockCard(s){
   const sel=activeDP===s.id?' sel':'';
   const live=s.priceIsLive?' <span class="scard-live">●</span>':'';
   const star=isWatchStock(s)?`<button class="scard-star" onclick="promoteToPortfolio(${s.id},event)" title="Move to Portfolio">★</button>`:'';
-  const mos=(s.marginOfSafety!=null&&isFinite(s.marginOfSafety))?Math.round(s.marginOfSafety*100):null;
-  const gap=mos!=null?`<span style="color:${mos>5?'var(--c-green)':mos<-5?'var(--c-red)':'var(--c-amber)'};font-weight:600">${mos>=0?'+':''}${mos}% vs fair</span>`
+  // Best honest gap: Graham "% vs fair" when reliable; else the projection engine's
+  // "% vs intrinsic" (its own gate — this is what rescues high-growth names from n/a);
+  // else an honest "fair value n/a". Never print an unreliable −1129%.
+  const eg=effectiveGap(s);
+  const gap=eg?`<span style="color:${eg.pct>5?'var(--c-green)':eg.pct<-5?'var(--c-red)':'var(--c-amber)'};font-weight:600">${eg.pct>=0?'+':''}${eg.pct}% vs ${eg.basis}</span>`
     :(s.fairValueReliable===false?`<span style="color:var(--text-faint)">fair value n/a</span>`:'');
   let entry='';
   if(s.entryPrice&&s.currentPrice){
@@ -7648,7 +7699,8 @@ function buildStockCard(s){
 function buildStockRow(s){
   if(s.status!=='done') return buildStockCard(s);
   const sel=activeDP===s.id?' sel':'';
-  const mos=(s.marginOfSafety!=null&&isFinite(s.marginOfSafety))?Math.round(s.marginOfSafety*100):null;
+  const eg=effectiveGap(s);
+  const mos=eg?eg.pct:null;
   const gcol=mos==null?'var(--text-faint)':mos>5?'var(--c-green)':mos<-5?'var(--c-red)':'var(--c-amber)';
   return `<div class="srow${sel}" onclick="toggleDP(${s.id})">
     <span class="r-t">${s.ticker}${isWatchStock(s)?' <span style="color:var(--c-amber);font-size:10px">★</span>':''}</span>
@@ -7667,13 +7719,57 @@ function updateNavRegime(){
   el.style.color=dir==='uptrend'?'var(--c-green)':dir==='downtrend'?'var(--c-red)':'var(--c-amber)';
   el.textContent=`SPY ${t}/8 · ${dir==='uptrend'?'risk-on':dir==='downtrend'?'risk-off':'mixed'}`;
 }
+// Sidebar collapse (desktop rail → 64px icon rail; hidden on phone). Persisted.
+function toggleNavCollapse(){
+  const on=document.body.classList.toggle('nav-collapsed');
+  localStorage.setItem('viss_ui_navcol', on?'1':'0');
+  const b=document.getElementById('navColBtn');
+  if(b){ b.textContent=on?'»':'«'; b.title=on?'Expand sidebar':'Collapse sidebar'; }
+}
+// Overview dashboard shown in the detail pane when nothing is selected (desktop) — turns the
+// empty space into a "what should I look at?" summary. Every row is clickable.
+function buildOverviewPane(){
+  const done=stocks.filter(s=>s.status==='done');
+  if(!done.length) return `<div class="dp-empty"><span style="font-size:26px">🔎</span>Select a stock to see the full analysis</div>`;
+  const buys=done.filter(s=>s.overallSignal==='BUY').length;
+  const holds=done.filter(s=>s.overallSignal==='HOLD').length;
+  const sells=done.filter(s=>s.overallSignal==='SELL').length;
+  const scored=done.filter(s=>s.totalScore!=null);
+  const avg=scored.length?(scored.reduce((a,s)=>a+s.totalScore,0)/scored.length):0;
+  const row=(s,note)=>`<div class="ov-row" onclick="toggleDP(${s.id})"><span class="ov-t">${s.ticker}</span><span class="ov-n">${note}</span><span class="ov-c">›</span></div>`;
+  const ready=done.filter(s=>stockLane(s)==='ready').sort((a,b)=>(b.totalScore||0)-(a.totalScore||0)).slice(0,4);
+  const readyHtml=ready.map(s=>{
+    const eg=effectiveGap(s);
+    return row(s, `${s.totalScore??0}/32 · ${s.verdictNote||((eg?(eg.pct>=0?'+':'')+eg.pct+'% vs '+eg.basis:'at entry'))}`);
+  }).join('');
+  const bestCands=done.filter(s=>s.overallSignal==='BUY'&&(s.technical?.score||0)>=6).sort((a,b)=>(b.totalScore||0)-(a.totalScore||0));
+  const best=bestCands[0];
+  const earn=done.filter(s=>s.nextEarningsDays!=null&&s.nextEarningsDays>=0&&s.nextEarningsDays<=14).sort((a,b)=>a.nextEarningsDays-b.nextEarningsDays).slice(0,5);
+  const disc=done.map(s=>({s,eg:effectiveGap(s)})).filter(x=>x.eg&&x.eg.pct>=10).sort((a,b)=>b.eg.pct-a.eg.pct).slice(0,4);
+  const wkLongs=done.filter(s=>s.technical?.weekly?.freshLong).slice(0,4);
+  return `<div class="ov-wrap">
+    <div class="ov-h">📊 Overview — ${done.length} stocks</div>
+    <div class="ov-stats">
+      <div class="ov-stat"><div class="ov-sv" style="color:var(--c-green)">${buys}</div><div class="ov-sl">BUY</div></div>
+      <div class="ov-stat"><div class="ov-sv" style="color:var(--c-amber)">${holds}</div><div class="ov-sl">HOLD</div></div>
+      <div class="ov-stat"><div class="ov-sv" style="color:var(--c-red)">${sells}</div><div class="ov-sl">SELL</div></div>
+      <div class="ov-stat"><div class="ov-sv">${avg.toFixed(1)}</div><div class="ov-sl">AVG /32</div></div>
+    </div>
+    ${best?`<div class="ov-sec">🎯 Best setup right now</div>${row(best,`${best.totalScore}/32 · Tech ${best.technical?.score||0}/8 · ${esc(verdictSentence(best)).slice(0,70)}`)}`:''}
+    ${ready.length?`<div class="ov-sec">🟢 Ready to buy <span class="sec-cnt">${ready.length}</span></div>${readyHtml}`:''}
+    ${disc.length?`<div class="ov-sec">💰 Biggest reliable discounts</div>${disc.map(x=>row(x.s,`+${x.eg.pct}% below ${x.eg.basis==='fair'?'fair value':'intrinsic value'} · ${x.s.totalScore??0}/32`)).join('')}`:''}
+    ${earn.length?`<div class="ov-sec">⚡ Earnings within 14 days</div>${earn.map(s=>row(s,`${s.nextEarningsDays}d · ${s.overallSignal||'—'} ${s.totalScore??0}/32`)).join('')}`:''}
+    ${wkLongs.length?`<div class="ov-sec">🗓 Weekly 10/30 just turned long</div>${wkLongs.map(s=>row(s,`${s.technical?.trendDirection||''} daily · early signal`)).join('')}`:''}
+    <div style="font-size:10.5px;color:var(--text-faint);margin-top:14px">Tap any row to open the full analysis. Not financial advice.</div>
+  </div>`;
+}
 function renderDetail(){
   const pane=document.getElementById('detailPane'); if(!pane) return;
   const s=(activeDP!=null)?stocks.find(x=>x.id===activeDP&&x.status==='done'):null;
   if(!s){
     if(activeDP!=null) activeDP=null;
     document.body.classList.remove('detail-open');
-    pane.innerHTML=`<div class="dp-empty"><span style="font-size:26px">🔎</span>Select a stock to see the full analysis</div>`;
+    pane.innerHTML=buildOverviewPane();
     return;
   }
   let inner='';
@@ -8629,6 +8725,11 @@ function renderSyncModal(){
 
 loadTheme(); // apply saved theme before anything renders
 loadDesign(); // apply saved design (default: Material)
+// Restore the sidebar collapse state before first paint of the shell (desktop only; no-op on phone).
+if(localStorage.getItem('viss_ui_navcol')==='1'){
+  document.body.classList.add('nav-collapsed');
+  const _ncb=document.getElementById('navColBtn'); if(_ncb){ _ncb.textContent='»'; _ncb.title='Expand sidebar'; }
+}
 loadKeys(); // handles routing to setup or screener, and calls loadStocks when ready
 clearStaleScanFlags(); // clean up any stuck scanning flags from previous interrupted runs
 loadPositions();
