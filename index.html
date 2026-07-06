@@ -10801,7 +10801,7 @@ function v2_renderCalc(){
 }
 
 /* ---- Emoji de-emphasis (§A.2) — scoped strictly to fidelity ---- */
-[data-theme="fidelity"] .nvico{ filter:grayscale(1) opacity(.55); font-size:.9em; }
+[data-theme="fidelity"] .nvico{ filter:grayscale(1) opacity(.8); }
 [data-theme="fidelity"] .tab, [data-theme="fidelity"] .guide-tab{ letter-spacing:.01em; }
 [data-theme="fidelity"] .nvitem.active{ color:var(--brand); box-shadow:inset 0 -2px 0 var(--brand); }
 
@@ -10910,13 +10910,6 @@ function v2_renderCalc(){
   padding:var(--fid-card-pad);
 }
 
-/* ---- Responsive: two-column card grid collapsing to one on mobile (Part B "Cards") ---- */
-[data-theme="fidelity"] #cardList{
-  display:grid; grid-template-columns:1fr 1fr; gap:12px;
-}
-@media (max-width:640px){
-  [data-theme="fidelity"] #cardList{ grid-template-columns:1fr; }
-}
 </style>
 </body>
 </html>
