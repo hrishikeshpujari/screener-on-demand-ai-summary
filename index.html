@@ -1959,6 +1959,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   <button class="nvitem" id="navDiscover" onclick="switchTab('discover')"><span class="nvico">🔭</span><span class="nvlbl">Discover</span></button>
   <button class="nvitem" id="navPortfolio" onclick="switchTab('portfolio')"><span class="nvico">💼</span><span class="nvlbl">Positions</span></button>
   <button class="nvitem" id="navMacro" onclick="switchTab('macro')"><span class="nvico">🧭</span><span class="nvlbl">Macro</span></button>
+  <button class="nvitem" id="navCompare" onclick="switchTab('compare')"><span class="nvico">🆚</span><span class="nvlbl">Compare</span></button>
+  <button class="nvitem" id="navCalendar" onclick="switchTab('calendar')"><span class="nvico">🗓</span><span class="nvlbl">Calendar</span></button>
+  <button class="nvitem" id="navCalc" onclick="switchTab('calc')"><span class="nvico">🧮</span><span class="nvlbl">Calc</span></button>
   <div class="nvspy" id="navRegime" style="display:none"></div>
 </nav>
 
@@ -2723,6 +2726,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   <div id="rotationNarrative" style="margin-top:14px"></div>
 </div>
 
+<div id="tabCompare" style="display:none"></div>   <!-- comp #5, filled by v2_renderCompare() -->
+<div id="tabCalendar" style="display:none"></div>  <!-- comp #6, filled by v2_renderCalendar() -->
+<div id="tabCalc" style="display:none"></div>       <!-- comp #7, filled by v2_renderCalc() -->
+
 </div><!-- end .screener-page -->
 
 <!-- ══ DEVICE SYNC MODAL ══ -->
@@ -2846,6 +2853,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   </div>
 </div>
 
+<style>
+/* Optional wrapper for svgChart() output — colors all via CSS vars, no hardcoded hex. */
+.v2-chart{ display:block; width:100%; max-width:460px; margin:6px auto; }
+.v2-chart-empty{ color:var(--text-faint); font-size:12px; padding:10px; text-align:center; }
+</style>
 <script>
 
 const KEYS=['ant','finnhub','twelvedata','fmp'];  // fmp = optional, unlocks the real FCFF DCF
@@ -3112,17 +3124,17 @@ function savePositions(){
 
 // ── Tab switching ──
 function switchTab(tab){
-  document.getElementById('tabScreener').style.display = tab==='screener'?'block':'none';
-  document.getElementById('tabPortfolio').style.display = tab==='portfolio'?'block':'none';
-  document.getElementById('tabDiscover').style.display = tab==='discover'?'block':'none';
-  document.getElementById('tabMacro').style.display = tab==='macro'?'block':'none';
-  document.getElementById('navScreener').classList.toggle('active', tab==='screener');
-  document.getElementById('navPortfolio').classList.toggle('active', tab==='portfolio');
-  document.getElementById('navDiscover').classList.toggle('active', tab==='discover');
-  document.getElementById('navMacro').classList.toggle('active', tab==='macro');
+  const V2_TABS = ['screener','portfolio','discover','macro','compare','calendar','calc'];
+  const NAV = {screener:'navScreener',portfolio:'navPortfolio',discover:'navDiscover',macro:'navMacro',compare:'navCompare',calendar:'navCalendar',calc:'navCalc'};
+  const PANE = {screener:'tabScreener',portfolio:'tabPortfolio',discover:'tabDiscover',macro:'tabMacro',compare:'tabCompare',calendar:'tabCalendar',calc:'tabCalc'};
+  V2_TABS.forEach(t=>{ const p=document.getElementById(PANE[t]); if(p) p.style.display = (tab===t)?'block':'none';
+                       const n=document.getElementById(NAV[t]); if(n) n.classList.toggle('active', tab===t); });
   if(tab==='portfolio'){ loadPositions(); renderPortfolio(); fetchMissingPrices(); }
   if(tab==='discover'){ renderDiscover(); }
   if(tab==='macro'){ openMacro(); }
+  if(tab==='compare' && typeof v2_renderCompare==='function'){ v2_renderCompare(); }
+  if(tab==='calendar' && typeof v2_renderCalendar==='function'){ v2_renderCalendar(); }
+  if(tab==='calc' && typeof v2_renderCalc==='function'){ v2_renderCalc(); }
 }
 
 // ── Modal ──
@@ -4951,20 +4963,23 @@ function showGuideSection(section){
   if(content) content.scrollTop = 0;
 }
 
+const V2_THEME_CYCLE = ['dark','light','fidelity'];
+const V2_THEME_GLYPH = { dark:'🌙', light:'☀️', fidelity:'🏛' };
 function toggleTheme(){
   const cur = document.documentElement.getAttribute('data-theme') || 'dark';
-  const next = cur === 'dark' ? 'light' : 'dark';
+  const i = V2_THEME_CYCLE.indexOf(cur);
+  const next = V2_THEME_CYCLE[(i + 1) % V2_THEME_CYCLE.length];
   document.documentElement.setAttribute('data-theme', next);
   localStorage.setItem('viss_theme', next);
   const btn = document.getElementById('themeBtn');
-  if(btn) btn.textContent = next === 'dark' ? '🌙' : '☀️';
+  if(btn) btn.textContent = V2_THEME_GLYPH[next] || '🌙';
   if(typeof scheduleSyncPush==='function') scheduleSyncPush();
 }
 function loadTheme(){
   const saved = localStorage.getItem('viss_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', saved);
   const btn = document.getElementById('themeBtn');
-  if(btn) btn.textContent = saved === 'dark' ? '🌙' : '☀️';
+  if(btn) btn.textContent = V2_THEME_GLYPH[saved] || '🌙';
 }
 
 // ── Design toggle (Material ⇄ Classic) — Material is the default ──
@@ -6249,6 +6264,7 @@ function buildValuationHTML(s){
   if(intr && isFinite(intr.bear) && isFinite(intr.bull)) ffRows.push({ label: val.method === 'fcff' ? 'DCF (FCFF)' : 'Intrinsic (earnings)', lo: Math.min(intr.bear, intr.bull), hi: Math.max(intr.bear, intr.bull), mid: intr.base, color: 'var(--c-green)', dashed: !reliable });
   if(s.fairValueBand && isFinite(s.fairValueBand.bear) && isFinite(s.fairValueBand.bull)) ffRows.push({ label: 'Graham', lo: Math.min(s.fairValueBand.bear, s.fairValueBand.bull), hi: Math.max(s.fairValueBand.bear, s.fairValueBand.bull), mid: s.fairValueBand.base, color: 'var(--c-amber)', dashed: true });
   if(s.week52Low && s.week52High) ffRows.push({ label: '52-wk range', lo: s.week52Low, hi: s.week52High, mid: null, color: 'var(--text-muted)', dashed: true });
+  if(typeof v2_projBand==='function'){ try{ const _b = v2_projBand(s); if(_b) ffRows.push(_b); }catch(e){} }
   const ff = buildFootballField(ffRows, price);
   // Intrinsic numbers
   const mosTone = val.mosBase == null ? 'neut' : val.mosBase >= 0.15 ? 'pass' : val.mosBase <= -0.15 ? 'fail' : 'neut';
@@ -8197,6 +8213,11 @@ function buildDetailInner(s){
   const opHtml = buildOptionsHTML(s);
   // Valuation tab content (intrinsic-value range + reverse-DCF + football field)
   const valHtml = buildValuationHTML(s);
+  const v2_stHtml = (typeof v2_buildStatementsHTML==='function') ? v2_buildStatementsHTML(s) : '';
+  const v2_chHtml = (typeof v2_buildChartsHTML==='function') ? v2_buildChartsHTML(s) : '';
+  const v2_pjHtml = (typeof v2_buildProjectionHTML==='function') ? v2_buildProjectionHTML(s) : '';
+  const v2_scHtml = (typeof v2_scorecardHTML==='function') ? v2_scorecardHTML(s) : '';
+  const v2_erHtml = (typeof v2_buildEarningsHTML==='function') ? v2_buildEarningsHTML(s) : '';
 
   return `<div class="expand-inner">
     ${(s.discoverSource && s.discoverSource.themes && s.discoverSource.themes.length) ? `<div style="font-size:11px;font-weight:600;color:var(--c-purple);background:rgba(139,92,246,.10);border:1px solid rgba(139,92,246,.35);border-radius:8px;padding:6px 10px;margin-bottom:10px">📡 Added from Discover — ${esc(s.discoverSource.themes.map(k=>themeMeta(k).title).join(' · '))}</div>` : ''}
@@ -8221,6 +8242,11 @@ function buildDetailInner(s){
       <button class="tab" id="etab-ta-${s.id}" onclick="eswTab(${s.id},'ta')">📈 Technical</button>
       <button class="tab" id="etab-vl-${s.id}" onclick="eswTab(${s.id},'vl')">💰 Valuation</button>
       <button class="tab" id="etab-op-${s.id}" onclick="eswTab(${s.id},'op')">🎯 Options</button>
+      <button class="tab" id="etab-st-${s.id}" onclick="eswTab(${s.id},'st')">📄 Statements</button>
+      <button class="tab" id="etab-ch-${s.id}" onclick="eswTab(${s.id},'ch')">📉 Charts</button>
+      <button class="tab" id="etab-pj-${s.id}" onclick="eswTab(${s.id},'pj')">🧮 Projections</button>
+      <button class="tab" id="etab-sc-${s.id}" onclick="eswTab(${s.id},'sc')">🏅 Scorecard</button>
+      <button class="tab" id="etab-er-${s.id}" onclick="eswTab(${s.id},'er')">🗣 Earnings</button>
     </div>
     <div class="tc active" id="etc-ov-${s.id}">${analysisHtml}</div>
     <div class="tc" id="etc-gr-${s.id}"><div class="slbl">Graham — 1pt each <span class="ltag">●LIVE via Finnhub</span></div><div class="mgrid">${grHtml}</div></div>
@@ -8229,6 +8255,11 @@ function buildDetailInner(s){
     <div class="tc" id="etc-ta-${s.id}"><div class="slbl">Al Brooks Technical — daily <span class="ltag">●LIVE via Twelve Data</span></div><div class="mgrid">${taHtml}</div>${wkBoxes?`<div class="slbl" style="margin-top:14px">Higher timeframe — weekly 10/30 EMA cloud <span class="ltag" style="background:rgba(79,110,247,.14);color:var(--accent-info)">derived, no extra fetch</span></div><div class="mgrid">${wkBoxes}</div>`:''}</div>
     <div class="tc" id="etc-vl-${s.id}">${valHtml}</div>
     <div class="tc" id="etc-op-${s.id}">${opHtml}</div>
+    <div class="tc" id="etc-st-${s.id}">${v2_stHtml}</div>
+    <div class="tc" id="etc-ch-${s.id}">${v2_chHtml}</div>
+    <div class="tc" id="etc-pj-${s.id}">${v2_pjHtml}</div>
+    <div class="tc" id="etc-sc-${s.id}">${v2_scHtml}</div>
+    <div class="tc" id="etc-er-${s.id}">${v2_erHtml}</div>
   </div>`;
 }
 // Back-compat shim (legacy table renderer referenced buildExpandRow; never called in UI v2).
@@ -8467,7 +8498,7 @@ if(location.protocol==='file:' && !isAndroidWebView){
 // "Data saved" date reflects whoever refreshed last — not this device's clock.
 // viss_cash is a USER decision (account size) → it syncs. Market-data caches (incl. viss_pxcache)
 // are device-local and re-downloadable, so they are deliberately NOT here and never sync.
-const SYNC_KEYS = [SS, SS+'_savedAt', PS, 'viss_watchlist', 'viss_discover', 'viss_theme', 'viss_design', 'viss_cash', 'viss_val_overrides'];
+const SYNC_KEYS = [SS, SS+'_savedAt', PS, 'viss_watchlist', 'viss_discover', 'viss_theme', 'viss_design', 'viss_cash', 'viss_val_overrides', 'viss_projections', 'viss_compare'];
 const GIST_FILE = 'viss-screener-sync.json';
 const GIST_DESC = 'VISS Screener device sync — auto-managed, do not edit by hand';
 let gistToken = localStorage.getItem('viss_gist_token') || '';
@@ -8759,6 +8790,2133 @@ function refreshSavedSubtitle(){
   }
 }
 setTimeout(refreshSavedSubtitle, 100);
+
+// ============================================================================
+// v2 Foundation — fmpGet / tickerCtx / svgChart (+ v2_hatchDefs)
+// Bare names are contractually fixed (architecture.md §A.3). All OTHER new
+// helpers in this file are v2_-prefixed per the mandatory naming convention.
+// ============================================================================
+
+// ---- v2_fmpCacheGet/Set: internal localStorage helpers for viss_fmpcache ----
+// Cache shape: { [cacheKey]: { data:any, ts:number } }
+// cacheKey = path + '?' + sortedParamString  (apikey EXCLUDED from key)
+// LRU cap: 80 entries, evict oldest ts. On quota error: drop oldest half, retry once.
+const V2_FMPCACHE_KEY = 'viss_fmpcache';
+const V2_FMPCACHE_CAP = 80;
+
+function v2_fmpCacheKey(path, params){
+  const p = params || {};
+  const sortedKeys = Object.keys(p).filter(k => k !== 'apikey').sort();
+  const qs = sortedKeys.map(k => encodeURIComponent(k) + '=' + encodeURIComponent(p[k])).join('&');
+  return path + '?' + qs;
+}
+function v2_fmpCacheReadAll(){
+  try{ return JSON.parse(localStorage.getItem(V2_FMPCACHE_KEY) || '{}') || {}; }
+  catch(e){ return {}; }
+}
+function v2_fmpCacheWriteAll(cache){
+  try{ localStorage.setItem(V2_FMPCACHE_KEY, JSON.stringify(cache)); return true; }
+  catch(e){
+    // Quota exceeded — drop the oldest half by ts, retry once.
+    try{
+      let ks = Object.keys(cache).sort((a,b)=>(cache[a].ts||0)-(cache[b].ts||0));
+      ks.slice(0, Math.ceil(ks.length/2)).forEach(k => delete cache[k]);
+      localStorage.setItem(V2_FMPCACHE_KEY, JSON.stringify(cache));
+      return true;
+    }catch(e2){ return false; }
+  }
+}
+function v2_fmpCacheEvictLRU(cache){
+  let ks = Object.keys(cache);
+  if(ks.length > V2_FMPCACHE_CAP){
+    ks.sort((a,b)=>(cache[a].ts||0)-(cache[b].ts||0));
+    ks.slice(0, ks.length - V2_FMPCACHE_CAP).forEach(k => delete cache[k]);
+  }
+  return cache;
+}
+
+// ---- fmpGet(path, params, opts) → Promise<any|null> — SHARED INTERFACE, bare name by contract ----
+// path: FMP v3 path after /api/v3/, e.g. 'income-statement/AAPL'
+// params: object of query params (apikey auto-added); ttl/force live in opts
+// opts: { ttlDays=1, force=false }
+// Returns parsed JSON, or null on: no key, HTTP error, FMP "Error Message" body,
+// empty array, or exception. NEVER throws.
+async function fmpGet(path, params, opts){
+  const o = opts || {};
+  const ttlDays = (o.ttlDays != null) ? o.ttlDays : 1;
+  const force = !!o.force;
+  try{
+    if(typeof keys === 'undefined' || !keys[3]) return null; // no FMP key configured
+    const p = params || {};
+    const cacheKey = v2_fmpCacheKey(path, p);
+    let cache = v2_fmpCacheReadAll();
+    const hit = cache[cacheKey];
+    if(!force && hit && hit.ts && (Date.now() - hit.ts) <= ttlDays * 864e5){
+      return hit.data;
+    }
+    const base = 'https://financialmodelingprep.com/api/v3/';
+    const qp = Object.keys(p).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(p[k])).join('&');
+    const url = base + path + '?' + (qp ? qp + '&' : '') + 'apikey=' + encodeURIComponent(keys[3]);
+
+    const doFetch = async () => {
+      const r = await fetch(url);
+      if(r.status === 429) return { rateLimited: true };
+      if(!r.ok) return { error: true, status: r.status };
+      const json = await r.json().catch(() => null);
+      return { json };
+    };
+
+    let result = await doFetch();
+    if(result.rateLimited){
+      // Rate-limit discipline: one 8s backoff retry, else null.
+      await new Promise(rs => setTimeout(rs, 8000));
+      result = await doFetch();
+      if(result.rateLimited) return null;
+    }
+    if(result.error) return null;
+    const data = result.json;
+    if(data == null) return null;
+    if(data && data['Error Message']) return null;
+    if(Array.isArray(data) && data.length === 0) return null;
+
+    // Write-through cache with LRU cap.
+    cache = v2_fmpCacheReadAll(); // re-read in case of concurrent writers
+    cache[cacheKey] = { data, ts: Date.now() };
+    v2_fmpCacheEvictLRU(cache);
+    v2_fmpCacheWriteAll(cache);
+
+    return data;
+  }catch(e){
+    return null; // never throw — callers render "data unavailable" states
+  }
+}
+
+// ---- tickerCtx(id) → object|null — SHARED INTERFACE, bare name by contract ----
+// Resolves the current detail stock exactly like renderDetail() does.
+function tickerCtx(id){
+  try{
+    const sid = (id != null) ? id : (typeof activeDP !== 'undefined' ? activeDP : null);
+    if(sid == null) return null;
+    const stock = (typeof stocks !== 'undefined' ? stocks : []).find(x => x.id === sid && x.status === 'done');
+    if(!stock) return null;
+    return {
+      id: sid,
+      ticker: stock.ticker,
+      stock,
+      fcff: (typeof getFcffData === 'function') ? (getFcffData(stock.ticker) || null) : null,
+      overrides: (typeof getValOverrides === 'function') ? (getValOverrides(stock.ticker) || null) : null,
+      fmp: (path, params, opts) => fmpGet(path, params, opts),
+    };
+  }catch(e){ return null; }
+}
+
+// ---- v2_hatchDefs() → string — reusable <defs><pattern> for hatched "projected" fills ----
+function v2_hatchDefs(){
+  return '<defs><pattern id="v2hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">'
+    + '<line x1="0" y1="0" x2="0" y2="6" stroke="currentColor" stroke-width="2" opacity="0.55"/>'
+    + '</pattern></defs>';
+}
+
+// ---- v2_compactNum(v) → string — default yFormat for svgChart ----
+function v2_compactNum(v){
+  if(v == null || !isFinite(v)) return '—';
+  const av = Math.abs(v);
+  if(av >= 1e9) return (v/1e9).toFixed(1) + 'B';
+  if(av >= 1e6) return (v/1e6).toFixed(1) + 'M';
+  if(av >= 1e3) return (v/1e3).toFixed(1) + 'K';
+  return (Math.round(v*100)/100).toString();
+}
+
+// ---- svgChart(opts) → string — SHARED INTERFACE, bare name by contract ----
+// Dependency-free SVG bar/line chart. Colors ONLY via CSS vars. Actual points solid;
+// projected:true points render hatched (bar) or dashed/hollow (line). No DOM/canvas.
+function svgChart(opts){
+  const o = opts || {};
+  const type = o.type === 'line' ? 'line' : 'bar';
+  const series = Array.isArray(o.series) ? o.series : [];
+  const labels = Array.isArray(o.labels) ? o.labels : [];
+  const W = o.width || 460, H = o.height || 180;
+  const yFormat = (typeof o.yFormat === 'function') ? o.yFormat : v2_compactNum;
+  const zeroLine = (o.zeroLine !== false);
+  const title = o.title || '';
+  const escFn = (typeof esc === 'function') ? esc : (x => String(x == null ? '' : x));
+
+  // Flatten all values across all series to compute scale.
+  const allVals = [];
+  series.forEach(s => (s.values || []).forEach(v => { if(v && isFinite(v.y)) allVals.push(v.y); }));
+  if(!allVals.length){
+    return `<div class="v2-chart v2-chart-empty" role="img" aria-label="${escFn(title || 'Chart')} — data unavailable">${escFn(title || 'Chart')}: data unavailable</div>`;
+  }
+
+  const padL = 34, padR = 10, padT = title ? 22 : 10, padB = 24;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+
+  let lo = Math.min.apply(null, allVals), hi = Math.max.apply(null, allVals);
+  if(zeroLine){ lo = Math.min(lo, 0); hi = Math.max(hi, 0); }
+  if(lo === hi){ lo -= 1; hi += 1; }
+  const span = (hi - lo) || 1;
+  const padSpan = span * 0.08;
+  lo -= padSpan; hi += padSpan;
+
+  const nCats = Math.max(labels.length, allVals.length, 1);
+  const sy = v => padT + plotH - ((v - lo) / (hi - lo)) * plotH;
+  const catW = plotW / nCats;
+  const sx = i => padL + i * catW + catW / 2;
+
+  const zeroY = sy(0);
+
+  // Gridlines (horizontal, 4 bands) — var(--gridline)
+  let grid = '';
+  const gridLines = 4;
+  for(let g = 0; g <= gridLines; g++){
+    const gy = padT + (plotH / gridLines) * g;
+    const gv = hi - (span + padSpan*2) * (g / gridLines);
+    grid += `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${(W-padR).toFixed(1)}" y2="${gy.toFixed(1)}" stroke="var(--gridline)" stroke-width="1"/>`
+      + `<text x="${(padL-4).toFixed(1)}" y="${(gy+3).toFixed(1)}" text-anchor="end" font-size="8.5" fill="var(--axis-text)">${escFn(yFormat(gv))}</text>`;
+  }
+
+  // X-axis category labels
+  let xLabels = '';
+  labels.forEach((lbl, i) => {
+    if(i >= nCats) return;
+    xLabels += `<text x="${sx(i).toFixed(1)}" y="${(H-6).toFixed(1)}" text-anchor="middle" font-size="8.5" fill="var(--axis-text)">${escFn(lbl)}</text>`;
+  });
+
+  let body = '';
+  let defs = '';
+  let needsHatch = false;
+
+  if(type === 'bar'){
+    const nSeries = series.length || 1;
+    const groupW = catW * 0.7;
+    const barW = groupW / nSeries;
+    series.forEach((s, si) => {
+      const color = s.color || 'var(--pos)';
+      (s.values || []).forEach((v, i) => {
+        if(!v || !isFinite(v.y)) return;
+        const isNeg = v.y < 0;
+        const fillColor = s.color ? s.color : (isNeg ? 'var(--neg)' : 'var(--pos)');
+        const x = sx(i) - groupW/2 + si*barW;
+        const y1 = sy(Math.max(v.y, 0)), y2 = sy(Math.min(v.y, 0));
+        const bh = Math.max(1, Math.abs(sy(v.y) - zeroY));
+        const by = v.y >= 0 ? sy(v.y) : zeroY;
+        let fill = fillColor;
+        if(v.projected){
+          needsHatch = true;
+          body += `<rect x="${x.toFixed(1)}" y="${by.toFixed(1)}" width="${Math.max(1,barW*0.85).toFixed(1)}" height="${bh.toFixed(1)}" fill="${fillColor}" opacity="0.18"/>`;
+          body += `<rect x="${x.toFixed(1)}" y="${by.toFixed(1)}" width="${Math.max(1,barW*0.85).toFixed(1)}" height="${bh.toFixed(1)}" fill="url(#v2hatch)" style="color:${fillColor}" stroke="${fillColor}" stroke-width="1"/>`;
+        } else {
+          body += `<rect x="${x.toFixed(1)}" y="${by.toFixed(1)}" width="${Math.max(1,barW*0.85).toFixed(1)}" height="${bh.toFixed(1)}" fill="${fill}" rx="1.5"/>`;
+        }
+      });
+    });
+  } else {
+    // line chart
+    series.forEach(s => {
+      const color = s.color || 'var(--brand)';
+      const vals = s.values || [];
+      // Build solid segments (actual) and dashed segments (projected) separately,
+      // splitting the polyline at actual/projected boundaries.
+      let solidPts = [], dashedPts = [];
+      let curSolid = [], curDashed = [];
+      vals.forEach((v, i) => {
+        if(!v || !isFinite(v.y)) return;
+        const pt = `${sx(i).toFixed(1)},${sy(v.y).toFixed(1)}`;
+        if(v.projected){
+          if(curSolid.length){ solidPts.push(curSolid); curSolid = []; }
+          curDashed.push(pt);
+        } else {
+          if(curDashed.length){ dashedPts.push(curDashed); curDashed = []; }
+          curSolid.push(pt);
+        }
+      });
+      if(curSolid.length) solidPts.push(curSolid);
+      if(curDashed.length) dashedPts.push(curDashed);
+      solidPts.forEach(seg => {
+        if(seg.length < 2){
+          body += `<circle cx="${seg[0].split(',')[0]}" cy="${seg[0].split(',')[1]}" r="2.5" fill="${color}"/>`;
+        } else {
+          body += `<polyline points="${seg.join(' ')}" fill="none" stroke="${color}" stroke-width="2"/>`;
+        }
+      });
+      dashedPts.forEach(seg => {
+        needsHatch = true;
+        if(seg.length < 2){
+          const [cx, cy] = seg[0].split(',');
+          body += `<circle cx="${cx}" cy="${cy}" r="2.5" fill="var(--bg-surface,#fff)" stroke="${color}" stroke-width="1.5"/>`;
+        } else {
+          body += `<polyline points="${seg.join(' ')}" fill="none" stroke="${color}" stroke-width="2" stroke-dasharray="4 3"/>`;
+          seg.forEach(p => {
+            const [cx, cy] = p.split(',');
+            body += `<circle cx="${cx}" cy="${cy}" r="2.5" fill="var(--bg-surface,#fff)" stroke="${color}" stroke-width="1.5"/>`;
+          });
+        }
+      });
+      // Actual (solid) point markers
+      vals.forEach((v, i) => {
+        if(!v || !isFinite(v.y) || v.projected) return;
+        body += `<circle cx="${sx(i).toFixed(1)}" cy="${sy(v.y).toFixed(1)}" r="2" fill="${color}"/>`;
+      });
+    });
+  }
+
+  if(needsHatch) defs = v2_hatchDefs();
+
+  const zeroLineSvg = zeroLine ? `<line x1="${padL}" y1="${zeroY.toFixed(1)}" x2="${(W-padR).toFixed(1)}" y2="${zeroY.toFixed(1)}" stroke="var(--divider)" stroke-width="1" stroke-dasharray="2 2"/>` : '';
+  const titleSvg = title ? `<text x="${padL}" y="14" font-size="10.5" fill="var(--text-primary)" font-weight="600">${escFn(title)}</text>` : '';
+
+  return `<svg class="v2-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${escFn(title || (type + ' chart'))}">`
+    + defs + titleSvg + grid + zeroLineSvg + body + xLabels
+    + `</svg>`;
+}
 </script>
+<style>
+/* Statements table — right-aligned numerics, YoY coloring via --pos/--neg. No hardcoded hex. */
+.v2-stmt-wrap{ overflow-x:auto; margin-top:6px; }
+.v2-stmt{ width:100%; border-collapse:collapse; font-size:12px; white-space:nowrap; }
+.v2-stmt th{ text-align:right; font-size:10.5px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.04em; color:var(--text-faint); padding:6px 8px; border-bottom:2px solid var(--border-default); }
+.v2-stmt th:first-child{ text-align:left; }
+.v2-stmt td{ text-align:right; padding:6px 8px; border-bottom:1px solid var(--border-default); color:var(--text-secondary); }
+.v2-stmt td:first-child{ text-align:left; color:var(--text-primary); font-weight:600; }
+.v2-stmt tr:last-child td{ border-bottom:none; }
+.v2-stmt .v2-est{ color:var(--text-faint); font-style:italic; }
+.v2-yoy-pos{ color:var(--pos); font-size:10.5px; font-weight:600; }
+.v2-yoy-neg{ color:var(--neg); font-size:10.5px; font-weight:600; }
+.v2-yoy-neut{ color:var(--text-faint); font-size:10.5px; }
+.v2-seg{ display:inline-flex; border:1px solid var(--border-strong); border-radius:8px; overflow:hidden; margin-bottom:10px; }
+.v2-seg-b{ padding:6px 12px; background:transparent; border:none; color:var(--text-muted); font-size:11.5px;
+  font-weight:600; cursor:pointer; font-family:inherit; }
+.v2-seg-b.active{ background:var(--bg-input); color:var(--text-primary); }
+.v2-chart-stack{ display:flex; flex-direction:column; gap:16px; margin-top:8px; }
+.v2-chart-card{ background:var(--surface-deep); border:1px solid var(--border-default); border-radius:8px; padding:10px 12px; }
+.v2-chart-card .v2-cc-title{ font-size:11.5px; font-weight:700; color:var(--text-secondary); margin-bottom:4px; }
+.v2-empty{ color:var(--text-faint); font-size:12px; padding:14px 10px; text-align:center; }
+.v2-empty a, .v2-empty .v2-cta{ color:var(--accent-info); cursor:pointer; text-decoration:underline; }
+</style>
+<script>
+// ============================================================================
+// v2 Statements + Charts (component #3) — all new symbols v2_-prefixed.
+// ============================================================================
+
+// ---- Data fetch: pulls IS/BS/CF (annual, multi-year) via fmpGet + feeds the existing
+// FCF→valuation path via the existing fetchFmpStatements(ticker) (per architecture.md,
+// §C-EDIT-2 DROPPED — valuation already consumes viss_fcff; we just also trigger it here). ----
+async function v2_fetchStatements(ticker){
+  if(typeof fmpGet !== 'function') return null;
+  const t = String(ticker || '').toUpperCase();
+  if(!t) return null;
+  const [income, balance, cashflow, incomeQ, cashflowQ, estimates] = await Promise.all([
+    fmpGet('income-statement/' + t, { period: 'annual', limit: 6 }, { ttlDays: 1 }),
+    fmpGet('balance-sheet-statement/' + t, { period: 'annual', limit: 6 }, { ttlDays: 1 }),
+    fmpGet('cash-flow-statement/' + t, { period: 'annual', limit: 6 }, { ttlDays: 1 }),
+    fmpGet('income-statement/' + t, { period: 'quarter', limit: 12 }, { ttlDays: 1 }),
+    fmpGet('cash-flow-statement/' + t, { period: 'quarter', limit: 12 }, { ttlDays: 1 }),
+    fmpGet('analyst-estimates/' + t, { period: 'annual', limit: 4 }, { ttlDays: 3 }),
+  ]);
+  // Feed FCF into valuation via the existing, already-wired path (no new state shape).
+  if(typeof fetchFmpStatements === 'function'){
+    try{ fetchFmpStatements(t); }catch(e){}
+  }
+  return {
+    income: Array.isArray(income) ? income : null,
+    balance: Array.isArray(balance) ? balance : null,
+    cashflow: Array.isArray(cashflow) ? cashflow : null,
+    incomeQ: Array.isArray(incomeQ) ? incomeQ : null,
+    cashflowQ: Array.isArray(cashflowQ) ? cashflowQ : null,
+    estimates: Array.isArray(estimates) ? estimates : null,
+  };
+}
+
+// ---- Shared formatting helpers (local to this component; not exported bare) ----
+function v2_fmtMoney(v){
+  if(v == null || !isFinite(v)) return '—';
+  const av = Math.abs(v), sign = v < 0 ? '-' : '';
+  if(av >= 1e9) return sign + '$' + (av/1e9).toFixed(2) + 'B';
+  if(av >= 1e6) return sign + '$' + (av/1e6).toFixed(1) + 'M';
+  if(av >= 1e3) return sign + '$' + (av/1e3).toFixed(1) + 'K';
+  return sign + '$' + av.toFixed(2);
+}
+function v2_fmtPlain(v, dp){
+  if(v == null || !isFinite(v)) return '—';
+  return (+v).toFixed(dp != null ? dp : 2);
+}
+function v2_yoyPct(cur, prev){
+  if(cur == null || prev == null || !isFinite(cur) || !isFinite(prev) || prev === 0) return null;
+  return (cur - prev) / Math.abs(prev);
+}
+function v2_yoySpan(cur, prev){
+  const p = v2_yoyPct(cur, prev);
+  if(p == null) return '<span class="v2-yoy-neut">—</span>';
+  const cls = p > 0.001 ? 'v2-yoy-pos' : p < -0.001 ? 'v2-yoy-neg' : 'v2-yoy-neut';
+  const sign = p > 0 ? '+' : '';
+  return `<span class="${cls}">${sign}${(p*100).toFixed(1)}%</span>`;
+}
+function v2_escFn(x){ return (typeof esc === 'function') ? esc(x) : String(x == null ? '' : x); }
+function v2_yearLabel(row){
+  return row && (row.calendarYear || (row.date || '').slice(0,4) || row.period) || '—';
+}
+
+// ---- Statement table row-set builder: given rows (newest-first) + a line-item spec list,
+// renders one <table> with years as columns, a YoY% sub-row under each metric. ----
+function v2_stmtTable(rows, spec, title){
+  if(!rows || !rows.length){
+    return `<div class="v2-empty">${v2_escFn(title)} — data unavailable.</div>`;
+  }
+  // Oldest-to-newest for left→right chronological reading; keep at most 6 columns.
+  const ordered = rows.slice(0, 6).slice().reverse();
+  const head = `<tr><th>Line item</th>${ordered.map(r => `<th>${v2_escFn(v2_yearLabel(r))}</th>`).join('')}</tr>`;
+  const body = spec.map(row => {
+    const cells = ordered.map((r, i) => {
+      const val = r[row.key];
+      const prevRow = i > 0 ? ordered[i-1] : null;
+      const prevVal = prevRow ? prevRow[row.key] : null;
+      const shown = row.fmt === 'plain' ? v2_fmtPlain(val, row.dp) : v2_fmtMoney(val);
+      const yoy = (i > 0) ? v2_yoySpan(val, prevVal) : '<span class="v2-yoy-neut">—</span>';
+      return `<td>${shown}<br/>${yoy}</td>`;
+    }).join('');
+    return `<tr><td>${v2_escFn(row.label)}</td>${cells}</tr>`;
+  }).join('');
+  return `<div class="v2-stmt-wrap"><table class="v2-stmt">${head}${body}</table></div>`;
+}
+
+const V2_IS_SPEC = [
+  { key: 'revenue', label: 'Revenue' },
+  { key: 'costOfRevenue', label: 'Cost of Revenue' },
+  { key: 'grossProfit', label: 'Gross Profit' },
+  { key: 'operatingExpenses', label: 'Operating Expenses' },
+  { key: 'operatingIncome', label: 'Operating Income' },
+  { key: 'ebitda', label: 'EBITDA' },
+  { key: 'netIncome', label: 'Net Income' },
+  { key: 'eps', label: 'EPS (diluted)', fmt: 'plain', dp: 2 },
+  { key: 'weightedAverageShsOutDil', label: 'Diluted Shares', fmt: 'plain', dp: 0 },
+];
+const V2_BS_SPEC = [
+  { key: 'cashAndShortTermInvestments', label: 'Cash & ST Investments' },
+  { key: 'totalCurrentAssets', label: 'Total Current Assets' },
+  { key: 'totalAssets', label: 'Total Assets' },
+  { key: 'totalCurrentLiabilities', label: 'Total Current Liabilities' },
+  { key: 'totalDebt', label: 'Total Debt' },
+  { key: 'totalLiabilities', label: 'Total Liabilities' },
+  { key: 'totalStockholdersEquity', label: "Stockholders' Equity" },
+];
+const V2_CF_SPEC = [
+  { key: 'operatingCashFlow', label: 'Operating Cash Flow' },
+  { key: 'capitalExpenditure', label: 'Capital Expenditure' },
+  { key: 'freeCashFlow', label: 'Free Cash Flow' },
+  { key: 'dividendsPaid', label: 'Dividends Paid' },
+  { key: 'commonStockRepurchased', label: 'Buybacks' },
+  { key: 'netChangeInCash', label: 'Net Change in Cash' },
+];
+
+// ---- Statements tab (IS/BS/CF sub-views via a segmented toggle) ----
+function v2_buildStatementsHTML(s){
+  const hasKey = (typeof keys !== 'undefined' && keys[3]);
+  if(!hasKey){
+    return `<div class="v2-empty">📄 Statements need a free FMP API key. Add one under <span class="v2-cta" onclick="if(typeof showSetup==='function')showSetup();">⚙ API Keys</span> to unlock multi-year Income Statement, Balance Sheet, and Cash Flow tables with YoY %.</div>`;
+  }
+  const containerId = 'v2-st-' + s.id;
+  // NOTE: <script> tags injected via innerHTML do not execute — kick off the async
+  // load with a 0ms setTimeout instead, scheduled after the caller's innerHTML write
+  // completes in the same tick (matches the pattern other detail-tab panes rely on
+  // for post-render init; safe because buildDetailInner's caller assigns innerHTML
+  // synchronously before this timeout fires).
+  setTimeout(function(){ if(typeof v2_stLoad === 'function') v2_stLoad(s.id); }, 0);
+  return `<div id="${containerId}" data-ticker="${v2_escFn(s.ticker)}">
+    <div class="v2-seg" role="tablist" aria-label="Statement view">
+      <button class="v2-seg-b active" id="v2-st-btn-is-${s.id}" onclick="v2_toggleStPeriod(${s.id},'is')">Income Stmt</button>
+      <button class="v2-seg-b" id="v2-st-btn-bs-${s.id}" onclick="v2_toggleStPeriod(${s.id},'bs')">Balance Sheet</button>
+      <button class="v2-seg-b" id="v2-st-btn-cf-${s.id}" onclick="v2_toggleStPeriod(${s.id},'cf')">Cash Flow</button>
+    </div>
+    <div id="v2-st-body-${s.id}"><div class="v2-empty">Loading statements…</div></div>
+  </div>`;
+}
+
+// Cache of fetched statement bundles per stock id, so the toggle doesn't re-fetch.
+const V2_ST_CACHE = {};
+
+async function v2_stLoad(id){
+  const ctx = (typeof tickerCtx === 'function') ? tickerCtx(id) : null;
+  if(!ctx) return;
+  const bodyEl = document.getElementById('v2-st-body-' + id);
+  if(bodyEl) bodyEl.innerHTML = '<div class="v2-empty">Loading statements…</div>';
+  let bundle = V2_ST_CACHE[ctx.ticker];
+  if(!bundle){
+    bundle = await v2_fetchStatements(ctx.ticker);
+    if(bundle) V2_ST_CACHE[ctx.ticker] = bundle;
+  }
+  v2_stRender(id, bundle, 'is');
+  // Also warm the charts cache so switching to Charts tab is instant.
+  V2_CH_CACHE[ctx.ticker] = bundle;
+}
+
+function v2_stRender(id, bundle, mode){
+  const bodyEl = document.getElementById('v2-st-body-' + id);
+  if(!bodyEl) return;
+  if(!bundle){
+    bodyEl.innerHTML = '<div class="v2-empty">Statements data unavailable for this ticker (FMP free tier is US-only, or the daily limit was hit).</div>';
+    return;
+  }
+  let html;
+  if(mode === 'bs') html = v2_stmtTable(bundle.balance, V2_BS_SPEC, 'Balance Sheet');
+  else if(mode === 'cf') html = v2_stmtTable(bundle.cashflow, V2_CF_SPEC, 'Cash Flow');
+  else html = v2_stmtTable(bundle.income, V2_IS_SPEC, 'Income Statement');
+  const estNote = (mode === 'is' && bundle.estimates && bundle.estimates.length)
+    ? '<div style="font-size:10px;color:var(--text-faint);margin-top:6px">Analyst estimates available via FMP for forward years where reported actuals end.</div>' : '';
+  bodyEl.innerHTML = html + estNote;
+}
+
+function v2_toggleStPeriod(id, mode){
+  ['is','bs','cf'].forEach(m => {
+    const b = document.getElementById('v2-st-btn-' + m + '-' + id);
+    if(b) b.classList.toggle('active', m === mode);
+  });
+  const bundle = (function(){
+    const ctx = (typeof tickerCtx === 'function') ? tickerCtx(id) : null;
+    return ctx ? V2_ST_CACHE[ctx.ticker] : null;
+  })();
+  v2_stRender(id, bundle, mode);
+}
+
+// ---- Charts tab: scrolling stack of per-metric charts via svgChart, Quarterly<->TTM toggle ----
+const V2_CH_CACHE = {};
+const V2_CH_MODE = {}; // per-stock-id current mode: 'q' | 'ttm'
+
+function v2_buildChartsHTML(s){
+  const hasKey = (typeof keys !== 'undefined' && keys[3]);
+  if(!hasKey){
+    return `<div class="v2-empty">📉 Charts need a free FMP API key. Add one under <span class="v2-cta" onclick="if(typeof showSetup==='function')showSetup();">⚙ API Keys</span> to unlock revenue/margin/EPS/FCF trend charts.</div>`;
+  }
+  V2_CH_MODE[s.id] = V2_CH_MODE[s.id] || 'q';
+  // Same rationale as v2_buildStatementsHTML: innerHTML-injected <script> tags never run,
+  // so schedule the async load via setTimeout after this string is written into the DOM.
+  setTimeout(function(){ if(typeof v2_chLoad === 'function') v2_chLoad(s.id); }, 0);
+  return `<div id="v2-ch-${s.id}" data-ticker="${v2_escFn(s.ticker)}">
+    <div class="v2-seg" role="tablist" aria-label="Chart period">
+      <button class="v2-seg-b ${V2_CH_MODE[s.id]==='q'?'active':''}" id="v2-ch-btn-q-${s.id}" onclick="v2_chToggleTTM(${s.id},'q')">Quarterly</button>
+      <button class="v2-seg-b ${V2_CH_MODE[s.id]==='ttm'?'active':''}" id="v2-ch-btn-ttm-${s.id}" onclick="v2_chToggleTTM(${s.id},'ttm')">TTM</button>
+    </div>
+    <div class="v2-chart-stack" id="v2-ch-body-${s.id}"><div class="v2-empty">Loading charts…</div></div>
+  </div>`;
+}
+
+async function v2_chLoad(id){
+  const ctx = (typeof tickerCtx === 'function') ? tickerCtx(id) : null;
+  if(!ctx) return;
+  let bundle = V2_CH_CACHE[ctx.ticker];
+  if(!bundle){
+    bundle = await v2_fetchStatements(ctx.ticker);
+    if(bundle) V2_CH_CACHE[ctx.ticker] = bundle;
+  }
+  v2_chRender(id, bundle, V2_CH_MODE[id] || 'q');
+}
+
+// Build TTM (trailing-twelve-month) series from quarterly rows (newest-first) by summing
+// the trailing 4 quarters at each point. Returns rows in the same shape, newest-first.
+function v2_toTTM(qRows, sumKeys){
+  if(!Array.isArray(qRows) || qRows.length < 4) return [];
+  const out = [];
+  for(let i = 0; i + 3 < qRows.length; i++){
+    const window = qRows.slice(i, i+4);
+    const row = { date: qRows[i].date, calendarYear: qRows[i].calendarYear, period: 'TTM' };
+    sumKeys.forEach(k => {
+      let sum = 0, any = false;
+      window.forEach(w => { if(w[k] != null && isFinite(+w[k])){ sum += +w[k]; any = true; } });
+      row[k] = any ? sum : null;
+    });
+    // EPS/shares are not summable meaningfully across a TTM window for per-share metrics that
+    // aren't flow-based; leave as latest-quarter value if present.
+    if(qRows[i].eps != null) row.eps = qRows[i].eps;
+    if(qRows[i].weightedAverageShsOutDil != null) row.weightedAverageShsOutDil = qRows[i].weightedAverageShsOutDil;
+    out.push(row);
+  }
+  return out;
+}
+
+function v2_chRender(id, bundle, mode){
+  const bodyEl = document.getElementById('v2-ch-body-' + id);
+  if(!bodyEl) return;
+  if(!bundle || (!bundle.income && !bundle.incomeQ)){
+    bodyEl.innerHTML = '<div class="v2-empty">Chart data unavailable for this ticker.</div>';
+    return;
+  }
+  let isRows, cfRows;
+  if(mode === 'ttm'){
+    isRows = v2_toTTM(bundle.incomeQ || [], ['revenue','costOfRevenue','grossProfit','operatingIncome','netIncome']);
+    cfRows = v2_toTTM(bundle.cashflowQ || [], ['operatingCashFlow','capitalExpenditure','freeCashFlow']);
+  } else {
+    isRows = (bundle.incomeQ && bundle.incomeQ.length) ? bundle.incomeQ.slice(0, 12) : (bundle.income || []);
+    cfRows = (bundle.cashflowQ && bundle.cashflowQ.length) ? bundle.cashflowQ.slice(0, 12) : (bundle.cashflow || []);
+  }
+  isRows = (isRows || []).slice().reverse(); // oldest→newest for left-to-right charts
+  cfRows = (cfRows || []).slice().reverse();
+  const labels = isRows.map(r => (r.calendarYear || (r.date||'').slice(0,7) || '—'));
+  const mkSeries = (rows, key, color) => ({ name: key, color, values: rows.map(r => ({ y: (r[key] != null ? +r[key] : null) })) });
+  const svgOrEmpty = (opts, title) => {
+    const s = (typeof svgChart === 'function') ? svgChart(opts) : '';
+    return s || `<div class="v2-empty">${v2_escFn(title)} — data unavailable.</div>`;
+  };
+  const revChart = svgOrEmpty({ type: 'bar', title: 'Revenue', labels, series: [mkSeries(isRows, 'revenue', 'var(--pos)')], width: 460, height: 170 }, 'Revenue');
+  const marginSeries = isRows.map(r => {
+    const rev = +r.revenue;
+    const gp = r.grossProfit != null ? +r.grossProfit : null;
+    const oi = r.operatingIncome != null ? +r.operatingIncome : null;
+    const ni = r.netIncome != null ? +r.netIncome : null;
+    return { rev, gp, oi, ni };
+  });
+  const marginChart = svgOrEmpty({ type: 'line', title: 'Margins (gross / operating / net)', labels, width: 460, height: 170,
+    yFormat: v => (v*100).toFixed(0) + '%',
+    series: [
+      { name: 'Gross', color: 'var(--pos)', values: marginSeries.map(m => ({ y: (m.rev ? m.gp/m.rev : null) })) },
+      { name: 'Operating', color: 'var(--brand)', values: marginSeries.map(m => ({ y: (m.rev ? m.oi/m.rev : null) })) },
+      { name: 'Net', color: 'var(--neg)', values: marginSeries.map(m => ({ y: (m.rev ? m.ni/m.rev : null) })) },
+    ] }, 'Margins');
+  const epsChart = svgOrEmpty({ type: 'bar', title: 'EPS (diluted)', labels, width: 460, height: 170,
+    series: [{ name: 'EPS', color: 'var(--brand)', values: isRows.map(r => ({ y: (r.eps != null ? +r.eps : null) })) }] }, 'EPS');
+  const fcfLabels = cfRows.map(r => (r.calendarYear || (r.date||'').slice(0,7) || '—'));
+  const fcfChart = svgOrEmpty({ type: 'bar', title: 'Free Cash Flow', labels: fcfLabels, width: 460, height: 170,
+    series: [{ name: 'FCF', values: cfRows.map(r => ({ y: (r.freeCashFlow != null ? +r.freeCashFlow : null) })) }] }, 'Free Cash Flow');
+  const sharesChart = svgOrEmpty({ type: 'line', title: 'Diluted Shares Outstanding', labels, width: 460, height: 170,
+    series: [{ name: 'Shares', color: 'var(--brand)', values: isRows.map(r => ({ y: (r.weightedAverageShsOutDil != null ? +r.weightedAverageShsOutDil : null) })) }] }, 'Shares Outstanding');
+
+  bodyEl.innerHTML = [revChart, marginChart, epsChart, fcfChart, sharesChart]
+    .map(c => `<div class="v2-chart-card">${c}</div>`).join('');
+}
+
+function v2_chToggleTTM(id, mode){
+  V2_CH_MODE[id] = mode;
+  const bQ = document.getElementById('v2-ch-btn-q-' + id);
+  const bT = document.getElementById('v2-ch-btn-ttm-' + id);
+  if(bQ) bQ.classList.toggle('active', mode === 'q');
+  if(bT) bT.classList.toggle('active', mode === 'ttm');
+  const ctx = (typeof tickerCtx === 'function') ? tickerCtx(id) : null;
+  const bundle = ctx ? V2_CH_CACHE[ctx.ticker] : null;
+  v2_chRender(id, bundle, mode);
+}
+</script>
+<style>
+/* v2_ Projections tab — all colors via CSS vars, no hardcoded hex */
+.v2pj-wrap{ padding:4px 2px; }
+.v2pj-toolbar{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+.v2pj-modebtn{ display:inline-flex; border:1px solid var(--border-default); border-radius:8px; overflow:hidden; }
+.v2pj-modebtn button{ background:var(--bg-surface-2); color:var(--text-secondary); border:none; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; }
+.v2pj-modebtn button.active{ background:var(--brand,var(--accent-info)); color:#fff; }
+.v2pj-btn{ background:var(--bg-surface-2); color:var(--text-primary); border:1px solid var(--border-default); border-radius:7px; padding:6px 10px; font-size:12px; font-weight:600; cursor:pointer; }
+.v2pj-btn:hover{ background:var(--bg-hover); }
+.v2pj-note{ font-size:11px; color:var(--text-faint); margin-left:auto; }
+.v2pj-tablewrap{ overflow-x:auto; border:1px solid var(--border-default); border-radius:10px; }
+table.v2pj-tbl{ border-collapse:collapse; width:100%; min-width:640px; font-size:12px; }
+table.v2pj-tbl th, table.v2pj-tbl td{ padding:5px 8px; border-bottom:1px solid var(--border-default); text-align:right; white-space:nowrap; }
+table.v2pj-tbl th:first-child, table.v2pj-tbl td:first-child{ text-align:left; position:sticky; left:0; background:var(--bg-surface); }
+table.v2pj-tbl thead th{ background:var(--bg-surface-2); color:var(--text-secondary); font-weight:700; position:sticky; top:0; }
+table.v2pj-tbl td.v2pj-hist{ color:var(--text-tertiary); background:var(--bg-surface-2); }
+table.v2pj-tbl td.v2pj-derived{ color:var(--text-muted); font-style:italic; }
+table.v2pj-tbl input.v2pj-in{ width:64px; background:var(--bg-input); color:var(--text-primary); border:1px solid var(--border-default); border-radius:5px; padding:3px 5px; font-size:11.5px; text-align:right; }
+table.v2pj-tbl input.v2pj-in:focus{ outline:none; border-color:var(--border-focus,var(--brand,var(--accent-info))); }
+.v2pj-yoy-pos{ color:var(--pos,var(--c-green)); }
+.v2pj-yoy-neg{ color:var(--neg,var(--c-red)); }
+.v2pj-cagrgrid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(90px,1fr)); gap:8px; margin:12px 0; }
+.v2pj-cagrbox{ background:var(--bg-surface-2); border:1px solid var(--border-default); border-radius:9px; padding:8px 10px; text-align:center; }
+.v2pj-cagrbox .lbl{ font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.03em; }
+.v2pj-cagrbox .val{ font-size:16px; font-weight:800; color:var(--text-primary); margin-top:2px; }
+.v2pj-scen-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:10px; }
+.v2pj-scen-card{ background:var(--bg-surface-2); border:1px solid var(--border-default); border-radius:10px; padding:8px 10px; }
+.v2pj-scen-card h5{ margin:0 0 6px; font-size:11.5px; font-weight:700; }
+.v2pj-scen-card label{ display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--text-secondary); margin:3px 0; gap:6px; }
+.v2pj-chartbox{ margin-top:12px; }
+@media (max-width:640px){ .v2pj-scen-grid{ grid-template-columns:1fr; } }
+</style>
+<script>
+// ============================================================================
+// v2_project — pure Part-C math. seeds/inputs in, per-year rows out.
+// seeds:  { revenue0, netIncome0, sharesOut0, costOfRev0, currentPrice, currentYear }
+// inputs: { years:[t1..tN] each: { revGrowth, netIncGrowth, peLow, peHigh,     // intermediate
+//                                  costOfRevGrowth, cogsPct, useCogsPct,
+//                                  operatingExpense, otherIncExpense,
+//                                  sharesDilution, peMid } }
+// mode: 'advanced' | 'intermediate'
+// Returns: { rows:[{ year, isHist, revenue, costOfRev, grossProfit, grossMargin,
+//                     operatingIncome, operatingMargin, netIncome, netMargin,
+//                     sharesOut, eps, priceLow, priceMid, priceHigh,
+//                     mktCapLow, mktCapMid, mktCapHigh, cagrLow, cagrMid, cagrHigh }],
+//            cagrRows:[{n, priceLow, priceMid, priceHigh, cagrLow, cagrMid, cagrHigh}] }
+// ============================================================================
+function v2_project(seeds, inputs, mode){
+  seeds = seeds || {}; inputs = inputs || {}; mode = mode === 'intermediate' ? 'intermediate' : 'advanced';
+  const yearsIn = Array.isArray(inputs.years) ? inputs.years : [];
+  const rows = [];
+  let prevRevenue = +seeds.revenue0 || 0;
+  let prevCostOfRev = +seeds.costOfRev0 || 0;
+  let prevNetIncome = +seeds.netIncome0 || 0;
+  let prevShares = +seeds.sharesOut0 || 0;
+  const currentPrice = +seeds.currentPrice || 0;
+  const baseYear = +seeds.currentYear || (new Date()).getFullYear();
+
+  yearsIn.forEach((yin, idx) => {
+    const t = idx + 1;
+    const yin_ = yin || {};
+    const revGrowth = (+yin_.revGrowth) || 0;
+    const revenue = prevRevenue * (1 + revGrowth / 100);
+
+    let costOfRev, grossProfit, operatingIncome, netIncome, sharesOut;
+    let netIncGrowth = (+yin_.netIncGrowth) || 0;
+
+    if(mode === 'intermediate'){
+      // Intermediate: netIncome driven by its OWN growth, NOT margin; shares constant.
+      netIncome = prevNetIncome * (1 + netIncGrowth / 100);
+      sharesOut = +seeds.sharesOut0 || 0;
+      costOfRev = null; grossProfit = null; operatingIncome = null;
+    } else {
+      // Advanced: full income-statement build-up.
+      if(yin_.useCogsPct){
+        costOfRev = revenue * ((+yin_.cogsPct || 0) / 100);
+      } else {
+        const costOfRevGrowth = (+yin_.costOfRevGrowth) || 0;
+        costOfRev = prevCostOfRev * (1 + costOfRevGrowth / 100);
+      }
+      grossProfit = revenue - costOfRev;
+      const operatingExpense = (+yin_.operatingExpense) || 0;
+      operatingIncome = grossProfit - operatingExpense;
+      const otherIncExpense = (+yin_.otherIncExpense) || 0;
+      netIncome = operatingIncome + otherIncExpense;
+      const sharesDilution = (+yin_.sharesDilution) || 0;
+      sharesOut = prevShares * (1 + sharesDilution / 100);
+    }
+
+    const grossMargin = (mode === 'advanced' && revenue) ? grossProfit / revenue : null;
+    const operatingMargin = (mode === 'advanced' && revenue) ? operatingIncome / revenue : null;
+    const netMargin = revenue ? netIncome / revenue : null;
+    const eps = sharesOut ? netIncome / sharesOut : null;
+
+    const peLow = (+yin_.peLow) || 0;
+    const peHigh = (+yin_.peHigh) || 0;
+    const peMid = (+yin_.peMid) || 0;
+    const priceLow = (eps != null) ? eps * peLow : null;
+    const priceHigh = (eps != null) ? eps * peHigh : null;
+    const priceMid = (mode === 'advanced' && eps != null) ? eps * peMid : null;
+
+    const mktCapLow = (priceLow != null) ? priceLow * sharesOut : null;
+    const mktCapHigh = (priceHigh != null) ? priceHigh * sharesOut : null;
+    const mktCapMid = (priceMid != null) ? priceMid * sharesOut : null;
+
+    // CAGR base = today's price; n = t - currentYear (t counted in projection years from seed).
+    const n = t;
+    const cagrOf = p => {
+      if(!(currentPrice > 0) || p == null || !isFinite(p) || p <= 0) return null;
+      if(!(n > 0)) return null;
+      return Math.pow(p / currentPrice, 1 / n) - 1;
+    };
+    // Blank until target-year inputs filled: require revGrowth/netIncGrowth (or advanced equivalents) to be present.
+    const inputsFilled = mode === 'intermediate'
+      ? (yin_.revGrowth != null && yin_.revGrowth !== '' && yin_.netIncGrowth != null && yin_.netIncGrowth !== '')
+      : (yin_.revGrowth != null && yin_.revGrowth !== '');
+
+    rows.push({
+      year: baseYear + t, isHist: false, t,
+      revenue, costOfRev, grossProfit, grossMargin,
+      operatingIncome, operatingMargin, netIncome, netMargin,
+      sharesOut, eps,
+      priceLow, priceMid, priceHigh,
+      mktCapLow, mktCapMid, mktCapHigh,
+      cagrLow: inputsFilled ? cagrOf(priceLow) : null,
+      cagrMid: inputsFilled ? cagrOf(priceMid) : null,
+      cagrHigh: inputsFilled ? cagrOf(priceHigh) : null,
+    });
+
+    prevRevenue = revenue; prevCostOfRev = (costOfRev != null ? costOfRev : prevCostOfRev);
+    prevNetIncome = netIncome; prevShares = sharesOut;
+  });
+
+  // Explicit 3/4/5/6-year CAGR rows (n = 3,4,5,6), same formula, using whichever projected row matches that n.
+  const cagrRows = [3,4,5,6].map(n => {
+    const r = rows[n-1]; // rows[idx] has t=idx+1
+    if(!r) return { n, priceLow:null, priceMid:null, priceHigh:null, cagrLow:null, cagrMid:null, cagrHigh:null };
+    return { n, priceLow:r.priceLow, priceMid:r.priceMid, priceHigh:r.priceHigh, cagrLow:r.cagrLow, cagrMid:r.cagrMid, cagrHigh:r.cagrHigh };
+  });
+
+  return { rows, cagrRows, mode };
+}
+
+// ----------------------------------------------------------------------------
+// Seed extraction: pulls historical actuals from tickerCtx().fmp(income-statement)
+// and the stock object (marketCap, currentPrice). Falls back gracefully w/o FMP key.
+// ----------------------------------------------------------------------------
+async function v2_projSeed(s){
+  const ctx = (typeof tickerCtx === 'function') ? tickerCtx(s.id) : null;
+  const out = {
+    currentPrice: s.currentPrice || 0,
+    currentMktCap: s.marketCap || 0,          // millions
+    currentYear: (new Date()).getFullYear(),
+    hist: [],                                  // [{year, revenue, costOfRev, grossProfit, operatingIncome, netIncome, sharesOut, eps}] oldest->newest
+  };
+  if(!ctx || typeof ctx.fmp !== 'function') return out;
+  try{
+    const inc = await ctx.fmp('income-statement/' + s.ticker, { period:'annual', limit:5 }, { ttlDays:1 });
+    if(Array.isArray(inc) && inc.length){
+      const asc = inc.slice().reverse(); // FMP returns newest-first; want oldest->newest for hist columns
+      out.hist = asc.map(r => ({
+        year: +(r.calendarYear || (r.date||'').slice(0,4)) || null,
+        revenue: (+r.revenue) || 0,
+        costOfRev: (+r.costOfRevenue) || 0,
+        grossProfit: (r.grossProfit != null) ? (+r.grossProfit) : ((+r.revenue||0) - (+r.costOfRevenue||0)),
+        operatingIncome: (+r.operatingIncome) || 0,
+        netIncome: (+r.netIncome) || 0,
+        sharesOut: (+r.weightedAverageShsOutDil || +r.weightedAverageShsOut) || 0,
+        eps: (+r.epsdiluted || +r.eps) || null,
+      }));
+    }
+  }catch(e){ /* no key / network — hist stays empty, forward-only projection still works */ }
+  return out;
+}
+
+// ----------------------------------------------------------------------------
+// In-memory UI state per detail-tab instance, keyed by stock id.
+// ----------------------------------------------------------------------------
+window.v2_pjState = window.v2_pjState || {};
+
+function v2_pjDefaultYears(n, mode){
+  const arr = [];
+  for(let i=0;i<n;i++){
+    arr.push(mode === 'intermediate'
+      ? { revGrowth:'', netIncGrowth:'', peLow:'', peHigh:'' }
+      : { revGrowth:'', costOfRevGrowth:'', useCogsPct:false, cogsPct:'', operatingExpense:'', otherIncExpense:'', sharesDilution:'0', peLow:'', peMid:'', peHigh:'' });
+  }
+  return arr;
+}
+
+function v2_pjFmt(v, dp){ return (v!=null && isFinite(v)) ? (+v).toLocaleString(undefined,{maximumFractionDigits:dp==null?0:dp, minimumFractionDigits:dp==null?0:dp}) : '—'; }
+function v2_pjPct(v, dp){ return (v!=null && isFinite(v)) ? (v*100).toFixed(dp==null?1:dp)+'%' : '—'; }
+function v2_pjMoney(v, dp){ return (v!=null && isFinite(v)) ? '$'+(+v).toFixed(dp==null?2:dp) : '—'; }
+
+// ----------------------------------------------------------------------------
+// v2_buildProjectionHTML(s) — builds the tab; kicks off async seeding, renders
+// synchronously first (from cached state if any) then re-renders on data arrival.
+// ----------------------------------------------------------------------------
+function v2_buildProjectionHTML(s){
+  const id = s.id;
+  let st = window.v2_pjState[id];
+  if(!st){
+    st = window.v2_pjState[id] = {
+      mode: 'advanced',
+      nYears: 6,
+      seeds: { currentPrice: s.currentPrice||0, currentMktCap: s.marketCap||0, currentYear:(new Date()).getFullYear(), hist:[] },
+      years: v2_pjDefaultYears(6, 'advanced'),
+      loadedTicker: null,
+    };
+    // Try restoring last-saved scenario for this ticker.
+    const saved = v2_projLoadRaw(s.ticker);
+    if(saved && saved.last){
+      st.mode = saved.last.mode || st.mode;
+      st.nYears = (saved.last.years||st.years).length || st.nYears;
+      st.years = saved.last.years || st.years;
+    }
+    // Kick off async seed fetch (actuals) — does not block first paint.
+    v2_projSeed(s).then(seedData => {
+      st.seeds = Object.assign(st.seeds, seedData);
+      st.loadedTicker = s.ticker;
+      const paneEl = document.getElementById('etc-pj-'+id);
+      if(paneEl) paneEl.innerHTML = v2_pjRenderInner(s, st);
+    }).catch(()=>{});
+  } else {
+    // Keep price/mktcap fresh even if seed already loaded.
+    st.seeds.currentPrice = s.currentPrice || st.seeds.currentPrice;
+    st.seeds.currentMktCap = s.marketCap || st.seeds.currentMktCap;
+  }
+  return `<div class="v2pj-wrap" id="v2pjRoot-${id}">${v2_pjRenderInner(s, st)}</div>`;
+}
+
+function v2_pjRenderInner(s, st){
+  const id = s.id;
+  const mode = st.mode;
+  const hist = st.seeds.hist || [];
+  const histN = hist.length;
+
+  // Seed the engine from the latest historical row if available, else from stock-level fields.
+  const lastHist = hist[histN-1] || null;
+  const seeds = {
+    revenue0: lastHist ? lastHist.revenue : 0,
+    costOfRev0: lastHist ? lastHist.costOfRev : 0,
+    netIncome0: lastHist ? lastHist.netIncome : (s.marketCap && s.currentPrice ? null : 0),
+    sharesOut0: lastHist ? lastHist.sharesOut : ((s.marketCap>0 && s.currentPrice>0) ? (s.marketCap*1e6)/s.currentPrice : 0),
+    currentPrice: s.currentPrice || 0,
+    currentYear: lastHist && lastHist.year ? lastHist.year : st.seeds.currentYear,
+  };
+  const proj = v2_project(seeds, { years: st.years }, mode);
+
+  const modeBtns = `<div class="v2pj-modebtn">
+    <button class="${mode==='intermediate'?'active':''}" onclick="v2_projSetMode(${id},'intermediate')">Intermediate</button>
+    <button class="${mode==='advanced'?'active':''}" onclick="v2_projSetMode(${id},'advanced')">Advanced</button>
+  </div>`;
+
+  const toolbar = `<div class="v2pj-toolbar">
+    ${modeBtns}
+    <button class="v2pj-btn" onclick="v2_projAddYear(${id})">+ Add year</button>
+    <button class="v2pj-btn" onclick="v2_projSave(${id})">💾 Save</button>
+    <button class="v2pj-btn" onclick="v2_projLoad(${id})">📂 Load</button>
+    <span class="v2pj-note">${histN? histN+' yrs of FMP actuals loaded' : (typeof tickerCtx==='function' && tickerCtx(id) && tickerCtx(id).fmp ? 'No FMP data — add an FMP key for actuals, or edit forward cells only' : 'FMP unavailable')}</span>
+  </div>`;
+
+  const table = mode === 'intermediate' ? v2_pjIntermediateTable(s, st, hist, proj) : v2_pjAdvancedTable(s, st, hist, proj);
+
+  // CAGR summary (explicit 3/4/5/6-yr rows)
+  const cagrGrid = `<div class="v2pj-cagrgrid">${proj.cagrRows.map(r => `
+    <div class="v2pj-cagrbox">
+      <div class="lbl">${r.n}-yr CAGR (mid)</div>
+      <div class="val">${r.cagrMid!=null ? v2_pjPct(r.cagrMid,1) : (mode==='intermediate' ? v2_pjPct(r.cagrLow!=null&&r.cagrHigh!=null?(r.cagrLow+r.cagrHigh)/2:null,1) : '—')}</div>
+    </div>`).join('')}</div>`;
+
+  // Chart: actual (from hist, hollow/solid) vs projected (hatched), revenue series as a representative view.
+  let chartHtml = '';
+  if(typeof svgChart === 'function'){
+    const values = [];
+    hist.forEach(h => values.push({ x: h.year, y: h.revenue, projected:false }));
+    proj.rows.forEach(r => values.push({ x: r.year, y: r.revenue, projected:true }));
+    const labels = values.map(v => String(v.x));
+    try{
+      chartHtml = `<div class="v2pj-chartbox">${svgChart({ type:'bar', series:[{ name:'Revenue', values }], labels, width:460, height:180, zeroLine:true, title:'Revenue: actual vs projected' })}</div>`;
+    }catch(e){ chartHtml = ''; }
+  }
+
+  return `${toolbar}${table}${cagrGrid}${chartHtml}`;
+}
+
+function v2_pjIntermediateTable(s, st, hist, proj){
+  // 3 independent scenarios (Bull/Base/Bear), each a fast front-end over v2_project('intermediate').
+  const id = s.id;
+  const scenarios = st.scenarios || (st.scenarios = {
+    bear: v2_pjDefaultYears(st.nYears,'intermediate'),
+    base: st.years.length===st.nYears ? st.years : v2_pjDefaultYears(st.nYears,'intermediate'),
+    bull: v2_pjDefaultYears(st.nYears,'intermediate'),
+  });
+  const lastHist = hist[hist.length-1] || null;
+  const seeds = {
+    revenue0: lastHist ? lastHist.revenue : 0,
+    netIncome0: lastHist ? lastHist.netIncome : 0,
+    sharesOut0: lastHist ? lastHist.sharesOut : ((s.marketCap>0 && s.currentPrice>0) ? (s.marketCap*1e6)/s.currentPrice : 0),
+    currentPrice: s.currentPrice || 0,
+    currentYear: lastHist && lastHist.year ? lastHist.year : (new Date()).getFullYear(),
+  };
+  const cards = ['bear','base','bull'].map(key => {
+    const label = key === 'bear' ? 'Bear' : key === 'bull' ? 'Bull' : 'Base';
+    const yrs = scenarios[key];
+    const p = v2_project(seeds, { years: yrs }, 'intermediate');
+    const lastRow = p.rows[p.rows.length-1];
+    const rowsHtml = yrs.map((y,i) => {
+      const yr = seeds.currentYear + i + 1;
+      const rowP = p.rows[i];
+      return `<label>Y${i+1} (${yr}) rev% <input class="v2pj-in" style="width:44px" type="number" step="0.1" value="${esc(y.revGrowth)}" onchange="v2_projScenInput(${id},'${key}',${i},'revGrowth',this.value)"/></label>
+        <label>Y${i+1} NI% <input class="v2pj-in" style="width:44px" type="number" step="0.1" value="${esc(y.netIncGrowth)}" onchange="v2_projScenInput(${id},'${key}',${i},'netIncGrowth',this.value)"/></label>
+        <label>Y${i+1} PE lo/hi <input class="v2pj-in" style="width:36px" type="number" value="${esc(y.peLow)}" onchange="v2_projScenInput(${id},'${key}',${i},'peLow',this.value)"/>/<input class="v2pj-in" style="width:36px" type="number" value="${esc(y.peHigh)}" onchange="v2_projScenInput(${id},'${key}',${i},'peHigh',this.value)"/></label>
+        <div style="font-size:10px;color:var(--text-faint)">margin ${v2_pjPct(rowP?rowP.netMargin:null,1)} · EPS ${v2_pjMoney(rowP?rowP.eps:null)}</div>`;
+    }).join('<hr style="border:none;border-top:1px solid var(--border-default);margin:4px 0"/>');
+    return `<div class="v2pj-scen-card">
+      <h5>${label}${lastRow?` — $${v2_pjFmt(lastRow.priceLow,0)}–$${v2_pjFmt(lastRow.priceHigh,0)}`:''}</h5>
+      ${rowsHtml}
+    </div>`;
+  }).join('');
+  return `<div class="v2pj-scen-grid">${cards}</div>`;
+}
+
+function v2_pjAdvancedTable(s, st, hist, proj){
+  const id = s.id;
+  const years = st.years;
+  const histCols = hist.map(h => `<th class="v2pj-hist">${h.year||''}</th>`).join('');
+  const projCols = proj.rows.map(r => `<th>${r.year} <span style="font-weight:400;color:var(--text-faint)">(fwd)</span></th>`).join('');
+  const yoy = (cur, prev) => (cur!=null && prev) ? (cur/prev - 1) : null;
+  const yoyCell = v => v==null ? '' : `<div style="font-size:9.5px" class="${v>=0?'v2pj-yoy-pos':'v2pj-yoy-neg'}">${v>=0?'+':''}${(v*100).toFixed(1)}%</div>`;
+
+  function histRow(field, dp, moneyFmt){
+    const cells = hist.map(h => `<td class="v2pj-hist">${moneyFmt ? v2_pjMoney(h[field],dp) : v2_pjFmt(h[field],dp)}</td>`).join('');
+    return cells;
+  }
+  function inputRow(field, placeholder, step){
+    return years.map((y,i) => `<td><input class="v2pj-in" type="number" step="${step||'0.1'}" placeholder="${placeholder||''}" value="${esc(y[field]!=null?y[field]:'')}" onchange="v2_projOnInput(${id},${i},'${field}',this.value)"/></td>`).join('');
+  }
+  function projValRow(field, dp, moneyFmt){
+    return proj.rows.map(r => `<td>${moneyFmt ? v2_pjMoney(r[field],dp) : v2_pjFmt(r[field],dp)}</td>`).join('');
+  }
+  function projPctRow(field, dp){
+    return proj.rows.map(r => `<td class="v2pj-derived">${v2_pjPct(r[field],dp)}</td>`).join('');
+  }
+
+  const cogsToggleRow = years.map((y,i) => `<td style="font-size:10px"><label style="display:flex;gap:3px;align-items:center;justify-content:flex-end"><input type="checkbox" ${y.useCogsPct?'checked':''} onchange="v2_projOnInput(${id},${i},'useCogsPct',this.checked)"/>COGS%</label></td>`).join('');
+  const cogsInputRow = years.map((y,i) => y.useCogsPct
+    ? `<td><input class="v2pj-in" type="number" step="0.1" placeholder="COGS %" value="${esc(y.cogsPct!=null?y.cogsPct:'')}" onchange="v2_projOnInput(${id},${i},'cogsPct',this.value)"/></td>`
+    : `<td><input class="v2pj-in" type="number" step="0.1" placeholder="COGS growth %" value="${esc(y.costOfRevGrowth!=null?y.costOfRevGrowth:'')}" onchange="v2_projOnInput(${id},${i},'costOfRevGrowth',this.value)"/></td>`
+  ).join('');
+
+  return `<div class="v2pj-tablewrap"><table class="v2pj-tbl">
+    <thead><tr><th>Metric</th>${histCols}${projCols}</tr></thead>
+    <tbody>
+      <tr><td>Revenue growth %</td>${hist.map((h,i)=>`<td class="v2pj-hist">${i? yoyCell(yoy(h.revenue, hist[i-1].revenue)):''}</td>`).join('')}${inputRow('revGrowth','rev %')}</tr>
+      <tr><td>Revenue</td>${histRow('revenue',0,true)}${projValRow('revenue',0,true)}</tr>
+      <tr><td>Cost of revenue mode</td>${hist.map(()=>'<td></td>').join('')}${cogsToggleRow}</tr>
+      <tr><td>Cost of revenue input</td>${hist.map(()=>'<td></td>').join('')}${cogsInputRow}</tr>
+      <tr><td>Cost of revenue</td>${histRow('costOfRev',0,true)}${projValRow('costOfRev',0,true)}</tr>
+      <tr><td>Gross profit</td>${histRow('grossProfit',0,true)}${projValRow('grossProfit',0,true)}</tr>
+      <tr><td>Gross margin</td>${hist.map(h=>`<td class="v2pj-derived v2pj-hist">${v2_pjPct(h.revenue?h.grossProfit/h.revenue:null,1)}</td>`).join('')}${projPctRow('grossMargin',1)}</tr>
+      <tr><td>Operating expense (input)</td>${hist.map(()=>'<td></td>').join('')}${inputRow('operatingExpense','opex $M','1')}</tr>
+      <tr><td>Operating income</td>${histRow('operatingIncome',0,true)}${projValRow('operatingIncome',0,true)}</tr>
+      <tr><td>Operating margin</td>${hist.map(h=>`<td class="v2pj-derived v2pj-hist">${v2_pjPct(h.revenue?h.operatingIncome/h.revenue:null,1)}</td>`).join('')}${projPctRow('operatingMargin',1)}</tr>
+      <tr><td>Other inc/(exp), net of tax (input)</td>${hist.map(()=>'<td></td>').join('')}${inputRow('otherIncExpense','$M','1')}</tr>
+      <tr><td>Net income</td>${histRow('netIncome',0,true)}${projValRow('netIncome',0,true)}</tr>
+      <tr><td>Net margin</td>${hist.map(h=>`<td class="v2pj-derived v2pj-hist">${v2_pjPct(h.revenue?h.netIncome/h.revenue:null,1)}</td>`).join('')}${projPctRow('netMargin',1)}</tr>
+      <tr><td>Share dilution % (input)</td>${hist.map(()=>'<td></td>').join('')}${inputRow('sharesDilution','dilution %')}</tr>
+      <tr><td>Shares out (M)</td>${histRow('sharesOut',1)}${projValRow('sharesOut',1)}</tr>
+      <tr><td>EPS</td>${hist.map(h=>`<td class="v2pj-hist">${v2_pjMoney(h.eps)}</td>`).join('')}${projValRow('eps',2,true)}</tr>
+      <tr><td>PE low / mid / high (input)</td>${hist.map(()=>'<td></td>').join('')}${years.map((y,i)=>`<td style="display:flex;gap:2px;justify-content:flex-end"><input class="v2pj-in" style="width:32px" type="number" value="${esc(y.peLow!=null?y.peLow:'')}" onchange="v2_projOnInput(${id},${i},'peLow',this.value)"/><input class="v2pj-in" style="width:32px" type="number" value="${esc(y.peMid!=null?y.peMid:'')}" onchange="v2_projOnInput(${id},${i},'peMid',this.value)"/><input class="v2pj-in" style="width:32px" type="number" value="${esc(y.peHigh!=null?y.peHigh:'')}" onchange="v2_projOnInput(${id},${i},'peHigh',this.value)"/></td>`).join('')}</tr>
+      <tr><td>Share price low</td>${hist.map(()=>'<td></td>').join('')}${projValRow('priceLow',2,true)}</tr>
+      <tr><td>Share price mid</td>${hist.map(()=>'<td></td>').join('')}${projValRow('priceMid',2,true)}</tr>
+      <tr><td>Share price high</td>${hist.map(()=>'<td></td>').join('')}${projValRow('priceHigh',2,true)}</tr>
+      <tr><td>Market cap low ($M)</td>${hist.map(()=>'<td></td>').join('')}${proj.rows.map(r=>`<td>${v2_pjFmt(r.mktCapLow,0)}</td>`).join('')}</tr>
+      <tr><td>Market cap mid ($M)</td>${hist.map(()=>'<td></td>').join('')}${proj.rows.map(r=>`<td>${v2_pjFmt(r.mktCapMid,0)}</td>`).join('')}</tr>
+      <tr><td>Market cap high ($M)</td>${hist.map(()=>'<td></td>').join('')}${proj.rows.map(r=>`<td>${v2_pjFmt(r.mktCapHigh,0)}</td>`).join('')}</tr>
+      <tr><td>CAGR low / mid / high</td>${hist.map(()=>'<td></td>').join('')}${proj.rows.map(r=>`<td class="v2pj-derived">${v2_pjPct(r.cagrLow,1)} / ${v2_pjPct(r.cagrMid,1)} / ${v2_pjPct(r.cagrHigh,1)}</td>`).join('')}</tr>
+    </tbody>
+  </table></div>`;
+}
+
+// ----------------------------------------------------------------------------
+// Interaction handlers
+// ----------------------------------------------------------------------------
+function v2_pjRerender(id){
+  const s = (typeof stocks!=='undefined') ? stocks.find(x=>x.id===id) : null;
+  const st = window.v2_pjState[id];
+  const root = document.getElementById('v2pjRoot-'+id);
+  if(s && st && root) root.innerHTML = v2_pjRenderInner(s, st);
+}
+
+function v2_projSetMode(id, mode){
+  const st = window.v2_pjState[id]; if(!st) return;
+  st.mode = mode;
+  if(mode === 'advanced' && (!st.years.length || st.years[0].costOfRevGrowth === undefined)) st.years = v2_pjDefaultYears(st.nYears, 'advanced');
+  if(mode === 'intermediate' && !st.scenarios) st.scenarios = { bear:v2_pjDefaultYears(st.nYears,'intermediate'), base:v2_pjDefaultYears(st.nYears,'intermediate'), bull:v2_pjDefaultYears(st.nYears,'intermediate') };
+  v2_pjRerender(id);
+}
+
+function v2_projAddYear(id){
+  const st = window.v2_pjState[id]; if(!st) return;
+  st.nYears = Math.min(10, (st.nYears||6) + 1);
+  st.years.push(st.mode === 'intermediate' ? { revGrowth:'', netIncGrowth:'', peLow:'', peHigh:'' } : { revGrowth:'', costOfRevGrowth:'', useCogsPct:false, cogsPct:'', operatingExpense:'', otherIncExpense:'', sharesDilution:'0', peLow:'', peMid:'', peHigh:'' });
+  if(st.scenarios){ ['bear','base','bull'].forEach(k => st.scenarios[k].push({ revGrowth:'', netIncGrowth:'', peLow:'', peHigh:'' })); }
+  v2_pjRerender(id);
+}
+
+function v2_projOnInput(id, idx, field, value){
+  const st = window.v2_pjState[id]; if(!st) return;
+  const y = st.years[idx]; if(!y) return;
+  y[field] = (field === 'useCogsPct') ? !!value : value;
+  v2_pjRerender(id);
+}
+
+function v2_projScenInput(id, scenKey, idx, field, value){
+  const st = window.v2_pjState[id]; if(!st || !st.scenarios) return;
+  const y = st.scenarios[scenKey][idx]; if(!y) return;
+  y[field] = value;
+  v2_pjRerender(id);
+}
+
+// ----------------------------------------------------------------------------
+// Persistence: viss_projections = { [ticker]: { savedScenarios:[{name,ts,mode,years,scenarios}], last:{mode,years,scenarios} } }
+// ----------------------------------------------------------------------------
+function v2_projLoadRaw(ticker){
+  try{ const m = JSON.parse(localStorage.getItem('viss_projections')||'{}'); return m[ticker] || null; }catch(e){ return null; }
+}
+function v2_projWriteRaw(ticker, obj){
+  try{
+    let m; try{ m = JSON.parse(localStorage.getItem('viss_projections')||'{}'); }catch(e){ m = {}; }
+    m[ticker] = obj;
+    localStorage.setItem('viss_projections', JSON.stringify(m));
+    if(typeof scheduleSyncPush === 'function') scheduleSyncPush();
+    return true;
+  }catch(e){ return false; }
+}
+
+function v2_projSave(id){
+  const s = (typeof stocks!=='undefined') ? stocks.find(x=>x.id===id) : null;
+  const st = window.v2_pjState[id]; if(!s || !st) return;
+  const existing = v2_projLoadRaw(s.ticker) || { savedScenarios: [] };
+  const snapshot = { mode: st.mode, years: st.years, scenarios: st.scenarios || null };
+  existing.last = snapshot;
+  existing.savedScenarios = existing.savedScenarios || [];
+  existing.savedScenarios.push(Object.assign({ name: 'Saved ' + new Date().toLocaleString(), ts: Date.now() }, snapshot));
+  if(existing.savedScenarios.length > 20) existing.savedScenarios = existing.savedScenarios.slice(-20);
+  v2_projWriteRaw(s.ticker, existing);
+  if(typeof appAlert === 'function') appAlert('Projection scenario saved for ' + s.ticker + '.');
+}
+
+function v2_projLoad(id){
+  const s = (typeof stocks!=='undefined') ? stocks.find(x=>x.id===id) : null;
+  const st = window.v2_pjState[id]; if(!s || !st) return;
+  const saved = v2_projLoadRaw(s.ticker);
+  if(!saved || !saved.last){ if(typeof appAlert === 'function') appAlert('No saved projection for ' + s.ticker + '.'); return; }
+  st.mode = saved.last.mode || st.mode;
+  st.years = saved.last.years || st.years;
+  st.nYears = st.years.length || st.nYears;
+  st.scenarios = saved.last.scenarios || st.scenarios;
+  v2_pjRerender(id);
+}
+
+// ----------------------------------------------------------------------------
+// v2_projBand(s) — feeds the projection-based band into the fair-value football field.
+// Returns { label, lo, hi, mid, color, dashed } or null.
+// ----------------------------------------------------------------------------
+function v2_projBand(s){
+  try{
+    const st = window.v2_pjState[s.id];
+    if(!st) return null;
+    const hist = (st.seeds && st.seeds.hist) || [];
+    const lastHist = hist[hist.length-1] || null;
+    const seeds = {
+      revenue0: lastHist ? lastHist.revenue : 0,
+      costOfRev0: lastHist ? lastHist.costOfRev : 0,
+      netIncome0: lastHist ? lastHist.netIncome : 0,
+      sharesOut0: lastHist ? lastHist.sharesOut : ((s.marketCap>0 && s.currentPrice>0) ? (s.marketCap*1e6)/s.currentPrice : 0),
+      currentPrice: s.currentPrice || 0,
+      currentYear: lastHist && lastHist.year ? lastHist.year : (new Date()).getFullYear(),
+    };
+    const proj = v2_project(seeds, { years: st.years }, st.mode === 'intermediate' ? 'intermediate' : 'advanced');
+    // Use the furthest-out projected row with usable prices.
+    const usable = proj.rows.filter(r => (r.priceLow!=null && isFinite(r.priceLow)) || (r.priceHigh!=null && isFinite(r.priceHigh)));
+    if(!usable.length) return null;
+    const r = usable[usable.length-1];
+    const lo = Math.min(r.priceLow, r.priceHigh);
+    const hi = Math.max(r.priceLow, r.priceHigh);
+    if(!isFinite(lo) || !isFinite(hi) || hi < lo) return null;
+    return { label: 'Projection (' + r.year + ')', lo, hi, mid: r.priceMid != null ? r.priceMid : (lo+hi)/2, color: 'var(--brand,var(--c-purple))', dashed: true };
+  }catch(e){ return null; }
+}
+</script>
+<style>
+/* ---- Scorecard (detail tab, slug 'sc') ---- */
+.v2-sc-wrap{ padding:2px 0; }
+.v2-sc-row{
+  display:grid; grid-template-columns:1fr 90px 1fr 70px; align-items:center; gap:10px;
+  padding:8px 4px; border-bottom:1px solid var(--border-default);
+}
+.v2-sc-row:last-child{ border-bottom:none; }
+.v2-sc-label{ font-size:12.5px; color:var(--text-secondary); font-weight:600; }
+.v2-sc-val{ font-size:13px; font-weight:700; color:var(--text-primary); text-align:right; }
+.v2-sc-band{ position:relative; height:8px; border-radius:4px; background:var(--bg-surface-2); border:1px solid var(--border-default); }
+.v2-sc-band-fill{ position:absolute; top:-3px; bottom:-3px; width:3px; border-radius:2px; background:var(--text-faint); transform:translateX(-50%); }
+.v2-sc-band-fill.v2-lo{ background:var(--neg); }
+.v2-sc-band-fill.v2-mid{ background:var(--text-muted); }
+.v2-sc-band-fill.v2-hi{ background:var(--pos); }
+.v2-sc-ctx{ font-size:10.5px; color:var(--text-faint); text-align:right; white-space:nowrap; }
+.v2-sc-empty{ color:var(--text-faint); font-size:13px; padding:16px; text-align:center; }
+.v2-sc-note{ font-size:11px; color:var(--text-faint); margin:4px 4px 12px; }
+
+/* ---- Compare (top-level nav pane) ---- */
+.v2-cmp-wrap{ padding:16px; max-width:960px; margin:0 auto; }
+.v2-cmp-picker{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
+.v2-cmp-picker select{
+  background:var(--bg-input); color:var(--text-primary); border:1px solid var(--border-default);
+  border-radius:8px; padding:8px 10px; font-size:13px;
+}
+.v2-cmp-chip{
+  display:inline-flex; align-items:center; gap:6px; background:var(--bg-surface-2);
+  border:1px solid var(--border-default); border-radius:16px; padding:4px 6px 4px 12px; font-size:12.5px; font-weight:700;
+}
+.v2-cmp-chip button{
+  background:none; border:none; color:var(--text-faint); cursor:pointer; font-size:14px; line-height:1;
+  padding:2px 6px; border-radius:50%;
+}
+.v2-cmp-chip button:hover{ color:var(--neg); background:var(--bg-hover); }
+.v2-cmp-table-wrap{ overflow-x:auto; border:1px solid var(--border-default); border-radius:10px; }
+table.v2-cmp-table{ border-collapse:collapse; width:100%; font-size:12.5px; min-width:420px; }
+table.v2-cmp-table th, table.v2-cmp-table td{
+  border-bottom:1px solid var(--border-default); padding:8px 12px; text-align:right; white-space:nowrap;
+}
+table.v2-cmp-table th:first-child, table.v2-cmp-table td:first-child{ text-align:left; position:sticky; left:0; background:var(--bg-surface); }
+table.v2-cmp-table thead th{ background:var(--bg-input); color:var(--text-muted); font-weight:700; }
+table.v2-cmp-table thead th.v2-cmp-tkr{ color:var(--text-primary); font-size:14px; }
+table.v2-cmp-table td.v2-cmp-best{ color:var(--pos); font-weight:800; }
+.v2-cmp-empty{ color:var(--text-faint); font-size:14px; padding:40px 16px; text-align:center; }
+</style>
+<script>
+// ============================================================================
+// v2 Scorecard (detail tab, slug 'sc') + Compare (top-level nav tab)
+// All new functions v2_-prefixed per contract. No fetches — pure presentation
+// over stock objects already computed by computeStock() (recon-data §8).
+// ============================================================================
+
+// ---- Benchmark ranges (the "many stocks trade at X" pattern) ----
+// Static, documented ranges — broad-market context, NOT ticker-specific data.
+// Source/approach: widely-cited long-run US-equity aggregate benchmarks (S&P
+// constituents / value-investing literature — Graham/Buffett/Lynch thresholds
+// already encoded elsewhere in this app informed the lo/hi choices here too),
+// intentionally coarse since this is a presentation layer, not a new data feed.
+const V2_BENCH = {
+  pe:      { lo: 12,  hi: 28,  unit: 'x',  label: 'P/E Ratio',          invert: true  },
+  ps:      { lo: 1,   hi: 8,   unit: 'x',  label: 'P/S Ratio',          invert: true  },
+  peg:     { lo: 0.8, hi: 2.2, unit: 'x',  label: 'PEG Ratio',          invert: true  },
+  grossMargin: { lo: 25, hi: 60, unit: '%', label: 'Gross Margin',      invert: false },
+  netMargin:   { lo: 5,  hi: 25, unit: '%', label: 'Net Margin',        invert: false },
+  roe:     { lo: 8,   hi: 25,  unit: '%',  label: 'Return on Equity',   invert: false },
+  roic:    { lo: 6,   hi: 20,  unit: '%',  label: 'ROIC',               invert: false },
+  revenueGrowth5yr: { lo: 2, hi: 20, unit: '%', label: 'Revenue Growth (5yr)', invert: false },
+  epsGrowth10yr:    { lo: 2, hi: 18, unit: '%', label: 'EPS Growth (10yr)',    invert: false },
+  debtToEquity: { lo: 0.1, hi: 1.2, unit: 'x', label: 'Debt / Equity',  invert: true  },
+  currentRatio: { lo: 1,   hi: 3,   unit: 'x', label: 'Current Ratio', invert: false },
+  dividendYield:{ lo: 0,   hi: 4,   unit: '%', label: 'Dividend Yield', invert: false },
+  fcfMargin: { lo: 5, hi: 20, unit: '%', label: 'FCF Margin', invert: false },
+  beta:      { lo: 0.6, hi: 1.6, unit: 'x', label: 'Beta (volatility)', invert: true },
+};
+
+function v2_fmtBench(v, unit, dp){
+  if(v == null || isNaN(v)) return '—';
+  const d = (dp != null) ? dp : (unit === 'x' ? 2 : 1);
+  return parseFloat(v).toFixed(d) + (unit || '');
+}
+
+// ---- v2_benchRow(label, val, fmt, lo, hi, invert, unit) → HTML string ----
+// Renders one metric row: label, value, low/typical/high position dot, and the
+// benchmark band context text. `invert` means "lower is better" (e.g. P/E, D/E).
+function v2_benchRow(label, val, lo, hi, invert, unit, dp){
+  const hasVal = (val != null && !isNaN(val) && isFinite(val));
+  const valTxt = hasVal ? v2_fmtBench(val, unit, dp) : '—';
+  let pctPos = 50, posClass = 'v2-mid', ctxTxt = 'no data';
+  if(hasVal){
+    const span = (hi - lo) || 1;
+    const clamped = Math.max(lo - span*0.15, Math.min(hi + span*0.15, val));
+    pctPos = ((clamped - (lo - span*0.15)) / (span * 1.3)) * 100;
+    const belowLo = val < lo, aboveHi = val > hi;
+    // "good" side depends on invert: for invert metrics, low=good; else high=good.
+    const goodSide = invert ? belowLo : aboveHi;
+    const badSide = invert ? aboveHi : belowLo;
+    posClass = goodSide ? 'v2-hi' : (badSide ? 'v2-lo' : 'v2-mid');
+    if(belowLo) ctxTxt = `below typical range (${v2_fmtBench(lo,unit,dp)}–${v2_fmtBench(hi,unit,dp)})`;
+    else if(aboveHi) ctxTxt = `above typical range (${v2_fmtBench(lo,unit,dp)}–${v2_fmtBench(hi,unit,dp)})`;
+    else ctxTxt = `typical: ${v2_fmtBench(lo,unit,dp)}–${v2_fmtBench(hi,unit,dp)}`;
+    // Recolor "good/bad" language: many stocks trade at X → we're just reporting position,
+    // not judging goodness, but the color still communicates favorable/unfavorable per invert.
+  }
+  const escFn = (typeof esc === 'function') ? esc : (x => String(x==null?'':x));
+  return `<div class="v2-sc-row">
+    <div class="v2-sc-label">${escFn(label)}</div>
+    <div class="v2-sc-val">${escFn(valTxt)}</div>
+    <div class="v2-sc-band"><div class="v2-sc-band-fill ${posClass}" style="left:${pctPos.toFixed(1)}%"></div></div>
+    <div class="v2-sc-ctx">${escFn(ctxTxt)}</div>
+  </div>`;
+}
+
+// ---- v2_scorecardHTML(s) → HTML string — the Scorecard detail-tab body ----
+function v2_scorecardHTML(s){
+  if(!s) return '<div class="v2-sc-empty">No stock selected.</div>';
+  const g = s.graham, b = s.buffett, l = s.lynch;
+  // Pull metrics from the existing computed sub-objects (graham/buffett/lynch/technical)
+  // — these are the SAME fields already rendered in the Graham/Buffett/Lynch tabs (recon-ui §4),
+  // just re-presented against benchmark ranges instead of pass/fail checkboxes.
+  const rows = [];
+  const BR = V2_BENCH;
+  const push = (key, val) => { const c = BR[key]; if(c) rows.push(v2_benchRow(c.label, val, c.lo, c.hi, c.invert, c.unit)); };
+
+  push('pe', g?.pe);
+  push('peg', l?.peg);
+  push('grossMargin', b?.grossMargin);
+  push('netMargin', b?.netMargin);
+  push('roe', (b?.roe != null ? b.roe : null));
+  push('roic', b?.roic);
+  push('revenueGrowth5yr', b?.revenueGrowth5yr);
+  push('epsGrowth10yr', g?.epsGrowth10yr);
+  push('debtToEquity', g?.debtToEquity);
+  push('currentRatio', g?.currentRatio);
+  push('dividendYield', g?.dividendYield);
+  push('fcfMargin', b?.fcfMargin);
+  if(s.beta != null) push('beta', s.beta);
+
+  if(!rows.length){
+    return '<div class="v2-sc-empty">Scorecard data unavailable for this stock.</div>';
+  }
+  return `<div class="v2-sc-wrap">
+    <div class="slbl">Scorecard — position vs. typical range <span class="ltag">benchmarked</span></div>
+    ${rows.join('')}
+    <div class="v2-sc-note">Ranges are broad, static market-context bands (not live cross-sectional data) — a quick "many stocks trade at X" read, not a precision comp set. Green = favorable side of typical range, red = unfavorable, grey = within typical.</div>
+  </div>`;
+}
+
+// ---- Compare (top-level nav tab) ----
+const V2_COMPARE_KEY = 'viss_compare';
+const V2_COMPARE_MAX = 3;
+
+function v2_compareLoad(){
+  try{
+    const raw = localStorage.getItem(V2_COMPARE_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.slice(0, V2_COMPARE_MAX) : [];
+  }catch(e){ return []; }
+}
+function v2_compareSave(arr){
+  try{ localStorage.setItem(V2_COMPARE_KEY, JSON.stringify(arr.slice(0, V2_COMPARE_MAX))); }catch(e){}
+}
+
+// v2_compareAdd(ticker) — add a ticker to the compare set (max 3), then re-render.
+function v2_compareAdd(ticker){
+  if(!ticker) return;
+  let arr = v2_compareLoad();
+  if(arr.includes(ticker)) return;
+  if(arr.length >= V2_COMPARE_MAX) arr = arr.slice(1); // drop oldest to make room
+  arr.push(ticker);
+  v2_compareSave(arr);
+  v2_renderCompare();
+}
+// v2_compareRemove(ticker) — remove a ticker from the compare set, then re-render.
+function v2_compareRemove(ticker){
+  const arr = v2_compareLoad().filter(t => t !== ticker);
+  v2_compareSave(arr);
+  v2_renderCompare();
+}
+
+// Metric rows shown in the compare table: [key, label, path-getter, unit, dp, higherIsBetter]
+const V2_CMP_METRICS = [
+  ['price',  'Price',            s => s.currentPrice,               '$', 2, null],
+  ['pe',     'P/E',              s => s.graham?.pe,                 'x', 1, false],
+  ['peg',    'PEG',              s => s.lynch?.peg,                 'x', 2, false],
+  ['grossMargin', 'Gross Margin', s => s.buffett?.grossMargin,      '%', 1, true],
+  ['netMargin',   'Net Margin',   s => s.buffett?.netMargin,        '%', 1, true],
+  ['roe',    'ROE',              s => s.buffett?.roe,               '%', 1, true],
+  ['roic',   'ROIC',             s => s.buffett?.roic,              '%', 1, true],
+  ['rev5yr', 'Revenue Growth 5yr', s => s.buffett?.revenueGrowth5yr,'%', 1, true],
+  ['debtEq', 'Debt / Equity',    s => s.graham?.debtToEquity,       'x', 2, false],
+  ['divYld', 'Dividend Yield',   s => s.graham?.dividendYield,      '%', 1, true],
+  ['fcfMargin', 'FCF Margin',    s => s.buffett?.fcfMargin,         '%', 1, true],
+  ['mktCap', 'Market Cap',       s => s.marketCap,                  'M', 0, null],
+  ['score',  'Total Score',      s => s.totalScore,                 '/32', 0, true],
+];
+
+function v2_cmpFmt(v, unit, dp){
+  if(v == null || isNaN(v)) return '—';
+  if(unit === '$') return '$' + parseFloat(v).toFixed(dp);
+  if(unit === 'M'){
+    const n = parseFloat(v);
+    if(Math.abs(n) >= 1e6) return '$' + (n/1e6).toFixed(1) + 'T';
+    if(Math.abs(n) >= 1e3) return '$' + (n/1e3).toFixed(1) + 'B';
+    return '$' + n.toFixed(0) + 'M';
+  }
+  if(unit === '/32') return parseFloat(v).toFixed(0) + '/32';
+  return parseFloat(v).toFixed(dp) + unit;
+}
+
+// v2_renderCompare() — fills #tabCompare from `stocks` + viss_compare. Picker + table.
+function v2_renderCompare(){
+  const root = document.getElementById('tabCompare');
+  if(!root) return;
+  const escFn = (typeof esc === 'function') ? esc : (x => String(x==null?'':x));
+  const allDone = (typeof stocks !== 'undefined' ? stocks : []).filter(s => s.status === 'done');
+  const selected = v2_compareLoad();
+  const selectedStocks = selected
+    .map(t => allDone.find(s => s.ticker === t))
+    .filter(Boolean);
+
+  const chips = selected.map(t => `<span class="v2-cmp-chip">${escFn(t)}<button onclick="v2_compareRemove('${escFn(t).replace(/'/g,"")}')" aria-label="Remove ${escFn(t)}">✕</button></span>`).join('');
+
+  const available = allDone.filter(s => !selected.includes(s.ticker));
+  const options = available.map(s => `<option value="${escFn(s.ticker)}">${escFn(s.ticker)} — ${escFn(s.companyName||'')}</option>`).join('');
+  const pickerDisabled = (selected.length >= V2_COMPARE_MAX) ? 'disabled' : '';
+  const picker = `<div class="v2-cmp-picker">
+    ${chips}
+    ${selected.length < V2_COMPARE_MAX ? `<select id="v2CmpPicker" ${pickerDisabled} onchange="if(this.value){ v2_compareAdd(this.value); this.value=''; }">
+      <option value="">${allDone.length ? '+ Add ticker…' : 'No screened stocks yet'}</option>
+      ${options}
+    </select>` : ''}
+  </div>`;
+
+  if(selectedStocks.length < 2){
+    root.innerHTML = `<div class="v2-cmp-wrap">
+      ${picker}
+      <div class="v2-cmp-empty">Pick at least 2 stocks from your screened list to compare side by side.</div>
+    </div>`;
+    return;
+  }
+
+  // For each metric row, find the best value among the selected stocks (if higherIsBetter is defined).
+  const bodyRows = V2_CMP_METRICS.map(([key, label, getter, unit, dp, higherBetter]) => {
+    const vals = selectedStocks.map(s => { const v = getter(s); return (v==null||isNaN(v)) ? null : parseFloat(v); });
+    let bestIdx = -1;
+    if(higherBetter !== null){
+      const finite = vals.map((v,i)=>({v,i})).filter(x=>x.v!=null);
+      if(finite.length){
+        bestIdx = higherBetter
+          ? finite.reduce((a,b)=> b.v>a.v ? b : a).i
+          : finite.reduce((a,b)=> b.v<a.v ? b : a).i;
+      }
+    }
+    const cells = vals.map((v,i) => `<td class="${i===bestIdx ? 'v2-cmp-best' : ''}">${v2_cmpFmt(v, unit, dp)}</td>`).join('');
+    return `<tr><td>${escFn(label)}</td>${cells}</tr>`;
+  }).join('');
+
+  const headCells = selectedStocks.map(s => `<th class="v2-cmp-tkr">${escFn(s.ticker)}</th>`).join('');
+
+  root.innerHTML = `<div class="v2-cmp-wrap">
+    ${picker}
+    <div class="v2-cmp-table-wrap">
+      <table class="v2-cmp-table">
+        <thead><tr><th>Metric</th>${headCells}</tr></thead>
+        <tbody>${bodyRows}</tbody>
+      </table>
+    </div>
+    <div class="v2-sc-note">Best value in each row highlighted. Selection persists across sessions.</div>
+  </div>`;
+}
+
+// v2_compareInit() — optional explicit init hook (switchTab already calls v2_renderCompare()
+// directly per §C-EDIT-5; this is a harmless alias kept for symmetry/testability).
+function v2_compareInit(){ v2_renderCompare(); }
+</script>
+<style>
+/* ---- Earnings / Filings / Calendar — v2_ scoped, CSS vars only ---- */
+.v2-er-wrap{display:flex;flex-direction:column;gap:14px}
+.v2-er-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.v2-er-select{background:var(--bg-input,var(--surface-card));color:var(--text-primary);border:1px solid var(--border-default);border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;cursor:pointer}
+.v2-er-btn{background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;color:var(--text-primary);cursor:pointer;font-family:inherit}
+.v2-er-btn:hover{background:var(--bg-hover,var(--surface-deep))}
+.v2-er-btn.v2-primary{background:var(--accent-buy-bg);border-color:var(--accent-buy-border);color:var(--c-green)}
+.v2-er-btn:disabled{opacity:.5;cursor:not-allowed}
+.v2-er-empty{color:var(--text-faint);font-size:13px;padding:14px 0;line-height:1.6}
+.v2-er-card{background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:12px 14px}
+.v2-er-sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:6px}
+.v2-er-sec-body{font-size:13px;color:var(--text-secondary);line-height:1.65;white-space:pre-wrap}
+.v2-er-summary-grid{display:flex;flex-direction:column;gap:10px}
+.v2-er-filing-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--border-default)}
+.v2-er-filing-row:last-child{border-bottom:none}
+.v2-er-filing-type{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--accent-info,var(--c-blue));color:#fff;opacity:.85;white-space:nowrap}
+.v2-er-filing-date{font-size:11px;color:var(--text-faint);white-space:nowrap}
+.v2-er-filing-link{font-size:12px;color:var(--accent-info,var(--c-blue));text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.v2-er-filing-link:hover{text-decoration:underline}
+.v2-er-filter-pills{display:flex;gap:6px;flex-wrap:wrap}
+.v2-er-pill{background:var(--surface-card);border:1px solid var(--border-default);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:700;color:var(--text-tertiary);cursor:pointer;font-family:inherit}
+.v2-er-pill.active{background:var(--accent-buy-bg);border-color:var(--accent-buy-border);color:var(--c-green)}
+.v2-er-spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--border-default);border-top-color:var(--accent-info,var(--c-blue));border-radius:50%;animation:v2-er-spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes v2-er-spin{to{transform:rotate(360deg)}}
+
+/* ---- Calendar top-level nav tab ---- */
+.v2-cal-wrap{padding:4px 0}
+.v2-cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.v2-cal-label{font-size:14px;font-weight:700;color:var(--text-primary)}
+.v2-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+@media (max-width:720px){.v2-cal-grid{grid-template-columns:repeat(2,1fr)}}
+.v2-cal-day{background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;padding:8px;min-height:70px}
+.v2-cal-daylabel{font-size:10px;color:var(--text-faint);font-weight:700;text-transform:uppercase;margin-bottom:6px}
+.v2-cal-item{font-size:11px;padding:3px 6px;border-radius:6px;margin-bottom:4px;background:var(--bg-hover,var(--surface-deep));color:var(--text-secondary);display:flex;justify-content:space-between;gap:4px}
+.v2-cal-item b{color:var(--text-primary)}
+.v2-cal-badge{display:inline-block;min-width:36px;text-align:center;font-size:9px;font-weight:700;padding:1px 5px;border-radius:5px}
+.v2-cal-badge.v2-upcoming{background:var(--accent-buy-bg);color:var(--c-green)}
+.v2-cal-badge.v2-past{background:var(--surface-deep);color:var(--text-faint)}
+</style>
+<script>
+// ============================================================================
+// v2_ Earnings-call summary + SEC filings (detail tab `er`) + Calendar (nav tab)
+// ============================================================================
+
+// Own re-fetchable cache: { transcripts:{ 'TICK-Q1-2026': [...] }, summaries:{ 'TICK-Q1-2026': {...} },
+//                           filings:{ TICK: { data:[...], ts } }, calendar:{ 'weekStartISO': {data:[...], ts} } }
+function v2_erCacheRead(){
+  try{ return JSON.parse(localStorage.getItem('viss_er_cache') || '{}'); }catch(e){ return {}; }
+}
+function v2_erCacheWrite(c){
+  try{ localStorage.setItem('viss_er_cache', JSON.stringify(c)); }
+  catch(e){
+    // quota guard — drop the heaviest sub-caches (transcripts) and retry once
+    try{ c.transcripts = {}; localStorage.setItem('viss_er_cache', JSON.stringify(c)); }catch(e2){}
+  }
+}
+
+// ── Per-detail-tab UI state (keyed by stock id, not persisted — resets on reload) ──
+const V2_ER_STATE = {}; // { [id]: { quarter:'Q1-2026', filingType:'all' } }
+function v2_erState(id){
+  if(!V2_ER_STATE[id]) V2_ER_STATE[id] = { quarter: null, filingType: 'all' };
+  return V2_ER_STATE[id];
+}
+
+// ── Quarter list helper: last 8 quarters back from today, newest first ──
+function v2_erQuarterList(){
+  const out = []; const now = new Date();
+  let y = now.getFullYear(), q = Math.floor(now.getMonth()/3) + 1;
+  for(let i=0;i<8;i++){
+    out.push(`Q${q}-${y}`);
+    q--; if(q<1){ q=4; y--; }
+  }
+  return out;
+}
+
+// ── FMP transcript fetch (cached) ──
+async function v2_fetchTranscript(ticker, quarter){
+  if(typeof fmpGet !== 'function') return null;
+  const cache = v2_erCacheRead();
+  cache.transcripts = cache.transcripts || {};
+  const key = ticker + '-' + quarter;
+  const hit = cache.transcripts[key];
+  if(hit && hit.data && (Date.now() - (hit.ts||0)) < 30*864e5) return hit.data;
+  const m = /^Q(\d)-(\d{4})$/.exec(quarter);
+  if(!m) return null;
+  const qn = m[1], yr = m[2];
+  const data = await fmpGet('earning_call_transcript/' + ticker, { quarter: qn, year: yr }, { ttlDays: 30 });
+  if(data && Array.isArray(data) && data.length){
+    cache.transcripts[key] = { data, ts: Date.now() };
+    v2_erCacheWrite(cache);
+    return data;
+  }
+  return null;
+}
+
+// ── 7-section AI summary over the transcript (suggest/narrate-only, cached) ──
+// Sections: Overview, Financial Highlights, Guidance, Strategic Initiatives, Risks/Challenges,
+//           Analyst Q&A Themes, Key Takeaways
+const V2_ER_SECTIONS = [
+  ['overview','Overview'],
+  ['financialHighlights','Financial Highlights'],
+  ['guidance','Guidance'],
+  ['strategicInitiatives','Strategic Initiatives'],
+  ['risksChallenges','Risks & Challenges'],
+  ['analystQA','Analyst Q&A Themes'],
+  ['keyTakeaways','Key Takeaways'],
+];
+async function v2_aiEarningsSummary(ticker, quarter, onChunk){
+  if(typeof callAnthropic !== 'function') return null;
+  const keysRef = (typeof keys !== 'undefined') ? keys : null;
+  if(!keysRef || !keysRef[0]) return null;
+
+  const cache = v2_erCacheRead();
+  cache.summaries = cache.summaries || {};
+  const key = ticker + '-' + quarter;
+  const hit = cache.summaries[key];
+  if(hit && hit.data) return hit.data;
+
+  const transcriptArr = await v2_fetchTranscript(ticker, quarter);
+  if(!transcriptArr || !transcriptArr.length) return null;
+  const content = (transcriptArr[0] && (transcriptArr[0].content || transcriptArr[0].transcript)) || '';
+  if(!content) return null;
+  const clipped = content.length > 14000 ? content.slice(0, 14000) + '…[truncated]' : content;
+
+  const today = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+  const prompt = `Today's date: ${today}. Summarize this ${ticker} ${quarter} earnings call transcript into exactly 7 sections.
+
+TRANSCRIPT:
+${clipped}
+
+Output ONLY valid JSON, no text before or after:
+{"overview":"","financialHighlights":"","guidance":"","strategicInitiatives":"","risksChallenges":"","analystQA":"","keyTakeaways":""}
+
+Each section: 2-4 tight sentences, grounded ONLY in what's actually in the transcript above — never fabricate numbers or events not present. overview = what happened this quarter at a glance. financialHighlights = revenue/margin/EPS/cash-flow figures mentioned. guidance = forward guidance given (or "no guidance given" if none). strategicInitiatives = product/market/capital-allocation moves discussed. risksChallenges = risks or headwinds management flagged. analystQA = the recurring themes analysts pressed on. keyTakeaways = the 2-3 things an investor should remember.`;
+
+  try{
+    const raw = await callAnthropic(prompt, false, 3, { maxTokens: 1400, onChunk: (typeof onChunk==='function') ? onChunk : undefined });
+    const parsed = (typeof parseJSON === 'function') ? parseJSON(raw) : JSON.parse(raw);
+    cache.summaries[key] = { data: parsed, ts: Date.now() };
+    v2_erCacheWrite(cache);
+    return parsed;
+  }catch(e){ console.warn('v2_aiEarningsSummary failed', e); return null; }
+}
+
+// ── SEC filings fetch (cached, per-ticker, all types then filtered client-side) ──
+async function v2_fetchFilings(ticker){
+  if(typeof fmpGet !== 'function') return null;
+  const cache = v2_erCacheRead();
+  cache.filings = cache.filings || {};
+  const hit = cache.filings[ticker];
+  if(hit && hit.data && (Date.now() - (hit.ts||0)) < 1*864e5) return hit.data;
+  const data = await fmpGet('sec_filings/' + ticker, { limit: 60 }, { ttlDays: 1 });
+  if(data && Array.isArray(data)){
+    cache.filings[ticker] = { data, ts: Date.now() };
+    v2_erCacheWrite(cache);
+    return data;
+  }
+  return (hit && hit.data) || null;
+}
+
+// ── Render: build the whole `er` tab pane for stock s ──
+function v2_buildEarningsHTML(s){
+  const ctx = (typeof tickerCtx === 'function') ? tickerCtx(s.id) : null;
+  const ticker = (ctx && ctx.ticker) || s.ticker;
+  const keysRef = (typeof keys !== 'undefined') ? keys : ['','','',''];
+  const hasFmp = !!keysRef[3];
+  const hasAnt = !!keysRef[0];
+  const st = v2_erState(s.id);
+  if(!st.quarter) st.quarter = v2_erQuarterList()[0];
+
+  if(!hasFmp){
+    return `<div class="v2-er-wrap">
+      <div class="v2-er-empty">📄 Add an FMP API key in ⚙ API Keys to unlock earnings-call transcripts and SEC filings for ${esc(ticker)}.</div>
+    </div>`;
+  }
+
+  const quarters = v2_erQuarterList();
+  const qOptions = quarters.map(q => `<option value="${q}" ${q===st.quarter?'selected':''}>${q}</option>`).join('');
+
+  const summaryMount = `v2-er-summary-${s.id}`;
+  const filingsMount = `v2-er-filings-${s.id}`;
+
+  const aiGate = hasAnt
+    ? `<button class="v2-er-btn v2-primary" onclick="v2_erRunSummary(${s.id})">🗣 Summarize call</button>`
+    : `<span class="v2-er-empty" style="padding:0">Add an Anthropic key for the AI 7-section summary.</span>`;
+
+  return `<div class="v2-er-wrap">
+    <div class="v2-er-card">
+      <div class="v2-er-sec-title">Earnings call — ${esc(ticker)}</div>
+      <div class="v2-er-row">
+        <select class="v2-er-select" id="v2-er-qsel-${s.id}" onchange="v2_erSetQuarter(${s.id}, this.value)">${qOptions}</select>
+        ${aiGate}
+      </div>
+      <div id="${summaryMount}" style="margin-top:12px">
+        <div class="v2-er-empty">Select a quarter and click Summarize to fetch the transcript and generate a 7-section AI recap.</div>
+      </div>
+    </div>
+    <div class="v2-er-card">
+      <div class="v2-er-row" style="justify-content:space-between">
+        <div class="v2-er-sec-title" style="margin-bottom:0">SEC filings</div>
+        <div class="v2-er-filter-pills" id="v2-er-filterpills-${s.id}">
+          ${['all','10-K','10-Q','8-K'].map(t => `<button class="v2-er-pill ${st.filingType===t?'active':''}" onclick="v2_erSetFilingType(${s.id},'${t}')">${t==='all'?'All':t}</button>`).join('')}
+        </div>
+      </div>
+      <div id="${filingsMount}" style="margin-top:8px">
+        <div class="v2-er-empty"><span class="v2-er-spinner"></span>Loading filings…</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Quarter selector change ──
+function v2_erSetQuarter(id, q){
+  v2_erState(id).quarter = q;
+  const mount = document.getElementById('v2-er-summary-' + id);
+  if(mount) mount.innerHTML = '<div class="v2-er-empty">Select Summarize to fetch this quarter\'s transcript.</div>';
+}
+
+// ── Trigger AI summary for the current tab state ──
+async function v2_erRunSummary(id){
+  const s = (typeof stocks !== 'undefined') ? stocks.find(x=>x.id===id) : null;
+  if(!s) return;
+  const st = v2_erState(id);
+  const ctx = (typeof tickerCtx === 'function') ? tickerCtx(id) : null;
+  const ticker = (ctx && ctx.ticker) || s.ticker;
+  const mount = document.getElementById('v2-er-summary-' + id);
+  if(!mount) return;
+
+  mount.innerHTML = '<div class="v2-er-empty"><span class="v2-er-spinner"></span>Fetching transcript…</div>';
+
+  const transcriptArr = await v2_fetchTranscript(ticker, st.quarter);
+  if(!transcriptArr || !transcriptArr.length){
+    mount.innerHTML = `<div class="v2-er-empty">No transcript available for ${esc(ticker)} ${esc(st.quarter)} from FMP (free tier covers a limited ticker/quarter set).</div>`;
+    return;
+  }
+
+  mount.innerHTML = '<div class="v2-er-empty"><span class="v2-er-spinner"></span>Generating 7-section summary…</div>';
+  let liveText = '';
+  const onChunk = (full) => {
+    liveText = full;
+    if(mount) mount.innerHTML = `<div class="v2-er-card" style="border:none;padding:0"><div class="v2-er-sec-body">${esc(liveText)}</div></div>`;
+  };
+
+  const summary = await v2_aiEarningsSummary(ticker, st.quarter, onChunk);
+  if(!summary){
+    mount.innerHTML = '<div class="v2-er-empty">Could not generate a summary — check your Anthropic key or try again.</div>';
+    return;
+  }
+  const html = `<div class="v2-er-summary-grid">${V2_ER_SECTIONS.map(([k,label]) => `
+    <div>
+      <div class="v2-er-sec-title">${esc(label)}</div>
+      <div class="v2-er-sec-body">${esc(summary[k] || '—')}</div>
+    </div>`).join('')}</div>`;
+  mount.innerHTML = html;
+}
+
+// ── Filing type filter click ──
+async function v2_erSetFilingType(id, type){
+  v2_erState(id).filingType = type;
+  const pillsEl = document.getElementById('v2-er-filterpills-' + id);
+  if(pillsEl){
+    Array.from(pillsEl.children).forEach(btn => btn.classList.toggle('active', btn.textContent.trim() === (type==='all'?'All':type)));
+  }
+  await v2_erRenderFilings(id);
+}
+
+// ── Fetch + render filings list into its mount point ──
+async function v2_erRenderFilings(id){
+  const s = (typeof stocks !== 'undefined') ? stocks.find(x=>x.id===id) : null;
+  if(!s) return;
+  const mount = document.getElementById('v2-er-filings-' + id);
+  if(!mount) return;
+  const ctx = (typeof tickerCtx === 'function') ? tickerCtx(id) : null;
+  const ticker = (ctx && ctx.ticker) || s.ticker;
+  const st = v2_erState(id);
+
+  mount.innerHTML = '<div class="v2-er-empty"><span class="v2-er-spinner"></span>Loading filings…</div>';
+  const filings = await v2_fetchFilings(ticker);
+  if(!filings || !filings.length){
+    mount.innerHTML = `<div class="v2-er-empty">No SEC filings available for ${esc(ticker)} from FMP.</div>`;
+    return;
+  }
+  const filtered = st.filingType === 'all' ? filings : filings.filter(f => (f.type||f.formType||'').toUpperCase() === st.filingType);
+  const sorted = filtered.slice().sort((a,b) => new Date(b.fillingDate||b.filingDate||b.acceptedDate||0) - new Date(a.fillingDate||a.filingDate||a.acceptedDate||0));
+  if(!sorted.length){
+    mount.innerHTML = `<div class="v2-er-empty">No ${esc(st.filingType)} filings found for ${esc(ticker)}.</div>`;
+    return;
+  }
+  mount.innerHTML = sorted.slice(0, 30).map(f => {
+    const type = f.type || f.formType || '—';
+    const date = (f.fillingDate || f.filingDate || f.acceptedDate || '').slice(0,10) || '—';
+    const url = f.finalLink || f.link || f.url || '#';
+    return `<div class="v2-er-filing-row">
+      <span class="v2-er-filing-type">${esc(type)}</span>
+      <a class="v2-er-filing-link" href="${esc(url)}" target="_blank" rel="noopener">${esc(type)} filing</a>
+      <span class="v2-er-filing-date">${esc(date)}</span>
+    </div>`;
+  }).join('');
+}
+
+// Kick the filings fetch shortly after the tab HTML mounts (fire-and-forget; no synchronous fetch in the builder fn).
+(function v2_erAutoFilingsHook(){
+  const orig = (typeof eswTab === 'function') ? eswTab : null;
+  if(!orig) return;
+  window.eswTab = function(id, name){
+    const r = orig(id, name);
+    if(name === 'er'){ setTimeout(() => { try{ v2_erRenderFilings(id); }catch(e){} }, 30); }
+    return r;
+  };
+})();
+
+// ============================================================================
+// v2_ Earnings Calendar — top-level nav tab (weekly grid, prev/next-week nav)
+// ============================================================================
+
+let V2_CAL_WEEK_OFFSET = 0; // 0 = current week, +1 = next week, -1 = prev week
+
+function v2_calWeekBounds(offset){
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((day + 6) % 7) + (offset * 7));
+  monday.setHours(0,0,0,0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return { start: monday, end: sunday };
+}
+function v2_calISO(d){ return d.toISOString().slice(0,10); }
+
+async function v2_calFetchWeek(offset){
+  const { start, end } = v2_calWeekBounds(offset);
+  const fromISO = v2_calISO(start), toISO = v2_calISO(end);
+  if(typeof fmpGet !== 'function') return null;
+  return await fmpGet('earning_calendar', { from: fromISO, to: toISO }, { ttlDays: 1 });
+}
+
+function v2_calNav(deltaWeeks){
+  V2_CAL_WEEK_OFFSET += deltaWeeks;
+  v2_renderCalendar();
+}
+
+async function v2_renderCalendar(){
+  const mount = document.getElementById('tabCalendar');
+  if(!mount) return;
+  const keysRef = (typeof keys !== 'undefined') ? keys : ['','','',''];
+  if(!keysRef[3]){
+    mount.innerHTML = `<div class="v2-cal-wrap"><div class="v2-er-empty">🗓 Add an FMP API key in ⚙ API Keys to unlock the earnings calendar.</div></div>`;
+    return;
+  }
+  const { start, end } = v2_calWeekBounds(V2_CAL_WEEK_OFFSET);
+  mount.innerHTML = `<div class="v2-cal-wrap">
+    <div class="v2-cal-nav">
+      <button class="v2-er-btn" onclick="v2_calNav(-1)">← Prev week</button>
+      <div class="v2-cal-label">${start.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${end.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+      <button class="v2-er-btn" onclick="v2_calNav(1)">Next week →</button>
+    </div>
+    <div id="v2-cal-grid-mount"><div class="v2-er-empty"><span class="v2-er-spinner"></span>Loading earnings calendar…</div></div>
+  </div>`;
+
+  const data = await v2_calFetchWeek(V2_CAL_WEEK_OFFSET);
+  const gridMount = document.getElementById('v2-cal-grid-mount');
+  if(!gridMount) return;
+  if(!data || !data.length){
+    gridMount.innerHTML = '<div class="v2-er-empty">No earnings reported for this week (or FMP free tier limits calendar range).</div>';
+    return;
+  }
+  const todayISO = v2_calISO(new Date());
+  const days = [];
+  for(let i=0;i<7;i++){
+    const d = new Date(start); d.setDate(start.getDate()+i);
+    days.push(d);
+  }
+  const byDay = {};
+  data.forEach(row => {
+    const dISO = (row.date || '').slice(0,10);
+    if(!byDay[dISO]) byDay[dISO] = [];
+    byDay[dISO].push(row);
+  });
+  gridMount.innerHTML = `<div class="v2-cal-grid">${days.map(d => {
+    const dISO = v2_calISO(d);
+    const items = byDay[dISO] || [];
+    const isPast = dISO < todayISO;
+    const badgeClass = isPast ? 'v2-past' : 'v2-upcoming';
+    const badgeText = isPast ? 'Past' : 'Next';
+    return `<div class="v2-cal-day">
+      <div class="v2-cal-daylabel">${d.toLocaleDateString('en-US',{weekday:'short',day:'numeric'})}</div>
+      ${items.length ? items.slice(0,6).map(it => `<div class="v2-cal-item"><b>${esc(it.symbol||'—')}</b><span class="v2-cal-badge ${badgeClass}">${badgeText}</span></div>`).join('')
+                     : '<div style="font-size:10px;color:var(--text-faint)">—</div>'}
+      ${items.length > 6 ? `<div style="font-size:10px;color:var(--text-faint)">+${items.length-6} more</div>` : ''}
+    </div>`;
+  }).join('')}</div>`;
+}
+</script>
+<style>
+/* v2 Calculator — reuses existing .mbox/.ml/.mv/.pill card vocabulary; only new
+   layout rules here (grid + input styling), all colors via existing CSS vars. */
+.v2-calc-wrap{ max-width:920px; margin:0 auto; padding:16px; }
+.v2-calc-card{ background:var(--surface-card,var(--bg-surface)); border:1px solid var(--border-default); border-radius:10px; padding:16px; margin-bottom:14px; box-shadow:var(--card-shadow,none); }
+.v2-calc-card h3{ margin:0 0 12px; font-size:14px; font-weight:700; color:var(--text-primary); padding-bottom:8px; border-bottom:1px solid var(--divider,var(--border-default)); }
+.v2-calc-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.v2-calc-field label{ display:block; font-size:11px; color:var(--text-faint); margin-bottom:4px; }
+.v2-calc-field input{ width:100%; box-sizing:border-box; padding:8px 10px; border-radius:8px; border:1px solid var(--border-default); background:var(--bg-input,var(--bg-surface)); color:var(--text-primary); font-size:13px; }
+.v2-calc-field input:focus{ outline:none; border-color:var(--border-focus,var(--brand,var(--accent-info))); }
+.v2-calc-results{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:14px; }
+.v2-calc-chartwrap{ overflow-x:auto; }
+@media (max-width: 720px){
+  .v2-calc-grid{ grid-template-columns:repeat(2,1fr); }
+  .v2-calc-results{ grid-template-columns:1fr; }
+  .v2-calc-wrap{ padding:10px; }
+}
+[data-ui-density="compact"] .v2-calc-card{ padding:10px; margin-bottom:8px; }
+[data-ui-density="compact"] .v2-calc-grid,[data-ui-density="compact"] .v2-calc-results{ gap:8px; }
+</style>
+<script>
+// ============================================================================
+// v2 Compound Calculator — standalone top-level nav tab (Phase 6)
+// initial + monthly contribution + years + expected annual rate + variance
+// -> Low/Base/High end values + monthly-compounding growth curve via svgChart.
+// ============================================================================
+
+// ---- v2_calcCompute(initial, monthly, years, ratePct, variancePct) -> {low,base,high,rows} ----
+// Monthly compounding: r_m = annualRatePct/100/12; contributions added at END of each month.
+// rows: [{month, low, base, high}] sampled yearly (month 0, 12, 24, ...) for the chart.
+function v2_calcCompute(initial, monthly, years, ratePct, variancePct){
+  const P = Math.max(0, Number(initial) || 0);
+  const M = Math.max(0, Number(monthly) || 0);
+  const Y = Math.max(0, Math.round(Number(years) || 0));
+  const rate = Number(ratePct) || 0;
+  const varr = Math.max(0, Number(variancePct) || 0);
+  const nMonths = Y * 12;
+
+  const scenarios = {
+    low:  (rate - varr) / 100 / 12,
+    base: rate / 100 / 12,
+    high: (rate + varr) / 100 / 12,
+  };
+
+  const rows = [];
+  const bal = { low: P, base: P, high: P };
+  rows.push({ month: 0, low: bal.low, base: bal.base, high: bal.high });
+  for(let m = 1; m <= nMonths; m++){
+    ['low','base','high'].forEach(k => { bal[k] = bal[k] * (1 + scenarios[k]) + M; });
+    if(m % 12 === 0 || m === nMonths){
+      rows.push({ month: m, low: bal.low, base: bal.base, high: bal.high });
+    }
+  }
+  return { low: bal.low, base: bal.base, high: bal.high, rows, years: Y };
+}
+
+// ---- v2_calcFmtUsd(n) -> string — compact currency formatter (no shared formatter exists) ----
+function v2_calcFmtUsd(n){
+  if(n == null || !isFinite(n)) return '—';
+  const neg = n < 0; const av = Math.abs(n);
+  let s;
+  if(av >= 1e9) s = '$' + (av/1e9).toFixed(2) + 'B';
+  else if(av >= 1e6) s = '$' + (av/1e6).toFixed(2) + 'M';
+  else if(av >= 1e3) s = '$' + Math.round(av).toLocaleString('en-US');
+  else s = '$' + av.toFixed(2);
+  return neg ? '-' + s : s;
+}
+
+// ---- v2_buildCalcHTML() -> string — full tab markup (inputs + results + chart) ----
+function v2_buildCalcHTML(){
+  const escFn = (typeof esc === 'function') ? esc : (x => String(x == null ? '' : x));
+  return `
+  <div class="v2-calc-wrap">
+    <div class="v2-calc-card">
+      <h3>Compound Growth Calculator</h3>
+      <div class="v2-calc-grid">
+        <div class="v2-calc-field">
+          <label for="v2ciInitial">Initial amount</label>
+          <input type="number" id="v2ciInitial" value="10000" min="0" step="100" oninput="v2_renderCalc()"/>
+        </div>
+        <div class="v2-calc-field">
+          <label for="v2ciMonthly">Monthly contribution</label>
+          <input type="number" id="v2ciMonthly" value="500" min="0" step="50" oninput="v2_renderCalc()"/>
+        </div>
+        <div class="v2-calc-field">
+          <label for="v2ciYears">Years</label>
+          <input type="number" id="v2ciYears" value="20" min="1" max="60" step="1" oninput="v2_renderCalc()"/>
+        </div>
+        <div class="v2-calc-field">
+          <label for="v2ciRate">Expected annual rate (%)</label>
+          <input type="number" id="v2ciRate" value="8" min="-20" max="40" step="0.1" oninput="v2_renderCalc()"/>
+        </div>
+        <div class="v2-calc-field">
+          <label for="v2ciVariance">Variance (± %)</label>
+          <input type="number" id="v2ciVariance" value="4" min="0" max="20" step="0.1" oninput="v2_renderCalc()"/>
+        </div>
+      </div>
+    </div>
+    <div class="v2-calc-results" id="v2CalcResults"></div>
+    <div class="v2-calc-card">
+      <h3>Growth Projection</h3>
+      <div class="v2-calc-chartwrap" id="v2CalcChart"></div>
+    </div>
+  </div>`;
+}
+
+// ---- v2_renderCalc() -> void — reads inputs, recomputes, repaints results + chart ----
+// Called on tab switch (switchTab('calc')) AND on every input via oninput for live recompute.
+function v2_renderCalc(){
+  const pane = document.getElementById('tabCalc');
+  if(!pane) return;
+
+  // First entry into the tab: pane is empty, so build the shell once.
+  if(!document.getElementById('v2ciInitial')){
+    pane.innerHTML = v2_buildCalcHTML();
+  }
+
+  const initial = document.getElementById('v2ciInitial');
+  const monthly = document.getElementById('v2ciMonthly');
+  const years = document.getElementById('v2ciYears');
+  const rate = document.getElementById('v2ciRate');
+  const variance = document.getElementById('v2ciVariance');
+  if(!initial || !monthly || !years || !rate || !variance) return;
+
+  const result = v2_calcCompute(initial.value, monthly.value, years.value, rate.value, variance.value);
+
+  const resultsEl = document.getElementById('v2CalcResults');
+  if(resultsEl){
+    const box = (lbl, v, tone) => `<div class="mbox mbox-${tone}"><div class="ml">${lbl}</div><div class="mv ${tone}">${v2_calcFmtUsd(v)}</div></div>`;
+    resultsEl.innerHTML =
+      box('Low (rate − variance)', result.low, 'fail') +
+      box('Base (expected rate)', result.base, 'neut') +
+      box('High (rate + variance)', result.high, 'pass');
+  }
+
+  const chartEl = document.getElementById('v2CalcChart');
+  if(chartEl){
+    if(typeof svgChart === 'function'){
+      const labels = result.rows.map(r => 'Y' + Math.round(r.month/12));
+      chartEl.innerHTML = svgChart({
+        type: 'line',
+        series: [
+          { name: 'Low',  values: result.rows.map(r => ({ x: r.month, y: r.low  })), color: 'var(--neg)' },
+          { name: 'Base', values: result.rows.map(r => ({ x: r.month, y: r.base })), color: 'var(--brand,var(--accent-info))' },
+          { name: 'High', values: result.rows.map(r => ({ x: r.month, y: r.high })), color: 'var(--pos)' },
+        ],
+        labels,
+        width: 700, height: 220,
+        yFormat: v2_calcFmtUsd,
+        zeroLine: false,
+        title: 'Balance over ' + result.years + ' years',
+      });
+    } else {
+      chartEl.innerHTML = '<div class="v2-chart-empty">Chart unavailable</div>';
+    }
+  }
+}
+</script>
+<style id="v2-fidelity">
+/* ══════════════════════════════════════════════════════════
+   FIDELITY INSTITUTIONAL THEME — third data-theme value
+   Maps Part B tokens onto EXISTING app var names so the whole
+   UI reskins for free (cards/tabs/badges/tables/nav all already
+   read --bg-page/--text-primary/--surface-card/--c-green/etc).
+   Placed as the LAST <style> block in the document (source-order
+   win over [data-design="material"][data-theme="light"], which is
+   higher specificity but never targets ="fidelity").
+   ══════════════════════════════════════════════════════════ */
+
+/* ---- New shared chart/UI tokens: dark defaults (component #1 owns these in ALL themes) ---- */
+:root{
+  --pos: var(--c-green);
+  --neg: var(--c-red);
+  --gridline: var(--border-default);
+  --axis-text: var(--text-faint);
+  --brand: var(--accent-info);
+  --divider: var(--border-default);
+}
+/* ---- Same new tokens, light theme (kept mapped to light equivalents) ---- */
+[data-theme="light"]{
+  --pos: var(--c-green);
+  --neg: var(--c-red);
+  --gridline: var(--border-default);
+  --axis-text: var(--text-faint);
+  --brand: var(--accent-info);
+  --divider: var(--border-default);
+}
+
+/* ---- Fidelity palette: maps Part B values onto EXISTING var names ---- */
+[data-theme="fidelity"]{
+  --bg-page:#ffffff; --bg-surface:#ffffff; --bg-surface-2:#fafafa; --bg-input:#ffffff; --bg-hover:#f2f2f2;
+  --text-primary:#141414; --text-secondary:#525150; --text-tertiary:#525150; --text-muted:#666666; --text-faint:#999999;
+  --border-default:#dddddd; --border-strong:#cccccc; --border-focus:#368727;
+  --accent-buy:#0d6f3f; --accent-buy-bg:#d4f3cf; --accent-buy-border:#0d6f3f;
+  --accent-sell:#b41212; --accent-sell-bg:#fbdada; --accent-sell-border:#b41212;
+  --accent-hold:#8a6d00; --accent-hold-bg:#f2ecc9; --accent-hold-border:#8a6d00;
+  --accent-info:#0000ee; --accent-ai:#368727;
+  --c-green:#0d6f3f; --c-red:#b41212; --c-amber:#8a6d00; --c-blue:#0000ee; --c-purple:#368727; --c-indigo:#368727;
+  --surface-card:#ffffff; --surface-deep:#fafafa;
+  /* NEW shared tokens (component #1 owns these in every theme, per §A.1) */
+  --pos:#0d6f3f; --neg:#b41212; --gridline:#eeeeee; --axis-text:#999999; --brand:#368727; --divider:#dddddd;
+  /* Fidelity-only extras used within this block's own component rules below */
+  --fid-radius:8px; --fid-btn-radius:24px;
+  --fid-card-shadow:0 1px 4px rgba(0,0,0,.3);
+  --fid-popover-shadow:0 1px 12px rgba(0,0,0,.2);
+  --fid-card-pad:16px;
+  --fid-tint-green:#d4f3cf; --fid-tint-gray:#e6e4e1;
+  --fid-link:#0000ee;
+  --fid-font:"Inter","Segoe UI",Arial,Helvetica,sans-serif;
+}
+
+/* Beat [data-design="material"][data-theme="light"] (specificity 0,2,0) for the
+   handful of props it also sets, since no rule targets ="fidelity" today a plain
+   [data-theme="fidelity"] block already wins by source order — this combined
+   selector is belt-and-suspenders for any FUTURE material+light-specific rule
+   that might otherwise clobber fidelity if reordered. */
+[data-design="material"][data-theme="fidelity"]{
+  --bg-page:#ffffff; --surface-deep:#fafafa; --bg-surface:#ffffff;
+  --surface-card:#ffffff; --bg-surface-2:#fafafa; --bg-input:#ffffff; --bg-hover:#f2f2f2;
+  --text-primary:#141414; --text-secondary:#525150; --text-tertiary:#525150;
+  --text-muted:#666666; --text-faint:#999999;
+  --border-default:#dddddd; --border-strong:#cccccc; --border-focus:#368727;
+  --accent-buy:#0d6f3f; --c-green:#0d6f3f;
+  --accent-sell:#b41212; --c-red:#b41212;
+  --accent-hold:#8a6d00; --c-amber:#8a6d00;
+  --accent-info:#0000ee; --c-blue:#0000ee; --c-indigo:#368727;
+  --accent-ai:#368727; --c-purple:#368727;
+  --accent-buy-bg:#d4f3cf; --accent-buy-border:#0d6f3f;
+  --accent-hold-bg:#f2ecc9; --accent-hold-border:#8a6d00;
+  --accent-sell-bg:#fbdada; --accent-sell-border:#b41212;
+  --md-primary:#368727; --md-on-primary:#ffffff;
+  --md-state-hover:rgba(54,135,39,.08); --md-state-press:rgba(54,135,39,.14);
+}
+
+/* ---- Typography ---- */
+[data-theme="fidelity"] body{
+  font-family: var(--fid-font);
+  font-size:16px; font-weight:400;
+}
+[data-theme="fidelity"] .keyhead, [data-theme="fidelity"] h1, [data-theme="fidelity"] h2, [data-theme="fidelity"] h3{
+  font-weight:700;
+}
+
+/* ---- Emoji de-emphasis (§A.2) — scoped strictly to fidelity ---- */
+[data-theme="fidelity"] .nvico{ filter:grayscale(1) opacity(.55); font-size:.9em; }
+[data-theme="fidelity"] .tab, [data-theme="fidelity"] .guide-tab{ letter-spacing:.01em; }
+[data-theme="fidelity"] .nvitem.active{ color:var(--brand); box-shadow:inset 0 -2px 0 var(--brand); }
+
+/* ---- Cards: white, radius, shadow, padding, no border (Part B "Cards") ---- */
+[data-theme="fidelity"] .keybox,
+[data-theme="fidelity"] .pos-card,
+[data-theme="fidelity"] .port-stat-card,
+[data-theme="fidelity"] .port-chat,
+[data-theme="fidelity"] .setup-card,
+[data-theme="fidelity"] .scard,
+[data-theme="fidelity"] .ov-stat,
+[data-theme="fidelity"] .ov-row,
+[data-theme="fidelity"] .rbar{
+  background:var(--surface-card);
+  border:none;
+  border-radius:var(--fid-radius);
+  box-shadow:var(--fid-card-shadow);
+  padding:var(--fid-card-pad);
+}
+[data-theme="fidelity"] .modal{
+  background:var(--surface-card); border:none; border-radius:var(--fid-radius);
+  box-shadow:var(--fid-popover-shadow);
+}
+
+/* ---- Card header: bold title + thin divider rule beneath ---- */
+[data-theme="fidelity"] .keyhead{
+  border-bottom:1px solid var(--divider);
+  padding-bottom:8px; margin-bottom:8px;
+  font-weight:700;
+}
+
+/* ---- Key-value rows: label left (muted), value right-aligned, hairlines ---- */
+[data-theme="fidelity"] .mv{ text-align:right; font-weight:700; }
+[data-theme="fidelity"] .metricbox, [data-theme="fidelity"] .mbox{
+  border-bottom:1px solid var(--divider-soft, var(--divider));
+  padding:12px 0;
+}
+
+/* ---- Buttons: pill shape, weight 600 ---- */
+[data-theme="fidelity"] .btn,
+[data-theme="fidelity"] .ksave,
+[data-theme="fidelity"] .setup-save,
+[data-theme="fidelity"] .setup-start,
+[data-theme="fidelity"] .modal-submit,
+[data-theme="fidelity"] .modal-save,
+[data-theme="fidelity"] .port-chat-send,
+[data-theme="fidelity"] .port-btn,
+[data-theme="fidelity"] .rot-btn,
+[data-theme="fidelity"] .disc-theme-btn{
+  border-radius:var(--fid-btn-radius);
+  font-weight:600;
+}
+/* Primary solid brand + white */
+[data-theme="fidelity"] .btn,
+[data-theme="fidelity"] .ksave,
+[data-theme="fidelity"] .setup-save,
+[data-theme="fidelity"] .setup-start,
+[data-theme="fidelity"] .modal-submit,
+[data-theme="fidelity"] .modal-save,
+[data-theme="fidelity"] .port-chat-send,
+[data-theme="fidelity"] .port-btn.primary{
+  background:var(--brand); color:#ffffff; border:none;
+}
+/* Secondary: white + 1px solid brand + brand text */
+[data-theme="fidelity"] .port-btn,
+[data-theme="fidelity"] .rot-btn,
+[data-theme="fidelity"] .disc-theme-btn{
+  background:var(--surface-card); color:var(--brand); border:1px solid var(--brand);
+}
+/* Neutral: white + 1px solid muted text */
+[data-theme="fidelity"] .seg-b{
+  background:var(--surface-card); color:var(--text-muted); border:none;
+}
+
+/* ---- Tabs: active bold + brand underline, inactive plain muted ---- */
+[data-theme="fidelity"] .tab{ color:var(--text-muted); font-weight:600; border-bottom:2px solid transparent; }
+[data-theme="fidelity"] .tab.active{ color:var(--text-primary); font-weight:700; border-bottom:2px solid var(--brand); }
+[data-theme="fidelity"] .guide-tab{ color:var(--text-muted); font-weight:600; }
+[data-theme="fidelity"] .guide-tab.active{ color:var(--text-primary); font-weight:700; border-bottom:2px solid var(--brand); }
+
+/* ---- Segmented/timeframe toggles: grouped outlined pills ---- */
+[data-theme="fidelity"] .seg{ border:1px solid var(--divider); border-radius:var(--fid-btn-radius); overflow:hidden; }
+[data-theme="fidelity"] .seg-b.active{ background:var(--brand); color:#ffffff; }
+
+/* ---- Badges / date-event badges: rounded, tint-green upcoming / tint-gray past ---- */
+[data-theme="fidelity"] .badge{ border-radius:6px; font-weight:700; }
+[data-theme="fidelity"] .accent-buy-bg, [data-theme="fidelity"] .badge.buy{ background:var(--fid-tint-green); color:var(--pos); }
+[data-theme="fidelity"] .badge.past{ background:var(--fid-tint-gray); color:var(--text-muted); }
+
+/* ---- Semantic pos/neg coloring for any component that already uses c-green/c-red ---- */
+[data-theme="fidelity"] .c-green, [data-theme="fidelity"] .v2-yoy-pos{ color:var(--pos)!important; }
+[data-theme="fidelity"] .c-red, [data-theme="fidelity"] .v2-yoy-neg{ color:var(--neg)!important; }
+
+/* ---- Links ---- */
+[data-theme="fidelity"] a{ color:var(--fid-link); }
+
+/* ---- Density: honor existing uiDensity render modes (cards vs rows) ----
+   'cards' (uiDensity='cards') -> .scard already picks up the card treatment above.
+   'rows' (uiDensity='rows') -> .srow gets tighter Fidelity-flavored spacing
+   (no JS change; both markup shapes already exist and are purely CSS-styled here). */
+[data-theme="fidelity"] .srow{
+  background:var(--surface-card); border:none; border-bottom:1px solid var(--divider);
+  border-radius:0; box-shadow:none; padding:10px 12px;
+}
+[data-theme="fidelity"] .scard{
+  padding:var(--fid-card-pad);
+}
+
+/* ---- Responsive: two-column card grid collapsing to one on mobile (Part B "Cards") ---- */
+[data-theme="fidelity"] #cardList{
+  display:grid; grid-template-columns:1fr 1fr; gap:12px;
+}
+@media (max-width:640px){
+  [data-theme="fidelity"] #cardList{ grid-template-columns:1fr; }
+}
+</style>
 </body>
 </html>
