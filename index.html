@@ -4963,8 +4963,8 @@ function showGuideSection(section){
   if(content) content.scrollTop = 0;
 }
 
-const V2_THEME_CYCLE = ['dark','light','fidelity'];
-const V2_THEME_GLYPH = { dark:'🌙', light:'☀️', fidelity:'🏛' };
+const V2_THEME_CYCLE = ['dark','light','fidelity','ivory'];
+const V2_THEME_GLYPH = { dark:'🌙', light:'☀️', fidelity:'🏛', ivory:'🕊' };
 function toggleTheme(){
   const cur = document.documentElement.getAttribute('data-theme') || 'dark';
   const i = V2_THEME_CYCLE.indexOf(cur);
@@ -10910,6 +10910,146 @@ function v2_renderCalc(){
   padding:var(--fid-card-pad);
 }
 
+/* ══════════════════════════════════════════════════════════
+   IVORY THEME — warm editorial skin (WedOS-derived)
+   Ivory surfaces, hairline cards, wine primary, serif display
+   headings, soft-tint active states. Tokens measured from the
+   reference app (shadcn HSL vars converted to hex).
+   ══════════════════════════════════════════════════════════ */
+[data-theme="ivory"]{
+  --bg-page:#f9f7f2; --bg-surface:#ffffff; --bg-surface-2:#f4f0ec; --bg-input:#ffffff; --bg-hover:#ebe7e0;
+  --text-primary:#231f1a; --text-secondary:#413830; --text-tertiary:#5a5147; --text-muted:#847a71; --text-faint:#a89e94;
+  --border-default:#e0dad2; --border-strong:#cfc7bc; --border-focus:#b82e4e;
+  --accent-buy:#2f7d52; --accent-buy-bg:#e2efe6; --accent-buy-border:#2f7d52;
+  --accent-sell:#bf3737; --accent-sell-bg:#f7e3e0; --accent-sell-border:#bf3737;
+  --accent-hold:#a07417; --accent-hold-bg:#f4ecd9; --accent-hold-border:#a07417;
+  --accent-info:#4b6bcd; --accent-ai:#b82e4e;
+  --c-green:#2f7d52; --c-red:#bf3737; --c-amber:#b8862e; --c-blue:#4b6bcd; --c-purple:#a06b96; --c-indigo:#b82e4e;
+  --surface-card:#ffffff; --surface-deep:#f4f0ec;
+  --pos:#2f7d52; --neg:#bf3737; --gridline:#eee8e0; --axis-text:#a89e94; --brand:#b82e4e; --divider:#e0dad2;
+  --ivy-radius:14px; --ivy-btn-radius:12px; --ivy-pill-radius:10px;
+  --ivy-card-shadow:0 1px 2px rgba(0,0,0,.05);
+  --ivy-popover-shadow:0 8px 28px rgba(35,31,26,.12);
+  --ivy-card-pad:16px;
+  --ivy-card-border:1px solid rgba(224,218,210,.55);
+  --ivy-serif:"Playfair Display",Georgia,"Times New Roman",serif;
+  --ivy-sans:"Inter","Segoe UI",Arial,Helvetica,sans-serif;
+}
+/* belt-and-suspenders vs any future material+theme-specific rule */
+[data-design="material"][data-theme="ivory"]{
+  --bg-page:#f9f7f2; --surface-deep:#f4f0ec; --bg-surface:#ffffff;
+  --surface-card:#ffffff; --bg-surface-2:#f4f0ec; --bg-input:#ffffff; --bg-hover:#ebe7e0;
+  --text-primary:#231f1a; --text-secondary:#413830; --text-tertiary:#5a5147;
+  --text-muted:#847a71; --text-faint:#a89e94;
+  --border-default:#e0dad2; --border-strong:#cfc7bc; --border-focus:#b82e4e;
+  --accent-buy:#2f7d52; --c-green:#2f7d52;
+  --accent-sell:#bf3737; --c-red:#bf3737;
+  --accent-hold:#a07417; --c-amber:#b8862e;
+  --accent-info:#4b6bcd; --c-blue:#4b6bcd; --c-indigo:#b82e4e;
+  --accent-ai:#b82e4e; --c-purple:#a06b96;
+  --accent-buy-bg:#e2efe6; --accent-buy-border:#2f7d52;
+  --accent-hold-bg:#f4ecd9; --accent-hold-border:#a07417;
+  --accent-sell-bg:#f7e3e0; --accent-sell-border:#bf3737;
+  --md-primary:#b82e4e; --md-on-primary:#ffffff;
+  --md-state-hover:rgba(184,46,78,.07); --md-state-press:rgba(184,46,78,.13);
+}
+
+/* ---- Typography: serif display headings, humanist body ---- */
+[data-theme="ivory"] body{ font-family:var(--ivy-sans); }
+[data-theme="ivory"] h1, [data-theme="ivory"] h2, [data-theme="ivory"] h3,
+[data-theme="ivory"] .keyhead{
+  font-family:var(--ivy-serif); font-weight:600; letter-spacing:.01em;
+}
+
+/* ---- Cards: white, hairline border, 14px radius, whisper shadow ---- */
+[data-theme="ivory"] .keybox,
+[data-theme="ivory"] .pos-card,
+[data-theme="ivory"] .port-stat-card,
+[data-theme="ivory"] .port-chat,
+[data-theme="ivory"] .setup-card,
+[data-theme="ivory"] .scard,
+[data-theme="ivory"] .ov-stat,
+[data-theme="ivory"] .ov-row,
+[data-theme="ivory"] .rbar{
+  background:var(--surface-card);
+  border:var(--ivy-card-border);
+  border-radius:var(--ivy-radius);
+  box-shadow:var(--ivy-card-shadow);
+  padding:var(--ivy-card-pad);
+}
+[data-theme="ivory"] .modal{
+  background:var(--surface-card); border:var(--ivy-card-border);
+  border-radius:var(--ivy-radius); box-shadow:var(--ivy-popover-shadow);
+}
+[data-theme="ivory"] .keyhead{
+  border-bottom:1px solid var(--divider);
+  padding-bottom:8px; margin-bottom:8px;
+}
+
+/* ---- Micro-labels: small caps, wide tracking, warm muted ---- */
+[data-theme="ivory"] .ml, [data-theme="ivory"] .slbl{
+  text-transform:uppercase; letter-spacing:.3px; font-size:11px; color:var(--text-muted);
+}
+[data-theme="ivory"] .mv{ text-align:right; font-weight:700; }
+[data-theme="ivory"] .metricbox, [data-theme="ivory"] .mbox{
+  border-bottom:1px solid var(--divider); padding:12px 0;
+}
+
+/* ---- Buttons: wine primary, soft neutral secondary, 12px radius ---- */
+[data-theme="ivory"] .btn,
+[data-theme="ivory"] .ksave,
+[data-theme="ivory"] .setup-save,
+[data-theme="ivory"] .setup-start,
+[data-theme="ivory"] .modal-submit,
+[data-theme="ivory"] .modal-save,
+[data-theme="ivory"] .port-chat-send{
+  background:var(--brand); color:#ffffff; border:none;
+  border-radius:var(--ivy-btn-radius); font-weight:600;
+}
+[data-theme="ivory"] .port-btn,
+[data-theme="ivory"] .rot-btn,
+[data-theme="ivory"] .disc-theme-btn{
+  background:var(--surface-card); color:var(--text-secondary);
+  border:1px solid var(--border-default);
+  border-radius:var(--ivy-btn-radius); font-weight:600;
+}
+[data-theme="ivory"] .port-btn.primary{ background:var(--brand); color:#ffffff; border:none; }
+
+/* ---- Tabs & nav: soft-tint active pill, no underline ---- */
+[data-theme="ivory"] .tab, [data-theme="ivory"] .guide-tab{
+  color:var(--text-muted); font-weight:500; border-bottom:2px solid transparent;
+  border-radius:var(--ivy-pill-radius);
+}
+[data-theme="ivory"] .tab.active, [data-theme="ivory"] .guide-tab.active{
+  color:var(--text-primary); font-weight:600; background:var(--bg-hover);
+  border-bottom:2px solid transparent;
+}
+[data-theme="ivory"] .nvitem{ border-radius:var(--ivy-pill-radius); }
+[data-theme="ivory"] .nvitem.active{
+  background:var(--bg-hover); color:var(--text-primary); box-shadow:none;
+}
+
+/* ---- Segmented toggles ---- */
+[data-theme="ivory"] .seg{ border:1px solid var(--border-default); border-radius:var(--ivy-pill-radius); overflow:hidden; }
+[data-theme="ivory"] .seg-b{ background:var(--surface-card); color:var(--text-muted); border:none; }
+[data-theme="ivory"] .seg-b.active{ background:var(--brand); color:#ffffff; }
+
+/* ---- Badges: soft warm tints ---- */
+[data-theme="ivory"] .badge{ border-radius:8px; font-weight:600; }
+[data-theme="ivory"] .badge.buy{ background:var(--accent-buy-bg); color:var(--pos); }
+[data-theme="ivory"] .badge.past{ background:#eae6df; color:var(--text-muted); }
+
+/* ---- Semantic colors for components using c-green/c-red ---- */
+[data-theme="ivory"] .c-green, [data-theme="ivory"] .v2-yoy-pos{ color:var(--pos)!important; }
+[data-theme="ivory"] .c-red, [data-theme="ivory"] .v2-yoy-neg{ color:var(--neg)!important; }
+
+/* ---- Links & rows ---- */
+[data-theme="ivory"] a{ color:var(--brand); }
+[data-theme="ivory"] .srow{
+  background:var(--surface-card); border:none; border-bottom:1px solid var(--divider);
+  border-radius:0; box-shadow:none; padding:10px 12px;
+}
+[data-theme="ivory"] .scard{ padding:var(--ivy-card-pad); }
 </style>
 </body>
 </html>
