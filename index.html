@@ -11125,7 +11125,10 @@ html[data-theme="ivory"]{
 }
 
 /* ---- Typography: serif display headings, humanist body ---- */
-html[data-theme="ivory"] body{ font-family:var(--ivy-sans); }
+/* Transition background-COLOR (longhand), not the `background` shorthand: a
+   shorthand-background under transition won't repaint when only its var()
+   changes, so a runtime day/night toggle would leave the page canvas stale. */
+html[data-theme="ivory"] body{ font-family:var(--ivy-sans); transition:background-color .25s var(--ivy-ease), color .25s var(--ivy-ease); }
 html[data-theme="ivory"] h1, html[data-theme="ivory"] h2, html[data-theme="ivory"] h3,
 html[data-theme="ivory"] .keyhead{
   font-family:var(--ivy-serif); font-weight:600; letter-spacing:.01em;
