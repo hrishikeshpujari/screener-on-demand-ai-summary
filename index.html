@@ -9,6 +9,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <!-- APK BUILD: serve via WebViewAssetLoader at https://appassets.androidplatform.net/assets/ -->
+<!-- Webfonts for the Ivory theme only: browsers download a font solely when an
+     active CSS rule uses it, so the other themes stay network-free. Offline or
+     blocked -> Georgia/Segoe fallbacks in the ivory stacks. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
 <title>Value Investor Stock Screener</title>
 
 <style>
@@ -11197,6 +11203,87 @@ html[data-theme="ivory"] .rbar{
 /* Reduced motion: drop the polish transitions */
 @media (prefers-reduced-motion: reduce){
   html[data-theme="ivory"] *{ transition:none!important; }
+}
+
+/* ---- Ivory deep port: WedOS type scale, sidebar anatomy, motion ---- */
+html[data-theme="ivory"]{
+  --ivy-ease:cubic-bezier(.4,0,.2,1);
+}
+/* Type scale (measured: Playfair 36/400 display, Inter 16 body, 12px caps labels) */
+html[data-theme="ivory"] h1{
+  font-size:34px; font-weight:400; line-height:1.15; letter-spacing:0;
+}
+html[data-theme="ivory"] .sub{ font-size:13px; }
+html[data-theme="ivory"] .ov-h{
+  font-family:var(--ivy-serif); font-size:19px; font-weight:600; letter-spacing:.01em;
+}
+html[data-theme="ivory"] .ov-sv{ font-size:20px; font-weight:700; }
+html[data-theme="ivory"] .ov-sl{
+  font-size:10.5px; text-transform:uppercase; letter-spacing:.3px;
+  color:var(--text-muted); font-weight:500;
+}
+
+/* Sidebar: WedOS anatomy — wider warm rail, 40px rows, soft-pill active */
+@media(min-width:900px){
+  html[data-theme="ivory"] #appNav{
+    width:224px; background:var(--surface-deep);
+    border-right:1px solid var(--border-default); padding:20px 12px; gap:2px;
+  }
+  html[data-theme="ivory"] #screenerPage{ padding-left:224px; }
+  html[data-theme="ivory"] .nvitem{
+    font-size:14px; font-weight:500; padding:10px 12px; gap:10px;
+    border-radius:12px; color:#3b332b;
+    transition:background-color .2s var(--ivy-ease), color .2s var(--ivy-ease);
+  }
+  html[data-theme="ivory"] .nvitem:hover{ background:rgba(235,231,224,.6); }
+  html[data-theme="ivory"] .nvitem.active{
+    background:var(--bg-hover); color:var(--text-secondary); font-weight:500;
+  }
+  html[data-theme="ivory"] .nvitem .nvico{ font-size:17px; }
+  html[data-theme="ivory"] .nvbrand{
+    font-family:var(--ivy-serif); font-size:18px; font-weight:600;
+    color:var(--text-primary); padding:2px 12px 18px;
+  }
+  html[data-theme="ivory"] .nvspy{
+    background:var(--surface-card); border:var(--ivy-card-border);
+    border-radius:12px; box-shadow:var(--ivy-card-shadow);
+  }
+  html[data-theme="ivory"] body.nav-collapsed #appNav{ width:64px; padding:20px 8px; }
+  html[data-theme="ivory"] body.nav-collapsed #screenerPage{ padding-left:64px; }
+  html[data-theme="ivory"] body.nav-collapsed .nvitem{ padding:10px 0; }
+}
+/* Mobile bottom bar: warm surface */
+@media(max-width:899px){
+  html[data-theme="ivory"] #appNav{
+    background:var(--surface-deep); border-top:1px solid var(--border-default);
+  }
+}
+/* Detail pane joins the card vocabulary */
+html[data-theme="ivory"] #detailPane{
+  border:var(--ivy-card-border); border-radius:var(--ivy-radius);
+  box-shadow:var(--ivy-card-shadow); background:var(--surface-card);
+}
+
+/* Motion: one easing curve, quiet hover lift, gentle modal entrance */
+html[data-theme="ivory"] .scard,
+html[data-theme="ivory"] .ov-stat{
+  transition:box-shadow .2s var(--ivy-ease), transform .2s var(--ivy-ease),
+             background-color .2s var(--ivy-ease), border-color .2s var(--ivy-ease);
+}
+html[data-theme="ivory"] .scard:hover{
+  box-shadow:0 4px 14px rgba(35,31,26,.09); transform:translateY(-1px);
+}
+html[data-theme="ivory"] .tab, html[data-theme="ivory"] .guide-tab,
+html[data-theme="ivory"] .seg-b, html[data-theme="ivory"] .pill,
+html[data-theme="ivory"] .badge{
+  transition:background-color .2s var(--ivy-ease), color .2s var(--ivy-ease),
+             border-color .2s var(--ivy-ease);
+}
+@keyframes ivyPop{ from{ opacity:0; transform:scale(.97) translateY(4px); } }
+html[data-theme="ivory"] .modal{ animation:ivyPop .18s var(--ivy-ease); }
+html[data-theme="ivory"] #v2ThemeMenu{ animation:ivyPop .15s var(--ivy-ease); }
+@media (prefers-reduced-motion: reduce){
+  html[data-theme="ivory"] .modal, html[data-theme="ivory"] #v2ThemeMenu{ animation:none; }
 }
 
 /* ---- Theme menu (all themes) ---- */
