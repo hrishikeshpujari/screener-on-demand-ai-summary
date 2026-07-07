@@ -5015,6 +5015,36 @@ function v2_ivoryIcons(on){
     v2_swapLabeled(document.getElementById('apiKeysBtn'), 'settings', 'API Keys', on);
     v2_swapLabeled(document.getElementById('syncBtn'), 'refresh', 'Sync', on);
   }catch(e){}
+  v2_ivoryDecor(on);
+}
+// Strip decorative leading emoji from JS-rendered section headers + lens chips
+// under Ivory so they read as clean editorial text (WedOS style). A scoped
+// observer re-applies it after the app re-renders cards/overview.
+const V2_STRIP_SEL = '.ov-h, .ov-sec, .sec-head2, .sec-head-title, .chip-l';
+const V2_LEAD_EMO = /^(?:[\u{1F000}-\u{1FAFF}\u{2190}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{20E3}]️?\s*)+/u;
+let v2_ivoryObs = null;
+function v2_firstText(el){
+  try{ const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null); let n; while((n = w.nextNode())){ if(n.textContent.trim()) return n; } }catch(e){}
+  return null;
+}
+function v2_stripEmoji(root){
+  const list = [];
+  if(root.matches && root.matches(V2_STRIP_SEL)) list.push(root);
+  if(root.querySelectorAll) list.push(...root.querySelectorAll(V2_STRIP_SEL));
+  list.forEach(el => { const tn = v2_firstText(el); if(tn && V2_LEAD_EMO.test(tn.textContent)) tn.textContent = tn.textContent.replace(V2_LEAD_EMO, ''); });
+}
+function v2_ivoryDecor(on){
+  try{
+    if(on){
+      v2_stripEmoji(document.body);
+      if(!v2_ivoryObs){
+        v2_ivoryObs = new MutationObserver(muts => {
+          for(const m of muts) for(const n of m.addedNodes) if(n.nodeType === 1) v2_stripEmoji(n);
+        });
+        v2_ivoryObs.observe(document.getElementById('screenerPage') || document.body, {childList:true, subtree:true});
+      }
+    } else if(v2_ivoryObs){ v2_ivoryObs.disconnect(); v2_ivoryObs = null; }
+  }catch(e){}
 }
 function v2_syncThemeButtons(){
   const t = document.documentElement.getAttribute('data-theme') || 'dark';
