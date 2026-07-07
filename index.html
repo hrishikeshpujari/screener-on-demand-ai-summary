@@ -1858,11 +1858,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 <div class="screener-page" id="screenerPage">
 
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:8px">
-  <h1>📚 Value Investor Stock Screener</h1>
+  <h1><span class="h1emo">📚 </span>Value Investor Stock Screener</h1>
   <div style="display:flex;gap:8px;align-items:center">
     <button class="design-toggle" onclick="v2_openThemeMenu(event)" id="designBtn" title="Choose theme">🎨 Theme</button>
     <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Day / night">🌙</button>
-    <button class="theme-toggle" onclick="showSetup()">⚙ API Keys</button>
+    <button class="theme-toggle" id="apiKeysBtn" onclick="showSetup()">⚙ API Keys</button>
     <button class="theme-toggle" id="syncBtn" onclick="openSyncModal()" title="Sync across devices">🔄 Sync</button>
   </div>
 </div>
@@ -4974,18 +4974,63 @@ function showGuideSection(section){
 // picked from the Themes menu; the 🌙/☀️ button only flips day/night and
 // exits any skin back to night mode.
 const V2_SKINS = ['fidelity','ivory'];
+
+// ── Lucide line-icon set (exact paths, 24x24, stroke 2) — used ONLY by the
+// Ivory skin to replace emoji in the sidebar + top bar so it reads like the
+// WedOS research console. Other themes keep their emoji untouched. ──
+const V2_ICON = {
+  chart:'<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+  telescope:'<path d="m10.065 12.493-6.18 1.318a.934.934 0 0 1-1.108-.702l-.537-2.15a1.07 1.07 0 0 1 .691-1.265l13.504-4.44"/><path d="m13.56 11.747 4.332-.924"/><path d="m16 21-3.105-6.21"/><path d="M16.485 5.94a2 2 0 0 1 1.455-2.425l1.09-.272a1 1 0 0 1 1.212.727l1.515 6.06a1 1 0 0 1-.727 1.213l-1.09.272a2 2 0 0 1-2.425-1.455z"/><path d="m6.158 8.633 1.114 4.456"/><path d="m8 21 3.105-6.21"/><circle cx="12" cy="13" r="2"/>',
+  briefcase:'<path d="M12 12h.01"/><path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M22 13a18.15 18.15 0 0 1-20 0"/><rect width="20" height="14" x="2" y="6" rx="2"/>',
+  compass:'<circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/>',
+  compare:'<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>',
+  calendar:'<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/>',
+  calc:'<rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/>',
+  book:'<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
+  settings:'<path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/>',
+  refresh:'<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+  moon:'<path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/>',
+  palette:'<path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/>'
+};
+function v2_licon(k){ const p = V2_ICON[k]; return p ? '<svg class="v2-licon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>' : ''; }
+const V2_NAVICON = {navScreener:'chart',navDiscover:'telescope',navPortfolio:'briefcase',navMacro:'compass',navCompare:'compare',navCalendar:'calendar',navCalc:'calc'};
+function v2_swapLabeled(el, key, label, on){
+  if(!el) return;
+  if(on){ if(el.dataset.orig == null) el.dataset.orig = el.innerHTML; el.innerHTML = v2_licon(key) + '<span class="v2-btnlbl">' + label + '</span>'; }
+  else if(el.dataset.orig != null){ el.innerHTML = el.dataset.orig; delete el.dataset.orig; }
+}
+// Swap sidebar + top-bar emoji for Lucide SVGs under Ivory; reverse on exit.
+function v2_ivoryIcons(on){
+  try{
+    for(const id in V2_NAVICON){
+      const b = document.getElementById(id); if(!b) continue;
+      const ico = b.querySelector('.nvico'); if(!ico) continue;
+      if(on){ if(ico.dataset.emo == null) ico.dataset.emo = ico.textContent; ico.innerHTML = v2_licon(V2_NAVICON[id]); }
+      else if(ico.dataset.emo != null){ ico.textContent = ico.dataset.emo; delete ico.dataset.emo; }
+    }
+    const brand = document.querySelector('.nvbrand .nvico');
+    if(brand){ if(on){ if(brand.dataset.emo == null) brand.dataset.emo = brand.textContent; brand.innerHTML = v2_licon('book'); }
+               else if(brand.dataset.emo != null){ brand.textContent = brand.dataset.emo; delete brand.dataset.emo; } }
+    v2_swapLabeled(document.getElementById('apiKeysBtn'), 'settings', 'API Keys', on);
+    v2_swapLabeled(document.getElementById('syncBtn'), 'refresh', 'Sync', on);
+  }catch(e){}
+}
 function v2_syncThemeButtons(){
   const t = document.documentElement.getAttribute('data-theme') || 'dark';
   const d = localStorage.getItem('viss_design') || 'material';
+  const ivory = (t === 'ivory');
   const tb = document.getElementById('themeBtn');
-  if(tb) tb.textContent = (t === 'dark') ? '🌙' : '☀️';
+  if(tb){ if(ivory) tb.innerHTML = v2_licon(t === 'dark' ? 'moon' : 'sun'); else tb.textContent = (t === 'dark') ? '🌙' : '☀️'; }
   const db = document.getElementById('designBtn');
   if(db){
     const skin = V2_SKINS.includes(t) ? t : null;
     const name = skin ? skin.charAt(0).toUpperCase()+skin.slice(1)
                       : (d === 'material' ? 'Material' : 'Classic');
-    db.textContent = '🎨 ' + name;
+    if(ivory) db.innerHTML = v2_licon('palette') + '<span class="v2-btnlbl">' + name + '</span>';
+    else db.textContent = '🎨 ' + name;
   }
+  v2_ivoryIcons(ivory);
 }
 // While a skin is active, the Material design layer is suspended at the
 // ATTRIBUTE level only (viss_design is preserved and restored on exit) --
@@ -8762,10 +8807,16 @@ async function syncNow(){
 function updateSyncBadge(state){
   const b = document.getElementById('syncBtn'); if(!b) return;
   const last = localStorage.getItem('viss_sync_last');
-  if(state==='syncing'){ b.textContent='⏳ Sync…'; b.title='Syncing…'; }
-  else if(state==='ok'){ b.textContent='✓ Synced'; b.title='Last synced '+(last?new Date(last).toLocaleString():'just now'); }
-  else if(state==='err'){ b.textContent='⚠ Sync'; b.title='Sync error — tap to review'; }
-  else { b.textContent='🔄 Sync'; b.title='Sync across devices'; }
+  const ivory = document.documentElement.getAttribute('data-theme') === 'ivory';
+  const set = (emo, label, title) => {
+    if(ivory && typeof v2_licon === 'function'){ delete b.dataset.orig; b.innerHTML = v2_licon('refresh') + '<span class="v2-btnlbl">' + label + '</span>'; }
+    else b.textContent = emo + ' ' + label;
+    b.title = title;
+  };
+  if(state==='syncing'){ set('⏳','Sync…','Syncing…'); }
+  else if(state==='ok'){ set('✓','Synced','Last synced '+(last?new Date(last).toLocaleString():'just now')); }
+  else if(state==='err'){ set('⚠','Sync','Sync error — tap to review'); }
+  else { set('🔄','Sync','Sync across devices'); }
 }
 async function syncConnect(){
   const inp=document.getElementById('syncTokenInput'); if(!inp) return;
@@ -11285,6 +11336,115 @@ html[data-theme="ivory"] #v2ThemeMenu{ animation:ivyPop .15s var(--ivy-ease); }
 @media (prefers-reduced-motion: reduce){
   html[data-theme="ivory"] .modal, html[data-theme="ivory"] #v2ThemeMenu{ animation:none; }
 }
+
+/* ═══ Ivory coverage pass: Lucide icons + every remaining component ═══ */
+/* Lucide SVGs injected by v2_ivoryIcons — sized per context, inherit color */
+html[data-theme="ivory"] .v2-licon{ display:inline-block; vertical-align:middle; flex:0 0 auto; }
+html[data-theme="ivory"] .nvico{ display:inline-flex; align-items:center; justify-content:center; }
+html[data-theme="ivory"] .nvico .v2-licon{ width:18px; height:18px; }
+html[data-theme="ivory"] .nvbrand .nvico .v2-licon{ width:20px; height:20px; color:var(--brand); }
+html[data-theme="ivory"] .theme-toggle,
+html[data-theme="ivory"] .design-toggle{ display:inline-flex; align-items:center; gap:7px; }
+html[data-theme="ivory"] .theme-toggle .v2-licon,
+html[data-theme="ivory"] .design-toggle .v2-licon{ width:15px; height:15px; }
+html[data-theme="ivory"] #themeBtn .v2-licon{ width:16px; height:16px; }
+html[data-theme="ivory"] .v2-btnlbl{ line-height:1; }
+/* Page headline drops its emoji under Ivory (the rail brand already carries the book icon) */
+html[data-theme="ivory"] .h1emo{ display:none; }
+
+/* Primary buttons get WedOS's raised shadow + press feedback */
+html[data-theme="ivory"] .btn{
+  box-shadow:0 1px 3px rgba(0,0,0,.1),0 1px 2px -1px rgba(0,0,0,.1);
+}
+html[data-theme="ivory"] .btn:active{ transform:translateY(1px); }
+
+/* AI actions: keep wine→plum gradient consistent with the brand (was cool indigo) */
+html[data-theme="ivory"] .btn-ai-all,
+html[data-theme="ivory"] .ai-btn{
+  background:linear-gradient(135deg,#b82e4e 0%,#a06b96 100%)!important; color:#fff!important;
+  border:none!important; border-radius:var(--ivy-btn-radius)!important; font-weight:600;
+  box-shadow:0 1px 3px rgba(0,0,0,.1),0 1px 2px -1px rgba(0,0,0,.1);
+}
+
+/* All remaining buttons → quiet white hairline pills */
+html[data-theme="ivory"] .disc-btn,
+html[data-theme="ivory"] .pos-action-btn,
+html[data-theme="ivory"] .modal-cancel,
+html[data-theme="ivory"] .flt-reset,
+html[data-theme="ivory"] .nvcol,
+html[data-theme="ivory"] .modal-tab{
+  background:var(--surface-card); color:var(--text-secondary);
+  border:1px solid var(--border-default); border-radius:var(--ivy-btn-radius);
+  font-weight:600; transition:background-color .2s var(--ivy-ease),border-color .2s var(--ivy-ease);
+}
+html[data-theme="ivory"] .disc-btn:hover,
+html[data-theme="ivory"] .pos-action-btn:hover,
+html[data-theme="ivory"] .modal-cancel:hover,
+html[data-theme="ivory"] .flt-reset:hover,
+html[data-theme="ivory"] .nvcol:hover{ background:var(--bg-surface-2); border-color:var(--border-strong); }
+html[data-theme="ivory"] .modal-tab.active{ background:var(--brand); color:#fff; border-color:var(--brand); }
+
+/* Filter search + selects: white, wine focus ring (was cool blue) */
+html[data-theme="ivory"] .flt-search,
+html[data-theme="ivory"] .flt-select{
+  background:#fff; color:var(--text-primary);
+  border:1px solid var(--border-default); border-radius:10px;
+}
+html[data-theme="ivory"] .flt-search:focus,
+html[data-theme="ivory"] .flt-select:focus{
+  outline:none; border-color:var(--brand); box-shadow:0 0 0 3px rgba(184,46,78,.13);
+}
+
+/* Lens chips on every stock card (were hardcoded rgba tints) */
+html[data-theme="ivory"] .chip-l{
+  background:var(--bg-surface-2); color:var(--text-tertiary);
+  border:1px solid var(--border-default); border-radius:999px;
+}
+html[data-theme="ivory"] .chip-pos{ background:var(--accent-buy-bg); color:var(--pos); border:1px solid transparent; }
+html[data-theme="ivory"] .chip-neg,
+html[data-theme="ivory"] .chip-x{ background:var(--accent-sell-bg); color:var(--neg); border:1px solid transparent; }
+html[data-theme="ivory"] .chip-neu{ background:var(--bg-surface-2); color:var(--text-muted); border:1px solid transparent; }
+html[data-theme="ivory"] .v2-cmp-chip{
+  background:var(--bg-surface-2); color:var(--text-secondary);
+  border:1px solid var(--border-default); border-radius:999px;
+}
+
+/* Section-divider rows in the stock list */
+html[data-theme="ivory"] tbody tr.sec-head,
+html[data-theme="ivory"] .sec-head{ background:transparent; }
+html[data-theme="ivory"] .sec-head-title{ font-family:var(--ivy-serif); font-weight:600; color:var(--text-primary); }
+html[data-theme="ivory"] .sec-head-count,
+html[data-theme="ivory"] .sec-head-sub{ color:var(--text-muted); }
+
+/* Modal scrim: warm translucent + soft blur (matches popover depth) */
+html[data-theme="ivory"] .modal-overlay{
+  background:rgba(35,31,26,.32); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+}
+
+/* Empty / data-unavailable states: warm card, wine CTA link */
+html[data-theme="ivory"] .v2-empty,
+html[data-theme="ivory"] .v2-chart-empty,
+html[data-theme="ivory"] .v2-sc-empty{
+  background:var(--bg-surface-2); border:1px dashed var(--border-strong);
+  border-radius:var(--ivy-radius); color:var(--text-muted);
+}
+html[data-theme="ivory"] .v2-cta{ color:var(--brand); font-weight:600; cursor:pointer; }
+
+/* List-row + overview-row hover affordance (WedOS list interaction) */
+html[data-theme="ivory"] .ov-row,
+html[data-theme="ivory"] .srow{ transition:background-color .15s var(--ivy-ease); }
+html[data-theme="ivory"] .ov-row:hover,
+html[data-theme="ivory"] .srow:hover{ background:var(--bg-surface-2); }
+
+/* Stat readouts: wine emphasis like the WedOS dashboard numbers */
+html[data-theme="ivory"] .ov-sv{ color:var(--brand); }
+html[data-theme="ivory"] h2{ font-size:22px; }
+html[data-theme="ivory"] h3{ font-size:18px; }
+
+/* Thin warm scrollbar */
+html[data-theme="ivory"] *::-webkit-scrollbar{ width:10px; height:10px; }
+html[data-theme="ivory"] *::-webkit-scrollbar-thumb{ background:#d9d1c6; border-radius:999px; border:2px solid var(--bg-page); }
+html[data-theme="ivory"] *::-webkit-scrollbar-track{ background:transparent; }
 
 /* ---- Theme menu (all themes) ---- */
 #v2ThemeMenu{
