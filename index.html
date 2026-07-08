@@ -2861,7 +2861,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 <style>
 /* Optional wrapper for svgChart() output — colors all via CSS vars, no hardcoded hex. */
-.v2-chart{ display:block; width:100%; max-width:460px; margin:6px auto; }
+.v2-chart{ display:block; width:100%; height:auto; margin:6px 0; }
 .v2-chart-empty{ color:var(--text-faint); font-size:12px; padding:10px; text-align:center; }
 </style>
 <script>
@@ -9179,10 +9179,14 @@ function svgChart(opts){
       + `<text x="${(padL-4).toFixed(1)}" y="${(gy+3).toFixed(1)}" text-anchor="end" font-size="8.5" fill="var(--axis-text)">${escFn(yFormat(gv))}</text>`;
   }
 
-  // X-axis category labels
+  // X-axis category labels — thin to ~12 max (keep first + last) so dense
+  // series (e.g. 20-year growth curves) don't render an unreadable label mush.
   let xLabels = '';
+  const nLbl = labels.length;
+  const xStep = Math.max(1, Math.ceil(nLbl / 12));
   labels.forEach((lbl, i) => {
     if(i >= nCats) return;
+    if(i !== 0 && i !== nLbl - 1 && (i % xStep !== 0)) return;
     xLabels += `<text x="${sx(i).toFixed(1)}" y="${(H-6).toFixed(1)}" text-anchor="middle" font-size="8.5" fill="var(--axis-text)">${escFn(lbl)}</text>`;
   });
 
