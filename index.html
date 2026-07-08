@@ -6590,23 +6590,27 @@ function buildValSensitivity(val){
 // ── Phase 3: real cash-flow DCF inputs from FMP free tier (US stocks only, ~250 calls/day).
 // Cached 90 days in viss_fcff. Fully optional — without an FMP key the earnings engine governs.
 // FMP exposes freeCashFlow + netDebt directly, so the parser is small and degrades gracefully. ──
-async function fetchFmpStatements(ticker){
-  if(typeof keys==='undefined' || !keys[3]){ appAlert('Add a free FMP API key (⚙ API Keys) to run a real cash-flow DCF.'); return false; }
+async function fetchFmpStatements(ticker, silent){
+  // silent=true when auto-called from the Statements tab on stock open, so a
+  // failure degrades quietly instead of popping a modal on every click.
+  const notify = (msg) => { if(!silent && typeof appAlert==='function') appAlert(msg); };
+  if(typeof keys==='undefined' || !keys[3]){ notify('Add a free FMP API key (⚙ API Keys) to run a real cash-flow DCF.'); return false; }
   const s = (typeof stocks!=='undefined'?stocks:[]).find(x=>x.ticker===ticker && x.status==='done');
   const bId = s ? 'fmpBtn-'+s.id : null;
   const setBtn = (txt,dis) => { const b=bId?document.getElementById(bId):null; if(b){ b.disabled=dis; b.textContent=txt; } };
-  setBtn('⏳ Fetching statements…', true);
+  if(!silent) setBtn('⏳ Fetching statements…', true);
   try{
-    const base = 'https://financialmodelingprep.com/api/v3';
+    // FMP /stable/ API (legacy /api/v3 was retired Aug 31 2025); symbol is a query param.
+    const base = 'https://financialmodelingprep.com/stable';
     const k = encodeURIComponent(keys[3]), t = encodeURIComponent(ticker.toUpperCase());
     const [cfR, bsR] = await Promise.all([
-      fetch(`${base}/cash-flow-statement/${t}?period=annual&limit=5&apikey=${k}`),
-      fetch(`${base}/balance-sheet-statement/${t}?period=annual&limit=1&apikey=${k}`),
+      fetch(`${base}/cash-flow-statement?symbol=${t}&period=annual&limit=5&apikey=${k}`),
+      fetch(`${base}/balance-sheet-statement?symbol=${t}&period=annual&limit=1&apikey=${k}`),
     ]);
     const cf = await cfR.json().catch(()=>null);
     const bs = await bsR.json().catch(()=>null);
-    if(cf && cf['Error Message']){ appAlert('FMP: '+cf['Error Message']); return false; }
-    if(!Array.isArray(cf) || !cf.length){ appAlert('FMP returned no statements for '+ticker+' — its free tier is US-only; the key may be invalid or the daily limit hit.'); return false; }
+    if(cf && cf['Error Message']){ notify('FMP: '+cf['Error Message']); return false; }
+    if(!Array.isArray(cf) || !cf.length){ notify('FMP returned no statements for '+ticker+' — its free tier is US-only; the key may be invalid or the daily limit hit.'); return false; }
     // Free cash flow per year (newest first): prefer FMP's freeCashFlow, else OCF − |capex|.
     const fcfAbs = cf.map(r => {
       if(r.freeCashFlow != null && isFinite(+r.freeCashFlow)) return +r.freeCashFlow;
@@ -6614,12 +6618,12 @@ async function fetchFmpStatements(ticker){
       return (isFinite(ocf) && isFinite(cap)) ? ocf - Math.abs(cap) : null;
     });
     const fcf0 = fcfAbs[0];
-    if(!(fcf0 > 0)){ appAlert(ticker+': trailing free cash flow is '+(fcf0==null?'unavailable':'negative')+' on FMP — a growth DCF needs positive cash flow, so '+ticker+' stays on the earnings-power model.'); return false; }
+    if(!(fcf0 > 0)){ notify(ticker+': trailing free cash flow is '+(fcf0==null?'unavailable':'negative')+' on FMP — a growth DCF needs positive cash flow, so '+ticker+' stays on the earnings-power model.'); return false; }
     // Shares (absolute): derive from the market cap + price we already have ($M → $); fall back to FMP WSO.
     let sharesAbs = (s && s.marketCap > 0 && s.currentPrice > 0) ? (s.marketCap * 1e6) / s.currentPrice : null;
     const wso = +cf[0].weightedAverageShsOut;
     if((!sharesAbs || !isFinite(sharesAbs)) && isFinite(wso) && wso > 0) sharesAbs = wso;
-    if(!sharesAbs || !isFinite(sharesAbs) || sharesAbs <= 0){ appAlert('Could not determine shares outstanding for '+ticker+'.'); return false; }
+    if(!sharesAbs || !isFinite(sharesAbs) || sharesAbs <= 0){ notify('Could not determine shares outstanding for '+ticker+'.'); return false; }
     const noBalanceSheet = !(Array.isArray(bs) && bs.length);
     const b0 = noBalanceSheet ? {} : bs[0];
     const netDebt = (b0.netDebt != null && isFinite(+b0.netDebt)) ? +b0.netDebt
@@ -6637,8 +6641,8 @@ async function fetchFmpStatements(ticker){
     m[ticker] = fcff; localStorage.setItem('viss_fcff', JSON.stringify(m));
     rerenderVal(ticker);
     return true;
-  }catch(e){ appAlert('FMP fetch failed: ' + e.message); return false; }
-  finally{ setBtn('⬆ Upgrade to real cash-flow DCF (FMP)', false); }
+  }catch(e){ notify('FMP fetch failed: ' + e.message); return false; }
+  finally{ if(!silent) setBtn('⬆ Upgrade to real cash-flow DCF (FMP)', false); }
 }
 
 function computeStock(ticker, fmp, history){
@@ -9033,16 +9037,30 @@ async function fmpGet(path, params, opts){
   const force = !!o.force;
   try{
     if(typeof keys === 'undefined' || !keys[3]) return null; // no FMP key configured
-    const p = params || {};
+    const p = Object.assign({}, params || {});
+    // FMP's free/stable tier returns 402 for limit>5 on statement endpoints —
+    // clamp so multi-year Statements/Charts still load (5y annual / 5q quarterly).
+    if(p.limit != null && +p.limit > 5) p.limit = 5;
     const cacheKey = v2_fmpCacheKey(path, p);
     let cache = v2_fmpCacheReadAll();
     const hit = cache[cacheKey];
     if(!force && hit && hit.ts && (Date.now() - hit.ts) <= ttlDays * 864e5){
       return hit.data;
     }
-    const base = 'https://financialmodelingprep.com/api/v3/';
-    const qp = Object.keys(p).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(p[k])).join('&');
-    const url = base + path + '?' + (qp ? qp + '&' : '') + 'apikey=' + encodeURIComponent(keys[3]);
+    // FMP retired /api/v3 (Aug 31 2025) for non-legacy keys. The current API is
+    // /stable/ : the symbol is a query param (not a path segment) and a few
+    // endpoints were renamed. Translate the legacy-style path the callers pass
+    // ('income-statement/AAPL', 'earning_calendar', 'sec_filings/AAPL', …).
+    const REMAP = { earning_calendar:'earnings-calendar', sec_filings:'sec-filings-search/symbol', earning_call_transcript:'earning-call-transcript' };
+    let endpoint = path, symbol = null;
+    const si = path.indexOf('/');
+    if(si >= 0){ endpoint = path.slice(0, si); symbol = path.slice(si + 1); }
+    endpoint = REMAP[endpoint] || endpoint;
+    const usp = new URLSearchParams();
+    if(symbol) usp.set('symbol', symbol);
+    Object.keys(p).forEach(k => usp.set(k, p[k]));
+    usp.set('apikey', keys[3]);
+    const url = 'https://financialmodelingprep.com/stable/' + endpoint + '?' + usp.toString();
 
     const doFetch = async () => {
       const r = await fetch(url);
@@ -9301,8 +9319,9 @@ async function v2_fetchStatements(ticker){
     fmpGet('analyst-estimates/' + t, { period: 'annual', limit: 4 }, { ttlDays: 3 }),
   ]);
   // Feed FCF into valuation via the existing, already-wired path (no new state shape).
+  // silent=true: this runs automatically on stock open, so it must never pop an alert.
   if(typeof fetchFmpStatements === 'function'){
-    try{ fetchFmpStatements(t); }catch(e){}
+    try{ fetchFmpStatements(t, true); }catch(e){}
   }
   return {
     income: Array.isArray(income) ? income : null,
